@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aria AI — Staff Portal</title>
+  <link rel="stylesheet" href="staff.css" />
+</head>
+<body>
+  <div class="staff-shell">
+    <aside class="staff-sidebar">
+      <div class="brand-block">
+        <div class="brand-mark">A</div>
+        <div><strong>Aria AI</strong><span>Staff Operations</span></div>
+      </div>
+
+      <nav>
+        <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+        <button class="nav-btn" data-page="hiring">Hiring</button>
+        <button class="nav-btn" data-page="operations">Operations</button>
+        <button class="nav-btn" data-page="hr">HR</button>
+        <button class="nav-btn" data-page="it">IT</button>
+        <button class="nav-btn" data-page="engineering">Engineering</button>
+        <button class="nav-btn" data-page="admin">System Administration</button>
+      </nav>
+
+      <div class="footer-links">
+        <button data-page="privacy">Privacy & Compliance</button>
+        <button data-page="audit">Audit Log</button>
+        <button data-page="billing">Billing / Finance</button>
+        <button data-page="security">Security & Access</button>
+        <button data-page="policies">System Policies</button>
+      </div>
+    </aside>
+
+    <main class="staff-main">
+      <header class="staff-topbar">
+        <div>
+          <div class="eyebrow">FOUNDER ACCESS</div>
+          <h1 id="pageTitle">Staff Dashboard</h1>
+        </div>
+        <div class="user-chip">Founder / Co-Founder</div>
+      </header>
+
+      <section class="page active" id="dashboard-page">
+        <div class="grid cards-4">
+          <article class="card"><span>Pending hires</span><strong id="pendingCount">2</strong></article>
+          <article class="card"><span>Active staff</span><strong>12</strong></article>
+          <article class="card"><span>Departments</span><strong>4</strong></article>
+          <article class="card"><span>Access reviews</span><strong>1</strong></article>
+        </div>
+        <article class="panel">
+          <div class="panel-head"><div><div class="eyebrow">HIRING FLOW</div><h2>Department assignment happens before activation</h2></div></div>
+          <div class="flow">
+            <div class="flow-step done"><span>1</span><strong>Candidate</strong></div>
+            <div class="flow-step done"><span>2</span><strong>Hired</strong></div>
+            <div class="flow-step current"><span>3</span><strong>Department Assignment</strong><small>Founder / Co-Founder</small></div>
+            <div class="flow-step"><span>4</span><strong>Role & Permissions</strong></div>
+            <div class="flow-step"><span>5</span><strong>Account Activated</strong></div>
+          </div>
+          <div class="planned"><strong>Planned later:</strong> Onboarding will be inserted between department assignment and full account activation.</div>
+        </article>
+      </section>
+
+      <section class="page" id="hiring-page">
+        <div class="section-head"><div><div class="eyebrow">EXECUTIVE CONTROL</div><h2>Hiring & Department Assignment</h2><p>Founder or Co-Founder assigns the employee's department before staff access is activated.</p></div></div>
+        <div id="candidateList" class="candidate-list"></div>
+      </section>
+
+      <section class="page" id="operations-page"><article class="panel"><div class="eyebrow">OPERATIONS</div><h2>Customer Support, Sales, Refunds & Audits</h2><p>Operations handles customer support, sales support, refunds, and operational audits.</p></article></section>
+      <section class="page" id="hr-page"><article class="panel"><div class="eyebrow">HUMAN RESOURCES</div><h2>Staff Decisions & Disciplinary Actions</h2><p>HR manages staff records, disciplinary actions, and personnel decisions after the employee is activated.</p></article></section>
+      <section class="page" id="it-page"><article class="panel"><div class="eyebrow">INFORMATION TECHNOLOGY</div><h2>Aria AI & Lifeline Operations</h2><p>IT manages Aria AI and Aria Lifeline logistics, service health, maintenance, and integrations.</p></article></section>
+      <section class="page" id="engineering-page"><article class="panel"><div class="eyebrow">ENGINEERING</div><h2>Backups, Recovery & Infrastructure</h2><p>Engineering manages hardware backups, recovery systems, infrastructure recovery, and member recovery tooling.</p></article></section>
+      <section class="page" id="admin-page"><article class="panel"><div class="eyebrow">FOUNDER / CO-FOUNDER</div><h2>System Administration</h2><p>Executive-only controls for departments, roles, permissions, system settings, and staff account activation.</p></article></section>
+      <section class="page" id="privacy-page"><article class="panel"><h2>Privacy & Compliance</h2><p>Privacy and compliance controls appear here according to applicable requirements and company policy.</p></article></section>
+      <section class="page" id="audit-page"><article class="panel"><h2>Audit Log</h2><p>Track staff actions such as access changes, refunds, account recovery, and department assignment.</p></article></section>
+      <section class="page" id="billing-page"><article class="panel"><h2>Billing / Finance</h2><p>Subscription reconciliation, chargebacks, and finance oversight.</p></article></section>
+      <section class="page" id="security-page"><article class="panel"><h2>Security & Access</h2><p>Role permissions, privileged access, access reviews, and employee account status.</p></article></section>
+      <section class="page" id="policies-page"><article class="panel"><h2>System Policies</h2><p>Internal company and system policies.</p></article></section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="assignModal">
+    <div class="modal">
+      <button class="close" id="closeModal">×</button>
+      <div class="eyebrow">DEPARTMENT ASSIGNMENT</div>
+      <h2 id="candidateName">Assign employee</h2>
+      <p>Choose the department this employee will enter. This determines the staff portal area shown after activation.</p>
+      <label>Department
+        <select id="departmentSelect">
+          <option value="Operations">Operations</option>
+          <option value="HR">HR</option>
+          <option value="IT">IT</option>
+          <option value="Engineering">Engineering</option>
+        </select>
+      </label>
+      <label>Role
+        <input id="roleInput" placeholder="Example: IT Technician" />
+      </label>
+      <div class="modal-actions">
+        <button class="primary" id="saveAssignment">Assign Department</button>
+        <button class="secondary" id="cancelAssignment">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="staff.js"></script>
+</body>
+</html>
