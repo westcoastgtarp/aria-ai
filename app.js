@@ -20,7 +20,7 @@ function saveDemo(){
 }
 
 function escapeHtml(value=''){
-  return String(value).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[ch]));
+  return String(value).replace(/[&<>'\"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','\"':'&quot;'}[ch]));
 }
 
 function renderDoses(){
@@ -123,6 +123,51 @@ function ariaResponse(risk){
   return 'I’m here to help with your medication schedule, reminders, and day-to-day support. What can I help you with?';
 }
 
+function medicationStatusIntent(text){
+  const t=text.toLowerCase();
+  const phrases=['did i take','have i taken','did i already take','have i already taken','was my medication taken','was my medicine taken'];
+  return phrases.some(phrase=>t.includes(phrase));
+}
+
+function doseMinutes(time){
+  const match=String(time).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if(!match)return Number.MAX_SAFE_INTEGER;
+  let hour=Number(match[1])%12;
+  const minute=Number(match[2]);
+  if(match[3].toUpperCase()==='PM')hour+=12;
+  return (hour*60)+minute;
+}
+
+function findMedicationStatus(text){
+  if(!medicationStatusIntent(text))return null;
+
+  const t=text.toLowerCase();
+  const medicationNames=[...new Set(doses.map(d=>d.medication))];
+  const matchedName=medicationNames
+    .sort((a,b)=>b.length-a.length)
+    .find(name=>t.includes(name.toLowerCase()));
+
+  if(!matchedName)return null;
+
+  const matches=doses.filter(d=>d.medication===matchedName);
+  const now=new Date();
+  const currentMinutes=(now.getHours()*60)+now.getMinutes();
+  const due=matches
+    .filter(d=>doseMinutes(d.time)<=currentMinutes)
+    .sort((a,b)=>doseMinutes(b.time)-doseMinutes(a.time));
+  const dose=due[0] || matches.sort((a,b)=>doseMinutes(a.time)-doseMinutes(b.time))[0];
+
+  return {
+    medication:dose.medication,
+    taken:dose.checked?'Yes':'No',
+    recorded:dose.checked?(dose.recorded||'Recorded'):'Not recorded'
+  };
+}
+
+function medicationStatusMessage(status){
+  return `Medication: ${status.medication}\nTaken: ${status.taken}\nRecorded: ${status.recorded}`;
+}
+
 function openAria(){
   document.getElementById('ariaBubblePanel').hidden=false;
   document.getElementById('ariaBubbleInput').focus();
@@ -142,7 +187,7 @@ function addBubbleMessage(type,text){
   const log=document.getElementById('ariaBubbleLog');
   const div=document.createElement('div');
   div.className=`aria-bubble-msg ${type}`;
-  div.innerHTML=`${escapeHtml(text)}<span class="aria-bubble-time">${nowTime()}</span>`;
+  div.innerHTML=`${escapeHtml(text).replace(/\n/g,'<br>')}<span class="aria-bubble-time">${nowTime()}</span>`;
   log.appendChild(div);
   log.scrollTop=log.scrollHeight;
 }
@@ -165,6 +210,13 @@ function sendBubbleMessage(){
   if(!text)return;
   addBubbleMessage('user',text);
   input.value='';
+
+  const medicationStatus=findMedicationStatus(text);
+  if(medicationStatus){
+    setTimeout(()=>addBubbleMessage('aria',medicationStatusMessage(medicationStatus)),180);
+    return;
+  }
+
   const risk=detectRisk(text);
   applyRisk(risk);
   setTimeout(()=>{
