@@ -4,14 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0b1324" />
-  <meta name="description" content="Aria AI — Lifeline Care demo for medication reminders and safety escalation." />
+  <meta name="description" content="Aria AI — Lifeline Care demo for medication reminders and safety support." />
   <title>Aria AI — Lifeline Care</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="polish.css" />
 </head>
 <body>
   <div class="demo-banner" role="status">
     <strong>DEMO MODE</strong>
-    <span>Use synthetic information only. This prototype is not emergency dispatch, medical advice, or a HIPAA-compliant production system.</span>
+    <span>Use synthetic information only. This prototype is not emergency dispatch or medical advice.</span>
   </div>
 
   <div class="app-shell">
@@ -28,15 +29,16 @@
         <button class="nav-item active" data-page="dashboard">Overview</button>
         <button class="nav-item" data-page="medications">Medications</button>
         <button class="nav-item" data-page="reminders">Reminders</button>
-        <button class="nav-item" data-page="lifeline">Lifeline Care</button>
         <button class="nav-item" data-page="carecircle">Care Circle</button>
-        <button class="nav-item" data-page="incidents">Incident History</button>
-        <button class="nav-item" data-page="privacy">Privacy & Security</button>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="status-dot-line"><span class="dot green"></span> Lifeline demo active</div>
+        <div class="status-dot-line"><span class="dot green"></span> Lifeline Care active</div>
         <div class="small muted">Medication & Lifeline Support, 24/7</div>
+        <div class="footer-links" aria-label="Trust and account history">
+          <button class="footer-link" data-page="privacy">Privacy & Security</button>
+          <button class="footer-link" data-page="incidents">Incident History & Timeline</button>
+        </div>
       </div>
     </aside>
 
@@ -44,7 +46,7 @@
       <header class="topbar">
         <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
         <div>
-          <div class="eyebrow">Tuesday, August 18</div>
+          <div class="eyebrow">ARIA AI</div>
           <h1 id="pageTitle">Good afternoon</h1>
         </div>
         <div class="topbar-actions">
@@ -56,11 +58,11 @@
       <section class="page active" id="dashboard-page">
         <div class="hero-card">
           <div>
-            <div class="eyebrow light">ARIA LIFELINE</div>
+            <div class="eyebrow light">LIFELINE CARE</div>
             <h2>Your medication. Your reminders. Your lifeline.</h2>
-            <p>Aria keeps your day organized and makes safety support easy to reach when something feels wrong.</p>
+            <p>Stay on top of medication schedules and important care reminders with Aria close by whenever you need support.</p>
           </div>
-          <button class="primary light-primary" data-go="lifeline">Talk to Aria</button>
+          <button class="primary light-primary" id="openAriaFromHero">Chat with Aria</button>
         </div>
 
         <div class="metric-grid">
@@ -84,113 +86,36 @@
         <div class="two-col">
           <article class="panel">
             <div class="panel-head">
-              <div>
-                <div class="eyebrow">TODAY</div>
-                <h3>Medication checklist</h3>
-              </div>
-              <button class="text-btn" data-go="medications">View all</button>
+              <div><div class="eyebrow">TODAY</div><h3>Medication checklist</h3></div>
+              <button class="text-btn" data-page="medications">View all</button>
             </div>
             <div id="dashboardMedicationList" class="dose-list"></div>
           </article>
 
           <article class="panel lifeline-status-panel">
-            <div class="status-badge"><span class="dot green"></span> Monitoring available</div>
-            <h3>Lifeline Care</h3>
-            <p>Aria's conversation layer and an independent safety monitor are separated in the production architecture.</p>
-            <div class="safety-flow">
-              <div><span>1</span> Conversation</div>
-              <div><span>2</span> Safety monitor</div>
-              <div><span>3</span> Escalation options</div>
-            </div>
-            <button class="primary full" data-go="lifeline">Open Lifeline Chat</button>
+            <h3>Aria is here when you need her.</h3>
+            <p>Ask about your reminders, medication schedule, or simply start a conversation when something does not feel right.</p>
+            <button class="primary full" id="openAriaCard">Open Aria</button>
           </article>
         </div>
       </section>
 
       <section class="page" id="medications-page">
         <div class="section-heading">
-          <div>
-            <div class="eyebrow">USER CONTROLLED</div>
-            <h2>Medications</h2>
-            <p>Aria never marks a dose as taken automatically. The user checks each scheduled dose.</p>
-          </div>
-          <button class="primary" id="addMedicationBtn">Add demo medication</button>
+          <div><div class="eyebrow">YOUR SCHEDULE</div><h2>Medications</h2><p>You control every medication entry and confirm each scheduled dose yourself.</p></div>
+          <button class="primary" id="addMedicationBtn">Add medication</button>
         </div>
-        <div class="notice info">
-          <strong>Responsibility boundary:</strong> Medication names, doses, schedules, and confirmations are supplied by the account holder. “Not recorded” does not mean Aria knows a dose was missed.
-        </div>
+        <div class="notice info"><strong>Important:</strong> Aria records what you enter and what you check off. An unchecked dose is shown as “Not recorded.”</div>
         <div id="medicationCards" class="medication-grid"></div>
       </section>
 
       <section class="page" id="reminders-page">
-        <div class="section-heading">
-          <div>
-            <div class="eyebrow">SMART REMINDERS</div>
-            <h2>Reminder center</h2>
-            <p>Persistent reminders for medication and care-related tasks.</p>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="timeline">
-            <div class="timeline-row complete"><div class="timeline-time">8:00 AM</div><div><strong>Demo Medication A</strong><span>Recorded by user at 8:06 AM</span></div><div class="pill success">Recorded</div></div>
-            <div class="timeline-row complete"><div class="timeline-time">12:00 PM</div><div><strong>Demo Medication B</strong><span>Recorded by user at 12:03 PM</span></div><div class="pill success">Recorded</div></div>
-            <div class="timeline-row"><div class="timeline-time">4:00 PM</div><div><strong>Demo Medication C</strong><span>Upcoming reminder</span></div><div class="pill">Upcoming</div></div>
-            <div class="timeline-row"><div class="timeline-time">8:00 PM</div><div><strong>Demo Medication A</strong><span>Evening dose</span></div><div class="pill">Upcoming</div></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" id="lifeline-page">
-        <div class="section-heading">
-          <div>
-            <div class="eyebrow">24/7 SAFETY EXPERIENCE</div>
-            <h2>Lifeline Care</h2>
-            <p>Demo conversation flow showing how Aria can surface escalating help options without diagnosing the user.</p>
-          </div>
-          <div id="riskBadge" class="risk-badge normal">NORMAL</div>
-        </div>
-
-        <div class="lifeline-layout">
-          <article class="chat-card">
-            <div class="chat-head">
-              <div class="aria-orb">A</div>
-              <div><strong>Aria</strong><span>Demo assistant</span></div>
-              <div class="online"><span class="dot green"></span> Available</div>
-            </div>
-            <div class="chat-log" id="chatLog" aria-live="polite"></div>
-            <div class="chat-input-wrap">
-              <input id="chatInput" autocomplete="off" placeholder="Try: “I feel unsafe and need help”" aria-label="Message Aria" />
-              <button class="primary" id="sendChat">Send</button>
-            </div>
-            <div class="chat-disclaimer">Demo keyword-based escalation only. In a real emergency, contact local emergency services directly.</div>
-          </article>
-
-          <aside class="safety-card">
-            <div class="eyebrow">INDEPENDENT SAFETY MONITOR</div>
-            <h3 id="safetyTitle">Conversation normal</h3>
-            <p id="safetyText">No elevated safety signal is active in this demo conversation.</p>
-            <div class="risk-meter">
-              <div class="risk-step active" data-risk="normal"><span></span>Normal</div>
-              <div class="risk-step" data-risk="concern"><span></span>Concern</div>
-              <div class="risk-step" data-risk="high"><span></span>High concern</div>
-              <div class="risk-step" data-risk="critical"><span></span>Critical</div>
-            </div>
-            <div id="escalationActions" class="escalation-actions hidden">
-              <button class="outline full" id="contactCareBtn">Contact Care Circle</button>
-              <button class="danger full" id="emergencyBtn">Emergency services</button>
-            </div>
-          </aside>
-        </div>
+        <div class="section-heading"><div><div class="eyebrow">YOUR DAY</div><h2>Reminders</h2><p>Medication and care-related reminders in one simple timeline.</p></div></div>
+        <div class="panel"><div class="timeline" id="reminderTimeline"></div></div>
       </section>
 
       <section class="page" id="carecircle-page">
-        <div class="section-heading">
-          <div>
-            <div class="eyebrow">USER-AUTHORIZED SUPPORT</div>
-            <h2>Care Circle</h2>
-            <p>Trusted people can be contacted during a safety event without automatically receiving the user's full Lifeline conversation.</p>
-          </div>
-        </div>
+        <div class="section-heading"><div><div class="eyebrow">TRUSTED SUPPORT</div><h2>Care Circle</h2><p>Choose who Aria may help you reach during a serious safety concern.</p></div></div>
         <div class="contact-grid">
           <article class="contact-card"><div class="contact-avatar">P</div><div><strong>Primary Contact</strong><span>Demo contact • Priority 1</span></div><div class="pill success">Enabled</div></article>
           <article class="contact-card"><div class="contact-avatar">B</div><div><strong>Backup Contact</strong><span>Demo contact • Priority 2</span></div><div class="pill success">Enabled</div></article>
@@ -205,42 +130,36 @@
       </section>
 
       <section class="page" id="incidents-page">
-        <div class="section-heading">
-          <div>
-            <div class="eyebrow">AUDITABLE TIMELINE</div>
-            <h2>Incident history</h2>
-            <p>Production incidents would preserve original timestamps, risk changes, access events, and disclosures.</p>
-          </div>
-        </div>
-        <article class="panel">
-          <div class="empty-state" id="incidentEmpty">
-            <div class="empty-icon">✓</div>
-            <h3>No demo incidents</h3>
-            <p>A Lifeline safety escalation in the demo will create a synthetic incident here.</p>
-          </div>
-          <div id="incidentList"></div>
-        </article>
+        <div class="section-heading"><div><div class="eyebrow">ACCOUNT HISTORY</div><h2>Incident History & Timeline</h2><p>Safety events are preserved with timestamps in the production design.</p></div></div>
+        <article class="panel"><div class="empty-state" id="incidentEmpty"><div class="empty-icon">✓</div><h3>No demo incidents</h3><p>Any synthetic Lifeline escalation created in this demo will appear here.</p></div><div id="incidentList"></div></article>
       </section>
 
       <section class="page" id="privacy-page">
-        <div class="section-heading">
-          <div>
-            <div class="eyebrow">HIPAA-ORIENTED DESIGN</div>
-            <h2>Privacy & Security</h2>
-            <p>Architecture targets strong healthcare privacy controls, but compliance requires contracts, policies, risk analysis, staff training, and operational controls in addition to code.</p>
-          </div>
-        </div>
+        <div class="section-heading"><div><div class="eyebrow">TRUST CENTER</div><h2>Privacy & Security</h2><p>Aria is being designed around strong healthcare privacy, access-control, encryption, and auditing principles.</p></div></div>
         <div class="security-grid">
-          <article class="security-card"><div class="security-icon">🔐</div><h3>Encryption</h3><p>Production design requires encryption in transit and at rest with managed keys.</p></article>
-          <article class="security-card"><div class="security-icon">👤</div><h3>Role-based access</h3><p>Support, billing, engineering, Lifeline, and privacy roles are separated.</p></article>
-          <article class="security-card"><div class="security-icon">🧾</div><h3>Audit controls</h3><p>PHI access and emergency disclosures require attributable, tamper-resistant logs.</p></article>
-          <article class="security-card"><div class="security-icon">🚨</div><h3>Break-glass access</h3><p>Emergency elevation is time-limited, justified, logged, and reviewable.</p></article>
-          <article class="security-card"><div class="security-icon">🤝</div><h3>Vendor controls</h3><p>Production vendors touching ePHI require appropriate due diligence and BAAs where applicable.</p></article>
-          <article class="security-card"><div class="security-icon">🧠</div><h3>AI separation</h3><p>Original transcripts remain distinct from AI summaries and safety classifications.</p></article>
+          <article class="security-card"><div class="security-icon">🔐</div><h3>Encryption</h3><p>Production data is intended to be protected in transit and at rest.</p></article>
+          <article class="security-card"><div class="security-icon">👤</div><h3>Access control</h3><p>Staff access is separated by role and limited to what each role needs.</p></article>
+          <article class="security-card"><div class="security-icon">🧾</div><h3>Audit history</h3><p>Protected-data access and disclosures are intended to be attributable and reviewable.</p></article>
+          <article class="security-card"><div class="security-icon">🤝</div><h3>Care Circle privacy</h3><p>Your trusted contacts do not automatically receive your full conversation history.</p></article>
         </div>
       </section>
     </main>
   </div>
+
+  <button class="aria-chat-launcher" id="ariaChatLauncher" aria-label="Open Aria chat">A</button>
+  <section class="aria-bubble-panel" id="ariaBubblePanel" aria-label="Aria chat" hidden>
+    <div class="aria-bubble-head">
+      <div class="aria-bubble-avatar">A</div>
+      <div class="aria-bubble-title"><strong>Aria</strong><span>Your health companion</span></div>
+      <button class="aria-chat-close" id="ariaChatClose" aria-label="Close chat">×</button>
+    </div>
+    <div class="aria-bubble-log" id="ariaBubbleLog" aria-live="polite"></div>
+    <div class="aria-bubble-input">
+      <input id="ariaBubbleInput" autocomplete="off" placeholder="Message Aria..." aria-label="Message Aria" />
+      <button id="ariaBubbleSend">Send</button>
+    </div>
+    <div class="aria-bubble-note">Aria can support you, but it does not replace emergency services or a medical professional.</div>
+  </section>
 
   <div class="modal-backdrop hidden" id="modalBackdrop">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
