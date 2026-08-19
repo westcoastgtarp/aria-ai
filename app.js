@@ -9,9 +9,17 @@ let doses = JSON.parse(sessionStorage.getItem('aria-demo-doses') || 'null') || s
 let incidents = JSON.parse(sessionStorage.getItem('aria-demo-incidents') || '[]');
 let chatRisk = 'normal';
 const riskLevels = ['normal','concern','high','critical'];
+const memberName = sessionStorage.getItem('aria-member-name') || 'Demo Member';
 
 function nowTime(){
   return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'}).format(new Date());
+}
+
+function greetingForNow(){
+  const hour=new Date().getHours();
+  if(hour<12)return `Good morning, ${memberName}`;
+  if(hour<18)return `Good afternoon, ${memberName}`;
+  return `Good evening, ${memberName}`;
 }
 
 function saveDemo(){
@@ -81,7 +89,7 @@ function showPage(page){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
   const target=document.getElementById(`${page}-page`);
   if(target)target.classList.add('active');
-  const names={dashboard:'Good afternoon',medications:'Medications',reminders:'Reminders',carecircle:'Care Circle',incidents:'Incident History & Timeline',privacy:'Privacy & Security'};
+  const names={dashboard:greetingForNow(),medications:'Medications',reminders:'Reminders',carecircle:'Care Circle',incidents:'Incident History & Timeline',privacy:'Privacy & Security'};
   document.getElementById('pageTitle').textContent=names[page]||'Aria AI';
   document.querySelector('.sidebar').classList.remove('open');
 }
@@ -277,4 +285,5 @@ document.getElementById('demoReset').addEventListener('click',()=>{
 renderDoses();
 renderReminders();
 renderIncidents();
+showPage('dashboard');
 addBubbleMessage('aria','Hi I’m Aria, your health companion.');
