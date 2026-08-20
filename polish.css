@@ -11,14 +11,6 @@
 .sidebar-footer .footer-link { border:0; background:transparent; color:#9eabc0; text-align:left; padding:7px 0; font-size:12px; cursor:pointer; }
 .sidebar-footer .footer-link:hover { color:#fff; }
 
-/* Keep one clear Aria chat entry point: the floating launcher. */
-#openAriaFromHero,
-.lifeline-status-panel { display:none !important; }
-
-.two-col { grid-template-columns:1fr !important; }
-.lifeline-status-panel .safety-flow { display:none !important; }
-.lifeline-status-panel .status-badge { display:none !important; }
-
 .aria-chat-launcher {
   position:fixed;
   right:24px;
@@ -68,6 +60,10 @@
 .aria-chat-launcher:hover {
   transform:translateY(-2px);
   box-shadow:0 20px 46px rgba(68,70,160,.34);
+}
+.aria-chat-launcher:focus-visible {
+  outline:3px solid rgba(98,105,229,.34);
+  outline-offset:4px;
 }
 
 .aria-bubble-panel {
