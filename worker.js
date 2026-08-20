@@ -232,6 +232,71 @@ async function handleInvitationEligibility(request, env) {
   return json({ ok: true, eligible: Boolean(byCode), accessCodeRequired: !byCode, method: byCode ? 'access_code' : null });
 }
 
+async function handleBootstrapFounder(request, env) {
+  if (!databaseReady(env)) return databaseRequired();
+
+  const configuredToken = String(env.BOOTSTRAP_TOKEN || '');
+  if (configuredToken.length < 32) {
+    return json({ ok: false, error: 'Founder bootstrap is not configured.' }, { status: 503 });
+  }
+
+  const suppliedToken = String(request.headers.get('x-aria-bootstrap-token') || '');
+  const expectedHash = await sha256(configuredToken);
+  const suppliedHash = await sha256(suppliedToken);
+  if (expectedHash !== suppliedHash) {
+    return json({ ok: false, error: 'Founder bootstrap authorization failed.' }, { status: 401 });
+  }
+
+  const existing = await env.DB.prepare(`SELECT COUNT(*) AS count FROM users`).first();
+  if (Number(existing?.count || 0) > 0) {
+    return json({ ok: false, error: 'Founder bootstrap is permanently locked because an account already exists.' }, { status: 409 });
+  }
+
+  const body = await readBody(request);
+  const email = normalizeEmail(body?.email);
+  const displayName = String(body?.displayName || '').trim();
+  const password = String(body?.password || '');
+
+  if (!email || !email.includes('@')) {
+    return json({ ok: false, error: 'A valid Founder email is required.' }, { status: 400 });
+  }
+  if (!displayName || displayName.length > 120) {
+    return json({ ok: false, error: 'Founder display name is required and must be 120 characters or fewer.' }, { status: 400 });
+  }
+  if (password.length < 14 || password.length > 200) {
+    return json({ ok: false, error: 'Founder password must be between 14 and 200 characters.' }, { status: 400 });
+  }
+
+  const now = new Date().toISOString();
+  const userId = uuid('USR');
+  const roleId = uuid('ROL');
+  const auditId = uuid('AUD');
+  const passwordHash = await hashPassword(password);
+
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO users
+      (id, email, display_name, account_type, status, password_hash, email_verified_at, created_at, updated_at)
+      VALUES (?, ?, ?, 'staff', 'active', ?, ?, ?, ?)
+    `).bind(userId, email, displayName, passwordHash, now, now, now),
+    env.DB.prepare(`
+      INSERT INTO staff_roles (id, user_id, role_name, department, active, assigned_at)
+      VALUES (?, ?, 'Founder', 'Executive', 1, ?)
+    `).bind(roleId, userId, now),
+    env.DB.prepare(`
+      INSERT INTO audit_events
+      (id, category, event_type, actor_user_id, subject_type, subject_id, details_json, occurred_at, recorded_at)
+      VALUES (?, 'Account Access', 'founder_account_bootstrapped', ?, 'user', ?, ?, ?, ?)
+    `).bind(auditId, userId, userId, JSON.stringify({ role: 'Founder', department: 'Executive' }), now, now)
+  ]);
+
+  return json({
+    ok: true,
+    founder: { id: userId, email, displayName, role: 'Founder', department: 'Executive' },
+    bootstrapLocked: true
+  }, { status: 201 });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -241,7 +306,7 @@ export default {
         ok: true,
         service: 'aria-ai-backend',
         environment: 'prototype-to-production',
-        version: '0.2.1-auth-foundation',
+        version: '0.2.2-founder-bootstrap',
         databaseConnected: databaseReady(env),
         time: new Date().toISOString()
       });
@@ -266,6 +331,7 @@ export default {
     if (url.pathname === '/api/auth/session' && request.method === 'GET') return handleSession(request, env);
     if (url.pathname === '/api/invitations/issue' && request.method === 'POST') return handleIssueInvitation(request, env);
     if (url.pathname === '/api/invitations/eligibility' && request.method === 'POST') return handleInvitationEligibility(request, env);
+    if (url.pathname === '/api/bootstrap/founder' && request.method === 'POST') return handleBootstrapFounder(request, env);
 
     if (url.pathname.startsWith('/api/')) return json({ ok: false, error: 'API route not found.' }, { status: 404 });
     return env.ASSETS.fetch(request);
