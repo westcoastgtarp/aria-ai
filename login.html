@@ -16,7 +16,7 @@
         <h1>Your medication. Your reminders. Your lifeline.</h1>
         <p>Member accounts are invitation-only. Staff accounts are provisioned internally by authorized administrators.</p>
       </div>
-      <div class="trust-note"><strong>Prototype environment</strong><span>Account eligibility and verification are demonstrated in-browser. Production invitation codes, email verification, passwords, MFA, and sessions must be validated server-side.</span></div>
+      <div class="trust-note"><strong>Secure sign-in foundation</strong><span>Sign-in now validates credentials against Aria's server-side account database and creates a secure session cookie. Member email verification and full account creation are still being connected.</span></div>
     </section>
 
     <section class="login-card-wrap">
@@ -26,14 +26,14 @@
           <div class="portal-tabs" role="tablist" aria-label="Choose portal"><button class="portal-tab active" id="memberTab" type="button" data-role="member">Member</button><button class="portal-tab" id="staffTab" type="button" data-role="staff">Staff</button></div>
           <form id="loginForm" novalidate>
             <input type="hidden" id="loginRole" value="member" />
-            <label>Email<input id="loginEmail" type="email" autocomplete="username" required placeholder="member@aria.demo" /></label>
+            <label>Email<input id="loginEmail" type="email" autocomplete="username" required placeholder="member@example.com" /></label>
             <label>Password<div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter password" /><button id="togglePassword" type="button" aria-label="Show password">Show</button></div></label>
-            <div class="form-row"><label class="remember"><input id="rememberDemo" type="checkbox" /> Remember this demo session</label><button class="link-button" id="forgotPassword" type="button">Forgot password?</button></div>
+            <div class="form-row"><label class="remember"><input id="rememberDemo" type="checkbox" /> Remember portal choice</label><button class="link-button" id="forgotPassword" type="button">Forgot password?</button></div>
             <div class="login-error" id="loginError" role="alert" hidden></div>
             <button class="sign-in" type="submit">Sign in</button>
           </form>
           <button class="create-account-link" id="openRegistration" type="button">Create Member Account</button>
-          <div class="demo-credentials" id="demoCredentials"><strong>Demo member login</strong><span>Email: member@aria.demo</span><span>Password: AriaDemo1!</span></div>
+          <div class="demo-credentials" id="demoCredentials" hidden></div>
         </div>
 
         <div id="registrationView" hidden>
@@ -48,7 +48,7 @@
           </section>
 
           <section id="verificationStep" class="registration-step" hidden>
-            <p class="verification-copy">A verification code has been sent to the approved email address.</p>
+            <p class="verification-copy">Email verification will be completed through Aria's server-side verification service.</p>
             <div class="prototype-code" id="prototypeVerificationCode"></div>
             <label>Email verification code<input id="emailVerificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" /></label>
             <div class="login-error" id="verificationError" role="alert" hidden></div>
@@ -56,8 +56,8 @@
           </section>
 
           <section id="passwordStep" class="registration-step" hidden>
-            <label>Create password<input id="newMemberPassword" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" /></label>
-            <label>Confirm password<input id="confirmMemberPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Confirm password" /></label>
+            <label>Create password<input id="newMemberPassword" type="password" autocomplete="new-password" minlength="14" placeholder="At least 14 characters" /></label>
+            <label>Confirm password<input id="confirmMemberPassword" type="password" autocomplete="new-password" minlength="14" placeholder="Confirm password" /></label>
             <div class="login-error" id="passwordError" role="alert" hidden></div>
             <button class="sign-in" id="createMemberAccount" type="button">Create Account</button>
           </section>
@@ -65,7 +65,7 @@
           <button class="create-account-link" id="backToSignIn" type="button">Back to sign in</button>
         </div>
 
-        <div class="login-footer"><span>Aria AI prototype</span><span>•</span><span>Invitation-only registration</span></div>
+        <div class="login-footer"><span>Aria AI</span><span>•</span><span>Invitation-only registration</span></div>
       </div>
     </section>
   </main>
