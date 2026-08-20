@@ -77,6 +77,11 @@
     logEvent('member_response_window_stopped',{reason,secondsRemaining});
   }
 
+  function directCall911(){
+    logEvent('direct_911_call_selected',{method:'device_tel_link'});
+    window.location.href='tel:911';
+  }
+
   function showContactOptions(){
     const log=document.getElementById('ariaBubbleLog');
     if(!log)return;
@@ -116,14 +121,17 @@
     flowActive=true;
     secondsRemaining=120;
     logEvent('member_response_window_started',{durationSeconds:120});
-    actions.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45;margin-bottom:8px"><strong>Would you like to call your emergency contact?</strong><br>You have <span id="lifelineCountdown">2:00</span> to choose. If you do not press the button, Aria's prototype flow will prepare the approved emergency-contact alert.</div><button class="contact" id="lifelineMemberCall">Call Emergency Contact</button><button class="emergency" id="bubbleEmergency">Emergency services</button>`;
+    actions.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45;margin-bottom:8px"><strong>Would you like to call your emergency contact?</strong><br>You have <span id="lifelineCountdown">2:00</span> to choose. If you do not press the button, Aria's prototype flow will prepare the approved emergency-contact alert.</div><button class="contact" id="lifelineMemberCall">Call Emergency Contact</button><button class="emergency" id="lifelineCall911">Call 911</button>`;
     const countdown=actions.querySelector('#lifelineCountdown');
     actions.querySelector('#lifelineMemberCall').onclick=()=>{
       stopTimer('member_pressed_call');
       actions.innerHTML='<div style="width:100%;font-size:12px;line-height:1.45"><strong>Call selected.</strong><br>Automatic emergency-contact notification is paused in this prototype. No call was placed.</div>';
       window.openModal?.('<div class="eyebrow">CARE CIRCLE</div><h2 id="modalTitle">Call Emergency Contact</h2><p>Production would open the member\'s approved emergency-contact calling option. Because the member acted within the two-minute window, the automatic contact alert is not sent at this stage.</p><p><strong>Prototype:</strong> no call is placed.</p>');
     };
-    actions.querySelector('#bubbleEmergency').onclick=()=>window.openModal?.('<div class="eyebrow">EMERGENCY SUPPORT</div><h2 id="modalTitle">Emergency services</h2><p><strong>This prototype cannot dispatch emergency assistance.</strong> If this is a real emergency, use your phone or local emergency-service method now.</p>');
+    actions.querySelector('#lifelineCall911').onclick=()=>{
+      stopTimer('member_selected_911');
+      directCall911();
+    };
     timerId=setInterval(()=>{
       secondsRemaining-=1;
       if(countdown)countdown.textContent=formatCountdown(Math.max(0,secondsRemaining));
