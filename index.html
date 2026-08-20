@@ -47,7 +47,7 @@
         <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
         <div>
           <div class="eyebrow">ARIA AI</div>
-          <h1 id="pageTitle">Good afternoon</h1>
+          <h1 id="pageTitle">Welcome</h1>
         </div>
         <div class="topbar-actions">
           <button class="ghost-btn" id="demoReset">Reset demo</button>
@@ -62,7 +62,6 @@
             <h2>Your medication. Your reminders. Your lifeline.</h2>
             <p>Stay on top of medication schedules and important care reminders with Aria close by whenever you need support.</p>
           </div>
-          <button class="primary light-primary" id="openAriaFromHero">Chat with Aria</button>
         </div>
 
         <div class="metric-grid">
@@ -73,31 +72,23 @@
           </article>
           <article class="metric-card">
             <div class="metric-label">Next reminder</div>
-            <div class="metric-value small-value">4:00 PM</div>
-            <div class="metric-foot">Demo Medication C</div>
+            <div class="metric-value small-value" id="nextReminderTime">—</div>
+            <div class="metric-foot" id="nextReminderMedication">Loading schedule…</div>
           </article>
           <article class="metric-card">
             <div class="metric-label">Care Circle</div>
-            <div class="metric-value small-value">2 contacts</div>
-            <div class="metric-foot">Primary + backup contact</div>
+            <div class="metric-value small-value" id="careCircleCount">0 contacts</div>
+            <div class="metric-foot" id="careCircleSummary">Trusted support</div>
           </article>
         </div>
 
-        <div class="two-col">
-          <article class="panel">
-            <div class="panel-head">
-              <div><div class="eyebrow">TODAY</div><h3>Medication checklist</h3></div>
-              <button class="text-btn" data-page="medications">View all</button>
-            </div>
-            <div id="dashboardMedicationList" class="dose-list"></div>
-          </article>
-
-          <article class="panel lifeline-status-panel">
-            <h3>Aria is here when you need her.</h3>
-            <p>Ask about your reminders, medication schedule, or simply start a conversation when something does not feel right.</p>
-            <button class="primary full" id="openAriaCard">Open Aria</button>
-          </article>
-        </div>
+        <article class="panel">
+          <div class="panel-head">
+            <div><div class="eyebrow">TODAY</div><h3>Medication checklist</h3></div>
+            <button class="text-btn" data-page="medications">View all</button>
+          </div>
+          <div id="dashboardMedicationList" class="dose-list"></div>
+        </article>
       </section>
 
       <section class="page" id="medications-page">
@@ -146,7 +137,7 @@
     </main>
   </div>
 
-  <button class="aria-chat-launcher" id="ariaChatLauncher" aria-label="Open Aria chat">A</button>
+  <button class="aria-chat-launcher" id="ariaChatLauncher" aria-label="Open Aria AI, your health companion">A</button>
   <section class="aria-bubble-panel" id="ariaBubblePanel" aria-label="Aria chat" hidden>
     <div class="aria-bubble-head">
       <div class="aria-bubble-avatar">A</div>
