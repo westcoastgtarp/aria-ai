@@ -19,10 +19,30 @@ const initialTickets = [
 
 const initialHrCases = [];
 
+const initialFinanceLedger = [
+  {id:'TXN-24081',member:'Demo Member 1042',plan:'Aria Lifeline',amount:4.99,status:'Paid',date:'Aug 19, 2026'},
+  {id:'TXN-24080',member:'Demo Member 1039',plan:'Aria Lifeline',amount:4.99,status:'Paid',date:'Aug 19, 2026'},
+  {id:'TXN-24079',member:'Demo Member 1034',plan:'Aria Lifeline',amount:4.99,status:'Failed',date:'Aug 18, 2026'},
+  {id:'TXN-24078',member:'Demo Member 1028',plan:'Aria Lifeline',amount:4.99,status:'Refunded',date:'Aug 18, 2026'},
+  {id:'TXN-24077',member:'Demo Member 1016',plan:'Aria Lifeline',amount:4.99,status:'Disputed',date:'Aug 17, 2026'}
+];
+
+const initialFinanceCases = [
+  {id:'FIN-1001',type:'Payment Failure',member:'Demo Member 1034',transaction:'TXN-24079',amount:4.99,priority:'Normal',notes:'Review failed weekly Lifeline renewal and confirm account status.',status:'Open',created:'Demo'},
+  {id:'FIN-1002',type:'Chargeback / Dispute',member:'Demo Member 1016',transaction:'TXN-24077',amount:4.99,priority:'High',notes:'Synthetic dispute record awaiting review.',status:'In Progress',created:'Demo'}
+];
+
+const syntheticBillingProfile = {
+  activeLifelineSubscribers: 128,
+  lifelineWeeklyPrice: 4.99
+};
+
 let candidates = loadSession('aria-staff-candidates',initialCandidates);
 let employees = loadSession('aria-staff-employees',initialEmployees);
 let tickets = loadSession('aria-staff-tickets',initialTickets);
 let hrCases = loadSession('aria-staff-hr-cases',initialHrCases);
+let financeLedger = loadSession('aria-staff-finance-ledger',initialFinanceLedger);
+let financeCases = loadSession('aria-staff-finance-cases',initialFinanceCases);
 let selectedCandidateId = null;
 let ticketDepartment = null;
 
@@ -51,6 +71,8 @@ function saveAll(){
   sessionStorage.setItem('aria-staff-employees',JSON.stringify(employees));
   sessionStorage.setItem('aria-staff-tickets',JSON.stringify(tickets));
   sessionStorage.setItem('aria-staff-hr-cases',JSON.stringify(hrCases));
+  sessionStorage.setItem('aria-staff-finance-ledger',JSON.stringify(financeLedger));
+  sessionStorage.setItem('aria-staff-finance-cases',JSON.stringify(financeCases));
 }
 
 function escapeHtml(value=''){
@@ -61,12 +83,17 @@ function nowLabel(){
   return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date());
 }
 
+function currency(value){
+  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value)||0);
+}
+
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   document.getElementById(`${page}-page`)?.classList.add('active');
   const title=document.getElementById('pageTitle');
   if(title)title.textContent=titleMap[page]||'Aria AI Staff';
+  if(page==='billing')renderBilling();
 }
 
 document.querySelectorAll('[data-page]').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.page)));
@@ -113,10 +140,7 @@ document.getElementById('saveAssignment')?.addEventListener('click',()=>{
   candidate.department=department;
   candidate.role=role||'Role pending';
   candidate.status=candidate.onboardingStatus==='Submitted'?'Ready for role & permissions':'Department assigned — onboarding pending';
-  saveAll();
-  renderCandidates();
-  closeModal('assignModal');
-  selectedCandidateId=null;
+  saveAll();renderCandidates();closeModal('assignModal');selectedCandidateId=null;
 });
 
 function createTicketId(department){
@@ -125,7 +149,7 @@ function createTicketId(department){
   return `${prefix}-${n}`;
 }
 
-function ticketStatusClass(status){return String(status).toLowerCase().replaceAll(' ','-');}
+function ticketStatusClass(status){return String(status).toLowerCase().replaceAll(' ','-').replaceAll('/','-');}
 
 function renderTicketQueue(department,elementId,summaryId){
   const queue=document.getElementById(elementId);
@@ -157,10 +181,8 @@ function renderTickets(){
   renderTicketQueue('IT','itQueue','itSummary');
   renderTicketQueue('Engineering','engineeringQueue','engineeringSummary');
   document.querySelectorAll('.ticket-status').forEach(btn=>btn.addEventListener('click',()=>{
-    const ticket=tickets.find(t=>t.id===btn.dataset.id);
-    if(!ticket)return;
-    ticket.status=btn.dataset.status;
-    saveAll();renderTickets();updateDashboardCounts();
+    const ticket=tickets.find(t=>t.id===btn.dataset.id);if(!ticket)return;
+    ticket.status=btn.dataset.status;saveAll();renderTickets();updateDashboardCounts();
   }));
 }
 
@@ -183,12 +205,7 @@ document.getElementById('saveTicket')?.addEventListener('click',()=>{
   const title=document.getElementById('ticketTitle').value.trim();
   const details=document.getElementById('ticketDetails').value.trim();
   if(!title||!details){alert('Please enter a title and details.');return;}
-  tickets.unshift({
-    id:createTicketId(ticketDepartment),department:ticketDepartment,
-    category:document.getElementById('ticketCategory').value,
-    priority:document.getElementById('ticketPriority').value,
-    title,details,status:'Open',created:nowLabel()
-  });
+  tickets.unshift({id:createTicketId(ticketDepartment),department:ticketDepartment,category:document.getElementById('ticketCategory').value,priority:document.getElementById('ticketPriority').value,title,details,status:'Open',created:nowLabel()});
   saveAll();renderTickets();updateDashboardCounts();closeModal('ticketModal');
 });
 
@@ -213,19 +230,8 @@ function renderHrCases(){
   const closed=hrCases.filter(c=>c.status==='Closed').length;
   summary.innerHTML=`<span class="summary-chip">Open cases <strong>${open}</strong></span><span class="summary-chip">Closed cases <strong>${closed}</strong></span>`;
   queue.innerHTML=hrCases.length?hrCases.map(c=>`
-    <article class="ticket-card">
-      <div class="ticket-main">
-        <div class="ticket-id">${escapeHtml(c.id)} • ${escapeHtml(c.employeeDepartment)} • ${escapeHtml(c.created)}</div>
-        <h3>${escapeHtml(c.actionType)} — ${escapeHtml(c.employeeName)}</h3>
-        <p><strong>${escapeHtml(c.reason)}</strong><br>${escapeHtml(c.notes)}</p>
-        <div class="ticket-meta"><span class="pill ${ticketStatusClass(c.status)}">${escapeHtml(c.status)}</span></div>
-      </div>
-      <div class="ticket-actions">${c.status==='Open'?`<button class="status-btn hr-status" data-id="${escapeHtml(c.id)}" data-status="Closed">Close Case</button>`:`<button class="status-btn hr-status" data-id="${escapeHtml(c.id)}" data-status="Open">Reopen</button>`}</div>
-    </article>`).join(''):'<div class="empty-queue">No disciplinary-action cases have been created.</div>';
-  document.querySelectorAll('.hr-status').forEach(btn=>btn.addEventListener('click',()=>{
-    const item=hrCases.find(c=>c.id===btn.dataset.id);if(!item)return;
-    item.status=btn.dataset.status;saveAll();renderHrCases();updateDashboardCounts();
-  }));
+    <article class="ticket-card"><div class="ticket-main"><div class="ticket-id">${escapeHtml(c.id)} • ${escapeHtml(c.employeeDepartment)} • ${escapeHtml(c.created)}</div><h3>${escapeHtml(c.actionType)} — ${escapeHtml(c.employeeName)}</h3><p><strong>${escapeHtml(c.reason)}</strong><br>${escapeHtml(c.notes)}</p><div class="ticket-meta"><span class="pill ${ticketStatusClass(c.status)}">${escapeHtml(c.status)}</span></div></div><div class="ticket-actions">${c.status==='Open'?`<button class="status-btn hr-status" data-id="${escapeHtml(c.id)}" data-status="Closed">Close Case</button>`:`<button class="status-btn hr-status" data-id="${escapeHtml(c.id)}" data-status="Open">Reopen</button>`}</div></article>`).join(''):'<div class="empty-queue">No disciplinary-action cases have been created.</div>';
+  document.querySelectorAll('.hr-status').forEach(btn=>btn.addEventListener('click',()=>{const item=hrCases.find(c=>c.id===btn.dataset.id);if(!item)return;item.status=btn.dataset.status;saveAll();renderHrCases();updateDashboardCounts();}));
 }
 
 document.getElementById('saveHrCase')?.addEventListener('click',()=>{
@@ -233,10 +239,7 @@ document.getElementById('saveHrCase')?.addEventListener('click',()=>{
   const reason=document.getElementById('hrReason').value.trim();
   const notes=document.getElementById('hrNotes').value.trim();
   if(!employee||!reason){alert('Select an employee and enter a reason.');return;}
-  hrCases.unshift({
-    id:`HR-${1000+hrCases.length+1}`,employeeId:employee.id,employeeName:employee.name,employeeDepartment:employee.department,
-    actionType:document.getElementById('hrActionType').value,reason,notes:notes||'No additional notes entered.',status:'Open',created:nowLabel()
-  });
+  hrCases.unshift({id:`HR-${1000+hrCases.length+1}`,employeeId:employee.id,employeeName:employee.name,employeeDepartment:employee.department,actionType:document.getElementById('hrActionType').value,reason,notes:notes||'No additional notes entered.',status:'Open',created:nowLabel()});
   document.getElementById('hrReason').value='';document.getElementById('hrNotes').value='';
   saveAll();renderHrCases();updateDashboardCounts();closeModal('hrModal');
 });
@@ -244,13 +247,7 @@ document.getElementById('saveHrCase')?.addEventListener('click',()=>{
 function renderEmployees(){
   const roster=document.getElementById('employeeRoster');
   if(!roster)return;
-  roster.innerHTML=employees.length?employees.map(e=>`
-    <article class="employee-card">
-      <strong>${escapeHtml(e.name)}</strong>
-      <span>${escapeHtml(e.email)}</span>
-      <span>${escapeHtml(e.department)} • ${escapeHtml(e.role)}</span>
-      <div class="ticket-meta"><span class="pill ${e.status==='Active'?'active':'pending'}">${escapeHtml(e.status)}</span></div>
-    </article>`).join(''):'<div class="empty-queue">No employees have been added.</div>';
+  roster.innerHTML=employees.length?employees.map(e=>`<article class="employee-card"><strong>${escapeHtml(e.name)}</strong><span>${escapeHtml(e.email)}</span><span>${escapeHtml(e.department)} • ${escapeHtml(e.role)}</span><div class="ticket-meta"><span class="pill ${e.status==='Active'?'active':'pending'}">${escapeHtml(e.status)}</span></div></article>`).join(''):'<div class="empty-queue">No employees have been added.</div>';
   updateDashboardCounts();
 }
 
@@ -263,6 +260,95 @@ document.getElementById('saveEmployee')?.addEventListener('click',()=>{
   employees.unshift({id:`emp-${Date.now()}`,name,email,department:document.getElementById('employeeDepartment').value,role,status:document.getElementById('employeeStatus').value});
   ['employeeName','employeeEmail','employeeRole'].forEach(id=>document.getElementById(id).value='');
   saveAll();renderEmployees();buildEmployeeOptions();closeModal('employeeModal');
+});
+
+function financeStatusClass(status){return String(status).toLowerCase().replaceAll(' ','-');}
+
+function renderFinanceMetrics(){
+  const active=syntheticBillingProfile.activeLifelineSubscribers;
+  const weekly=active*syntheticBillingProfile.lifelineWeeklyPrice;
+  const pending=financeCases.filter(c=>c.status!=='Closed').length;
+  const activeEl=document.getElementById('billingActiveSubscribers');
+  const revenueEl=document.getElementById('billingWeeklyRevenue');
+  const pendingEl=document.getElementById('billingPendingCases');
+  if(activeEl)activeEl.textContent=String(active);
+  if(revenueEl)revenueEl.textContent=currency(weekly);
+  if(pendingEl)pendingEl.textContent=String(pending);
+}
+
+function renderFinanceLedger(){
+  const body=document.getElementById('financeLedger');
+  if(!body)return;
+  const search=(document.getElementById('financeSearch')?.value||'').trim().toLowerCase();
+  const status=document.getElementById('financeStatusFilter')?.value||'All';
+  const filtered=financeLedger.filter(item=>{
+    const matchesSearch=!search||[item.id,item.member,item.plan,item.status].some(v=>String(v).toLowerCase().includes(search));
+    const matchesStatus=status==='All'||item.status===status;
+    return matchesSearch&&matchesStatus;
+  });
+  body.innerHTML=filtered.length?filtered.map(item=>`
+    <tr>
+      <td><strong>${escapeHtml(item.id)}</strong></td>
+      <td>${escapeHtml(item.member)}</td>
+      <td>${escapeHtml(item.plan)}</td>
+      <td>${currency(item.amount)}</td>
+      <td><span class="pill finance-${financeStatusClass(item.status)}">${escapeHtml(item.status)}</span></td>
+      <td>${escapeHtml(item.date)}</td>
+    </tr>`).join(''):'<tr><td colspan="6" class="finance-empty">No matching finance records.</td></tr>';
+}
+
+function renderFinanceCases(){
+  const queue=document.getElementById('financeCaseQueue');
+  const summary=document.getElementById('financeCaseSummary');
+  if(!queue||!summary)return;
+  const open=financeCases.filter(c=>c.status==='Open').length;
+  const progress=financeCases.filter(c=>c.status==='In Progress').length;
+  const closed=financeCases.filter(c=>c.status==='Closed').length;
+  summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span><span class="summary-chip">Closed <strong>${closed}</strong></span>`;
+  queue.innerHTML=financeCases.length?financeCases.map(c=>`
+    <article class="ticket-card finance-case-card">
+      <div class="ticket-main">
+        <div class="ticket-id">${escapeHtml(c.id)} • ${escapeHtml(c.type)} • ${escapeHtml(c.created)}</div>
+        <h3>${escapeHtml(c.member)}${c.transaction?` — ${escapeHtml(c.transaction)}`:''}</h3>
+        <p>${escapeHtml(c.notes)}</p>
+        <div class="ticket-meta"><span class="pill ${String(c.priority).toLowerCase()}">${escapeHtml(c.priority)}</span><span class="pill ${ticketStatusClass(c.status)}">${escapeHtml(c.status)}</span>${Number(c.amount)>0?`<span class="pill amount-pill">${currency(c.amount)}</span>`:''}</div>
+      </div>
+      <div class="ticket-actions">
+        ${c.status==='Open'?`<button class="status-btn finance-case-status" data-id="${escapeHtml(c.id)}" data-status="In Progress">Start Review</button>`:''}
+        ${c.status!=='Closed'?`<button class="status-btn finance-case-status" data-id="${escapeHtml(c.id)}" data-status="Closed">Resolve</button>`:''}
+        ${c.status==='Closed'?`<button class="status-btn finance-case-status" data-id="${escapeHtml(c.id)}" data-status="Open">Reopen</button>`:''}
+      </div>
+    </article>`).join(''):'<div class="empty-queue">No finance cases have been created.</div>';
+  document.querySelectorAll('.finance-case-status').forEach(btn=>btn.addEventListener('click',()=>{
+    const item=financeCases.find(c=>c.id===btn.dataset.id);if(!item)return;
+    item.status=btn.dataset.status;saveAll();renderBilling();
+  }));
+}
+
+function renderBilling(){
+  renderFinanceMetrics();
+  renderFinanceLedger();
+  renderFinanceCases();
+}
+
+document.getElementById('financeSearch')?.addEventListener('input',renderFinanceLedger);
+document.getElementById('financeStatusFilter')?.addEventListener('change',renderFinanceLedger);
+document.getElementById('addFinanceCase')?.addEventListener('click',()=>{
+  ['financeMemberRef','financeTransactionRef','financeAmount','financeNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const priority=document.getElementById('financePriority');if(priority)priority.value='Normal';
+  openModal('financeModal');
+});
+
+document.getElementById('saveFinanceCase')?.addEventListener('click',()=>{
+  const type=document.getElementById('financeCaseType').value;
+  const member=document.getElementById('financeMemberRef').value.trim();
+  const transaction=document.getElementById('financeTransactionRef').value.trim();
+  const amount=Number(document.getElementById('financeAmount').value||0);
+  const priority=document.getElementById('financePriority').value;
+  const notes=document.getElementById('financeNotes').value.trim();
+  if(!member||!notes){alert('Member/account reference and notes are required.');return;}
+  financeCases.unshift({id:`FIN-${1000+financeCases.length+1}`,type,member,transaction,amount:Number.isFinite(amount)?amount:0,priority,notes,status:'Open',created:nowLabel()});
+  saveAll();renderBilling();closeModal('financeModal');
 });
 
 function updateDashboardCounts(){
@@ -281,5 +367,6 @@ renderTickets();
 renderHrCases();
 renderEmployees();
 buildEmployeeOptions();
+renderBilling();
 updateDashboardCounts();
 showPage('dashboard');
