@@ -1,4 +1,7 @@
 (function(){
+  const access=window.AriaStaffAccess;
+  if(!access?.canAccessRestrictedLogs?.())return;
+
   const adminPage=document.getElementById('admin-page');
   if(!adminPage)return;
 
@@ -41,7 +44,7 @@
       <button class="primary" id="createMemberInvite" type="button">Issue Access Code</button>
     </div>
     <p>Member registration is invitation-only. Enter the same email the member used on their approved application. If the signup email does not match, the member must provide the unique access code issued here.</p>
-    <div class="security-alert"><strong>Prototype:</strong> invitation records are stored in this browser only. Production codes must be generated and validated server-side, expire automatically, and be single-use.</div>
+    <div class="security-alert"><strong>Restricted log:</strong> invitation history and access-code activity are visible only to Founder/Co-Founder and System Administrator roles. Prototype records are stored in this browser only; production controls must be enforced server-side.</div>
     <div id="memberInviteForm" style="display:none;border:1px solid #e5eaf1;border-radius:14px;padding:16px;margin:16px 0;background:#fafbfe">
       <label style="display:block;font-size:12px;font-weight:700;color:#59667a">Approved member email<input id="inviteEmail" type="email" placeholder="member@example.com" style="width:100%;margin-top:7px;border:1px solid #dfe5ed;border-radius:11px;padding:11px 12px" /></label>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="primary" id="generateInviteCode" type="button">Generate Code</button><button class="secondary" id="cancelInviteCode" type="button">Cancel</button></div>
@@ -55,6 +58,7 @@
   document.getElementById('cancelInviteCode').addEventListener('click',()=>{form.style.display='none';input.value='';});
 
   function render(){
+    if(!access.canAccessRestrictedLogs())return;
     const invites=loadInvites();
     const list=document.getElementById('memberInviteList');
     list.innerHTML=invites.length?invites.map(inv=>`<div style="display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(150px,1fr) auto auto;gap:12px;align-items:center;padding:13px 0;border-top:1px solid #e8edf3">
@@ -64,6 +68,7 @@
       <div style="display:flex;gap:6px">${inv.status==='Pending'?`<button class="status-btn invite-action" data-id="${escapeInvite(inv.id)}" data-action="Revoke">Revoke</button>`:''}${inv.status==='Revoked'?`<button class="status-btn invite-action" data-id="${escapeInvite(inv.id)}" data-action="Restore">Restore</button>`:''}</div>
     </div>`).join(''):'<div class="empty-queue">No member invitations have been issued.</div>';
     document.querySelectorAll('.invite-action').forEach(btn=>btn.addEventListener('click',()=>{
+      if(!access.canAccessRestrictedLogs())return;
       const items=loadInvites();
       const target=items.find(i=>i.id===btn.dataset.id);if(!target)return;
       target.status=btn.dataset.action==='Revoke'?'Revoked':'Pending';
@@ -72,6 +77,7 @@
   }
 
   document.getElementById('generateInviteCode').addEventListener('click',()=>{
+    if(!access.canAccessRestrictedLogs()){alert('This action is restricted to Founder/Co-Founder and System Administrator roles.');return;}
     const email=input.value.trim().toLowerCase();
     if(!email||!email.includes('@')){alert('Enter a valid approved member email.');return;}
     const invites=loadInvites();
