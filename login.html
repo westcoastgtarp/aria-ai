@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1324" />
+  <title>Sign in — Aria AI</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <main class="login-shell">
+    <section class="login-brand-panel">
+      <div class="brand-lockup"><div class="brand-mark">A</div><div><strong>Aria AI</strong><span>Lifeline Care</span></div></div>
+      <div class="brand-copy">
+        <div class="eyebrow">SECURE ACCESS</div>
+        <h1>Your medication. Your reminders. Your lifeline.</h1>
+        <p>Sign in to your Aria member account or switch to staff access for internal operations.</p>
+      </div>
+      <div class="trust-note"><strong>Prototype environment</strong><span>Use demo credentials and synthetic information only. Production authentication, MFA, password recovery, and server-side sessions are not connected yet.</span></div>
+    </section>
+
+    <section class="login-card-wrap">
+      <div class="login-card">
+        <div class="login-heading">
+          <div class="eyebrow">WELCOME BACK</div>
+          <h2>Sign in to Aria</h2>
+          <p>Choose the portal you need.</p>
+        </div>
+
+        <div class="portal-tabs" role="tablist" aria-label="Choose portal">
+          <button class="portal-tab active" id="memberTab" type="button" data-role="member">Member</button>
+          <button class="portal-tab" id="staffTab" type="button" data-role="staff">Staff</button>
+        </div>
+
+        <form id="loginForm" novalidate>
+          <input type="hidden" id="loginRole" value="member" />
+          <label>Email
+            <input id="loginEmail" type="email" autocomplete="username" required placeholder="member@aria.demo" />
+          </label>
+          <label>Password
+            <div class="password-field"><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Enter password" /><button id="togglePassword" type="button" aria-label="Show password">Show</button></div>
+          </label>
+          <div class="form-row"><label class="remember"><input id="rememberDemo" type="checkbox" /> Remember this demo session</label><button class="link-button" id="forgotPassword" type="button">Forgot password?</button></div>
+          <div class="login-error" id="loginError" role="alert" hidden></div>
+          <button class="sign-in" type="submit">Sign in</button>
+        </form>
+
+        <div class="demo-credentials" id="demoCredentials">
+          <strong>Demo member login</strong>
+          <span>Email: member@aria.demo</span>
+          <span>Password: AriaDemo1!</span>
+        </div>
+
+        <div class="login-footer"><span>Aria AI prototype</span><span>•</span><span>Authentication is not production-ready</span></div>
+      </div>
+    </section>
+  </main>
+  <script src="login.js"></script>
+</body>
+</html>
