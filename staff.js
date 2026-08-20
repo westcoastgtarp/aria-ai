@@ -12,9 +12,9 @@ const initialEmployees=[
 ];
 
 const initialTickets=[
-  {id:'OPS-1001',department:'Operations',category:'Customer Service',priority:'Normal',title:'Review member billing question',details:'Follow up on a demo member billing inquiry and document the resolution.',status:'Open',created:'Demo'},
-  {id:'IT-1001',department:'IT',category:'Aria AI',priority:'High',title:'Review chatbot service health',details:'Validate demo service-health indicators and document any issue found.',status:'Open',created:'Demo'},
-  {id:'ENG-1001',department:'Engineering',category:'Infrastructure',priority:'Normal',title:'Verify backup workflow',details:'Review the prototype backup and recovery workflow.',status:'In Progress',created:'Demo'}
+  {id:'OPS-1001',department:'Operations',category:'Customer Service',priority:'Normal',title:'Review member billing question',details:'Follow up on a demo member billing inquiry and document the resolution.',status:'Open',progress:0,created:'Demo'},
+  {id:'IT-1001',department:'IT',category:'Aria AI',priority:'High',title:'Review chatbot service health',details:'Validate demo service-health indicators and document any issue found.',status:'Open',progress:0,created:'Demo'},
+  {id:'ENG-1001',department:'Engineering',category:'Infrastructure',priority:'Normal',title:'Verify backup workflow',details:'Review the prototype backup and recovery workflow.',status:'In Progress',progress:50,created:'Demo'}
 ];
 
 const initialHrCases=[];
@@ -41,10 +41,17 @@ function escapeHtml(value=''){return String(value).replace(/[&<>'\"]/g,ch=>({'&'
 function nowLabel(){return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date());}
 function currency(value){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value)||0);}
 function statusClass(status){return String(status).toLowerCase().replaceAll(' ','-').replaceAll('/','-');}
+function normalizeTicketProgress(ticket){
+  const saved=Number(ticket.progress);
+  if(Number.isFinite(saved))return Math.min(100,Math.max(0,saved));
+  if(ticket.status==='Closed')return 100;
+  if(ticket.status==='In Progress')return 50;
+  return 0;
+}
 
 let candidates=loadSession('aria-staff-candidates',initialCandidates);
 let employees=loadSession('aria-staff-employees',initialEmployees);
-let tickets=loadSession('aria-staff-tickets',initialTickets);
+let tickets=loadSession('aria-staff-tickets',initialTickets).map(t=>({...t,progress:normalizeTicketProgress(t)}));
 let hrCases=loadSession('aria-staff-hr-cases',initialHrCases);
 let financeLedger=loadSession('aria-staff-finance-ledger',initialFinanceLedger);
 let financeCases=loadSession('aria-staff-finance-cases',initialFinanceCases);
@@ -108,20 +115,47 @@ document.getElementById('saveAssignment')?.addEventListener('click',()=>{
 });
 
 function createTicketId(dept){const prefix={Operations:'OPS',IT:'IT',Engineering:'ENG'}[dept]||'TKT';return `${prefix}-${1000+tickets.filter(t=>t.department===dept).length+1}`;}
+function progressControl(ticket){
+  const progress=normalizeTicketProgress(ticket);
+  return `<div style="margin-top:14px;max-width:520px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px"><span style="font-size:11px;font-weight:800;color:#657185">Progress</span><strong style="font-size:12px;color:#4d5a70">${progress}%</strong></div>
+    <div style="height:8px;background:#eef1f5;border-radius:999px;overflow:hidden"><span style="display:block;height:100%;width:${progress}%;background:linear-gradient(90deg,#6269e5,#895fd8);border-radius:999px"></span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+      ${[0,25,50,75,100].map(value=>`<button class="status-btn ticket-progress" data-id="${escapeHtml(ticket.id)}" data-progress="${value}" ${progress===value?'disabled style="opacity:.55;cursor:default"':''}>${value}%</button>`).join('')}
+    </div>
+  </div>`;
+}
 function renderTicketQueue(dept,elementId,summaryId){
   const queue=document.getElementById(elementId),summary=document.getElementById(summaryId);if(!queue||!summary)return;
   const items=tickets.filter(t=>t.department===dept),open=items.filter(t=>t.status==='Open').length,progress=items.filter(t=>t.status==='In Progress').length,closed=items.filter(t=>t.status==='Closed').length;
-  summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span><span class="summary-chip">Closed <strong>${closed}</strong></span>`;
-  queue.innerHTML=items.length?items.map(t=>`<article class="ticket-card"><div class="ticket-main"><div class="ticket-id">${escapeHtml(t.id)} • ${escapeHtml(t.category)} • ${escapeHtml(t.created)}</div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.details)}</p><div class="ticket-meta"><span class="pill ${String(t.priority).toLowerCase()}">${escapeHtml(t.priority)}</span><span class="pill ${statusClass(t.status)}">${escapeHtml(t.status)}</span></div></div><div class="ticket-actions">${t.status!=='In Progress'&&t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="In Progress">Start</button>`:''}${t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Closed">Close</button>`:''}${t.status==='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button>`:''}</div></article>`).join(''):'<div class="empty-queue">No tickets in this queue.</div>';
+  const average=items.length?Math.round(items.reduce((sum,t)=>sum+normalizeTicketProgress(t),0)/items.length):0;
+  summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span><span class="summary-chip">Closed <strong>${closed}</strong></span><span class="summary-chip">Queue progress <strong>${average}%</strong></span>`;
+  queue.innerHTML=items.length?items.map(t=>`<article class="ticket-card"><div class="ticket-main"><div class="ticket-id">${escapeHtml(t.id)} • ${escapeHtml(t.category)} • ${escapeHtml(t.created)}</div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.details)}</p><div class="ticket-meta"><span class="pill ${String(t.priority).toLowerCase()}">${escapeHtml(t.priority)}</span><span class="pill ${statusClass(t.status)}">${escapeHtml(t.status)}</span></div>${progressControl(t)}</div><div class="ticket-actions">${t.status!=='In Progress'&&t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="In Progress">Start</button>`:''}${t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Closed">Close</button>`:''}${t.status==='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button>`:''}</div></article>`).join(''):'<div class="empty-queue">No tickets in this queue.</div>';
 }
 function renderTickets(){
   renderTicketQueue('Operations','operationsQueue','operationsSummary');renderTicketQueue('IT','itQueue','itSummary');renderTicketQueue('Engineering','engineeringQueue','engineeringSummary');
-  document.querySelectorAll('.ticket-status').forEach(btn=>btn.addEventListener('click',()=>{const t=tickets.find(x=>x.id===btn.dataset.id);if(!t)return;t.status=btn.dataset.status;saveAll();renderTickets();updateDashboardCounts();}));
+  document.querySelectorAll('.ticket-status').forEach(btn=>btn.addEventListener('click',()=>{
+    const t=tickets.find(x=>x.id===btn.dataset.id);if(!t)return;
+    t.status=btn.dataset.status;
+    if(t.status==='Closed')t.progress=100;
+    else if(t.status==='In Progress'&&normalizeTicketProgress(t)===0)t.progress=25;
+    else if(t.status==='Open'&&normalizeTicketProgress(t)===100)t.progress=0;
+    saveAll();renderTickets();updateDashboardCounts();
+  }));
+  document.querySelectorAll('.ticket-progress').forEach(btn=>btn.addEventListener('click',()=>{
+    const t=tickets.find(x=>x.id===btn.dataset.id);if(!t)return;
+    const progress=Number(btn.dataset.progress);
+    t.progress=progress;
+    if(progress>=100)t.status='Closed';
+    else if(progress>0)t.status='In Progress';
+    else t.status='Open';
+    saveAll();renderTickets();updateDashboardCounts();
+  }));
 }
 function openTicketCreator(dept){ticketDepartment=dept;document.getElementById('ticketModalTitle').textContent=`Create ${dept} ticket`;document.getElementById('ticketCategory').innerHTML=ticketCategories[dept].map(c=>`<option>${escapeHtml(c)}</option>`).join('');document.getElementById('ticketPriority').value='Normal';document.getElementById('ticketTitle').value='';document.getElementById('ticketDetails').value='';openModal('ticketModal');}
 document.getElementById('addOperationsTicket')?.addEventListener('click',()=>openTicketCreator('Operations'));
 document.querySelectorAll('[data-ticket-create]').forEach(btn=>btn.addEventListener('click',()=>openTicketCreator(btn.dataset.ticketCreate)));
-document.getElementById('saveTicket')?.addEventListener('click',()=>{if(!ticketDepartment)return;const title=document.getElementById('ticketTitle').value.trim(),details=document.getElementById('ticketDetails').value.trim();if(!title||!details){alert('Please enter a title and details.');return;}tickets.unshift({id:createTicketId(ticketDepartment),department:ticketDepartment,category:document.getElementById('ticketCategory').value,priority:document.getElementById('ticketPriority').value,title,details,status:'Open',created:nowLabel()});saveAll();renderTickets();updateDashboardCounts();closeModal('ticketModal');});
+document.getElementById('saveTicket')?.addEventListener('click',()=>{if(!ticketDepartment)return;const title=document.getElementById('ticketTitle').value.trim(),details=document.getElementById('ticketDetails').value.trim();if(!title||!details){alert('Please enter a title and details.');return;}tickets.unshift({id:createTicketId(ticketDepartment),department:ticketDepartment,category:document.getElementById('ticketCategory').value,priority:document.getElementById('ticketPriority').value,title,details,status:'Open',progress:0,created:nowLabel()});saveAll();renderTickets();updateDashboardCounts();closeModal('ticketModal');});
 
 function employeeOptions(selectId){
   const select=document.getElementById(selectId);if(!select)return;
