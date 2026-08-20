@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1324" />
+  <title>Staff Account Setup — Aria AI</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <main class="login-shell">
+    <section class="login-brand-panel">
+      <div class="brand-lockup"><div class="brand-mark">A</div><div><strong>Aria AI</strong><span>Staff Operations</span></div></div>
+      <div class="brand-copy">
+        <div class="eyebrow">STAFF ACCOUNT SETUP</div>
+        <h1>Secure your Aria staff account.</h1>
+        <p>This one-time setup link lets an approved employee create their own password. Aria never sends the chosen password back to the administrator.</p>
+      </div>
+      <div class="trust-note"><strong>One-time activation</strong><span>The setup link expires after 72 hours and cannot be reused after the account is activated.</span></div>
+    </section>
+
+    <section class="login-card-wrap">
+      <div class="login-card">
+        <div class="login-heading">
+          <div class="eyebrow">ACCOUNT ACTIVATION</div>
+          <h2 id="setupHeading">Checking setup link…</h2>
+          <p id="setupSummary">Please wait while Aria validates this invitation.</p>
+        </div>
+
+        <div class="login-error" id="setupError" role="alert" hidden></div>
+
+        <form id="staffSetupForm" hidden>
+          <div class="registration-status" id="staffIdentity"></div>
+          <label>Create password
+            <div class="password-field">
+              <input id="staffPassword" type="password" autocomplete="new-password" minlength="14" maxlength="200" required placeholder="At least 14 characters" />
+              <button id="toggleStaffPassword" type="button">Show</button>
+            </div>
+          </label>
+          <label>Confirm password<input id="staffPasswordConfirm" type="password" autocomplete="new-password" minlength="14" maxlength="200" required placeholder="Confirm password" /></label>
+          <p class="field-help">Use at least 14 characters. A passphrase is encouraged.</p>
+          <button class="sign-in" id="activateStaffAccount" type="submit">Activate Staff Account</button>
+        </form>
+
+        <div id="setupSuccess" hidden>
+          <div class="registration-status">Account activated</div>
+          <p>Your Aria staff account is ready. You can now sign in through the Staff portal.</p>
+          <a class="sign-in button-link" href="login.html">Go to Staff Sign In</a>
+        </div>
+
+        <div class="login-footer"><span>Aria AI</span><span>•</span><span>Secure staff activation</span></div>
+      </div>
+    </section>
+  </main>
+  <script src="staff-setup.js"></script>
+</body>
+</html>
