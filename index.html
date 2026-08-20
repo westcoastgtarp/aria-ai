@@ -107,16 +107,48 @@
 
       <section class="page" id="carecircle-page">
         <div class="section-heading"><div><div class="eyebrow">TRUSTED SUPPORT</div><h2>Care Circle</h2><p>Choose who Aria may help you reach during a serious safety concern.</p></div></div>
+
+        <div class="notice info">
+          <strong>Before adding someone:</strong> only list a person who has agreed to be your emergency contact and understands that Aria may send them an automated Lifeline alert during a serious distress event. The alert is designed to be calm and limited to what they need to help.
+        </div>
+
+        <article class="panel permissions-panel">
+          <h3>Emergency contact consent</h3>
+          <label><input id="careContactConsent" type="checkbox" /> I confirm my emergency contact has agreed to be contacted by Aria and has been informed about Lifeline alerts.</label>
+          <p class="small muted">Production setup will require this confirmation before an emergency contact can be activated. The current contacts below are synthetic demo records.</p>
+        </article>
+
         <div class="contact-grid">
           <article class="contact-card"><div class="contact-avatar">P</div><div><strong>Primary Contact</strong><span>Demo contact • Priority 1</span></div><div class="pill success">Enabled</div></article>
           <article class="contact-card"><div class="contact-avatar">B</div><div><strong>Backup Contact</strong><span>Demo contact • Priority 2</span></div><div class="pill success">Enabled</div></article>
         </div>
+
+        <article class="panel permissions-panel">
+          <h3>Lifeline location support</h3>
+          <p>If you choose to allow location access, Aria may make your current location available to your approved emergency contact during a qualifying Lifeline event. Aria does not need routine 24/7 location tracking for this feature.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0">
+            <button class="primary" type="button" data-location-mode="once">Allow once</button>
+            <button class="ghost-btn" type="button" data-location-mode="app">Allow while using Aria</button>
+            <button class="ghost-btn" type="button" data-location-mode="never">Never</button>
+          </div>
+          <div class="notice info"><strong>Current preference:</strong> <span id="locationPreferenceStatus">Location sharing off</span></div>
+          <p class="small muted">Your browser or device controls the actual permission prompt. No location is transmitted to another person in this prototype.</p>
+        </article>
+
         <article class="panel permissions-panel">
           <h3>Emergency sharing preferences</h3>
           <label><input type="checkbox" checked /> Notify that I may need assistance</label>
-          <label><input type="checkbox" checked /> Share my user-provided location when enabled</label>
+          <label><input type="checkbox" checked /> Share my permitted Lifeline-event location when enabled</label>
           <label><input type="checkbox" /> Share medication list</label>
           <label><input type="checkbox" /> Share Lifeline conversation</label>
+          <p class="small muted">Medication lists and Lifeline conversations are not included in the standard emergency-contact alert.</p>
+        </article>
+
+        <article class="panel">
+          <div class="eyebrow">LIFELINE RESPONSE FLOW</div>
+          <h3>How the 2-minute contact window works</h3>
+          <p>When the active Aria conversation reaches the configured serious distress threshold, the member is given two minutes to press <strong>Call Emergency Contact</strong>. If the member does not press it before the timer expires, the prototype prepares an alert for the approved emergency contact and includes location only when permission was previously granted.</p>
+          <p>The emergency contact is then presented with calmer choices first: <strong>Send Check-In</strong>, <strong>View Location</strong>, and <strong>Call Member</strong>. No real message, call, or location sharing occurs in this prototype.</p>
         </article>
       </section>
 
@@ -160,5 +192,6 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="lifeline-flow.js"></script>
 </body>
 </html>
