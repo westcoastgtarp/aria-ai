@@ -31,9 +31,62 @@ function escapeHtml(value=''){
   return String(value).replace(/[&<>'\"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','\"':'&quot;'}[ch]));
 }
 
+function doseMinutes(time){
+  const match=String(time).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if(!match)return Number.MAX_SAFE_INTEGER;
+  let hour=Number(match[1])%12;
+  const minute=Number(match[2]);
+  if(match[3].toUpperCase()==='PM')hour+=12;
+  return (hour*60)+minute;
+}
+
+function groupDosesByMedication(){
+  return doses.reduce((groups,dose)=>{
+    if(!groups[dose.medication])groups[dose.medication]=[];
+    groups[dose.medication].push(dose);
+    return groups;
+  },{});
+}
+
+function renderDashboardSummary(){
+  const done=doses.filter(d=>d.checked).length;
+  const total=doses.length;
+  const progress=document.getElementById('todayProgress');
+  const progressBar=document.getElementById('todayProgressBar');
+  if(progress)progress.textContent=`${done} of ${total}`;
+  if(progressBar)progressBar.style.width=total?`${Math.round((done/total)*100)}%`:'0%';
+
+  const now=new Date();
+  const currentMinutes=(now.getHours()*60)+now.getMinutes();
+  const pending=doses.filter(d=>!d.checked).sort((a,b)=>doseMinutes(a.time)-doseMinutes(b.time));
+  const upcoming=pending.find(d=>doseMinutes(d.time)>=currentMinutes);
+  const nextTime=document.getElementById('nextReminderTime');
+  const nextMedication=document.getElementById('nextReminderMedication');
+
+  if(nextTime&&nextMedication){
+    if(upcoming){
+      nextTime.textContent=upcoming.time;
+      nextMedication.textContent=upcoming.medication;
+    }else if(pending.length){
+      nextTime.textContent='No upcoming';
+      nextMedication.textContent=`${pending.length} unrecorded ${pending.length===1?'dose':'doses'}`;
+    }else{
+      nextTime.textContent='All recorded';
+      nextMedication.textContent='No remaining reminders';
+    }
+  }
+
+  const contacts=document.querySelectorAll('.contact-card').length;
+  const careCount=document.getElementById('careCircleCount');
+  const careSummary=document.getElementById('careCircleSummary');
+  if(careCount)careCount.textContent=`${contacts} ${contacts===1?'contact':'contacts'}`;
+  if(careSummary)careSummary.textContent=contacts>1?'Primary + backup contact':contacts===1?'Primary contact':'No contacts configured';
+}
+
 function renderDoses(){
   const dashboard=document.getElementById('dashboardMedicationList');
   const medicationCards=document.getElementById('medicationCards');
+  if(!dashboard||!medicationCards)return;
   dashboard.innerHTML='';
 
   doses.forEach(dose=>{
@@ -41,25 +94,21 @@ function renderDoses(){
     row.className='dose-row';
     row.innerHTML=`
       <input class="dose-check" type="checkbox" data-dose-id="${dose.id}" ${dose.checked?'checked':''} aria-label="Mark ${escapeHtml(dose.medication)} ${dose.time} as recorded" />
-      <div><strong>${escapeHtml(dose.medication)}</strong><span>${escapeHtml(dose.detail)}${dose.checked?` • Recorded ${dose.recorded||'just now'}`:' • Not recorded'}</span></div>
-      <div class="dose-time">${dose.time}</div>`;
+      <div><strong>${escapeHtml(dose.medication)}</strong><span>${escapeHtml(dose.detail)}${dose.checked?` • Recorded ${escapeHtml(dose.recorded||'just now')}`:' • Not recorded'}</span></div>
+      <div class="dose-time">${escapeHtml(dose.time)}</div>`;
     dashboard.appendChild(row);
   });
 
-  const groups=Object.groupBy(doses,d=>d.medication);
+  const groups=groupDosesByMedication();
   medicationCards.innerHTML=Object.entries(groups).map(([name,group])=>`
     <article class="med-card">
       <div class="med-card-top"><div class="med-icon">✚</div><span class="pill">Your entry</span></div>
       <h3>${escapeHtml(name)}</h3>
       <div class="med-meta">${escapeHtml(group[0].detail)}<br/>Schedule entered by account holder</div>
       <div class="med-doses">
-        ${group.map(d=>`<div class="med-dose-row"><label><input class="dose-check" type="checkbox" data-dose-id="${d.id}" ${d.checked?'checked':''}/><span>${d.time}</span></label><span class="pill ${d.checked?'success':''}">${d.checked?'Recorded':'Not recorded'}</span></div>`).join('')}
+        ${group.map(d=>`<div class="med-dose-row"><label><input class="dose-check" type="checkbox" data-dose-id="${d.id}" ${d.checked?'checked':''}/><span>${escapeHtml(d.time)}</span></label><span class="pill ${d.checked?'success':''}">${d.checked?'Recorded':'Not recorded'}</span></div>`).join('')}
       </div>
     </article>`).join('');
-
-  const done=doses.filter(d=>d.checked).length;
-  document.getElementById('todayProgress').textContent=`${done} of ${doses.length}`;
-  document.getElementById('todayProgressBar').style.width=`${Math.round((done/doses.length)*100)}%`;
 
   document.querySelectorAll('[data-dose-id]').forEach(box=>{
     box.addEventListener('change',e=>{
@@ -72,16 +121,23 @@ function renderDoses(){
       renderReminders();
     });
   });
+
+  renderDashboardSummary();
 }
 
 function renderReminders(){
   const timeline=document.getElementById('reminderTimeline');
-  timeline.innerHTML=doses.map(d=>`
-    <div class="timeline-row ${d.checked?'complete':''}">
-      <div class="timeline-time">${d.time}</div>
-      <div><strong>${escapeHtml(d.medication)}</strong><span>${d.checked?`Recorded by user at ${d.recorded||'just now'}`:'Scheduled reminder'}</span></div>
-      <div class="pill ${d.checked?'success':''}">${d.checked?'Recorded':'Upcoming'}</div>
-    </div>`).join('');
+  if(!timeline)return;
+  timeline.innerHTML=doses
+    .slice()
+    .sort((a,b)=>doseMinutes(a.time)-doseMinutes(b.time))
+    .map(d=>`
+      <div class="timeline-row ${d.checked?'complete':''}">
+        <div class="timeline-time">${escapeHtml(d.time)}</div>
+        <div><strong>${escapeHtml(d.medication)}</strong><span>${d.checked?`Recorded by user at ${escapeHtml(d.recorded||'just now')}`:'Scheduled reminder'}</span></div>
+        <div class="pill ${d.checked?'success':''}">${d.checked?'Recorded':'Upcoming'}</div>
+      </div>`).join('');
+  renderDashboardSummary();
 }
 
 function showPage(page){
@@ -90,12 +146,13 @@ function showPage(page){
   const target=document.getElementById(`${page}-page`);
   if(target)target.classList.add('active');
   const names={dashboard:greetingForNow(),medications:'Medications',reminders:'Reminders',carecircle:'Care Circle',incidents:'Incident History & Timeline',privacy:'Privacy & Security'};
-  document.getElementById('pageTitle').textContent=names[page]||'Aria AI';
-  document.querySelector('.sidebar').classList.remove('open');
+  const pageTitle=document.getElementById('pageTitle');
+  if(pageTitle)pageTitle.textContent=names[page]||'Aria AI';
+  document.querySelector('.sidebar')?.classList.remove('open');
 }
 
 document.querySelectorAll('[data-page]').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.page)));
-document.getElementById('mobileMenu').addEventListener('click',()=>document.querySelector('.sidebar').classList.toggle('open'));
+document.getElementById('mobileMenu')?.addEventListener('click',()=>document.querySelector('.sidebar')?.classList.toggle('open'));
 
 function detectRisk(text){
   const t=text.toLowerCase();
@@ -133,29 +190,25 @@ function ariaResponse(risk){
 
 function medicationStatusIntent(text){
   const t=text.toLowerCase();
-  const phrases=['did i take','have i taken','did i already take','have i already taken','was my medication taken','was my medicine taken'];
+  const phrases=[
+    'did i take','have i taken','did i already take','have i already taken',
+    'was my medication taken','was my medicine taken','did i take my medication',
+    'did i take my medicine','did i take my pill','did i take my meds'
+  ];
   return phrases.some(phrase=>t.includes(phrase));
 }
 
-function doseMinutes(time){
-  const match=String(time).match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if(!match)return Number.MAX_SAFE_INTEGER;
-  let hour=Number(match[1])%12;
-  const minute=Number(match[2]);
-  if(match[3].toUpperCase()==='PM')hour+=12;
-  return (hour*60)+minute;
-}
-
 function findMedicationStatus(text){
-  if(!medicationStatusIntent(text))return null;
+  if(!medicationStatusIntent(text))return {intent:false,status:null};
 
   const t=text.toLowerCase();
   const medicationNames=[...new Set(doses.map(d=>d.medication))];
   const matchedName=medicationNames
+    .slice()
     .sort((a,b)=>b.length-a.length)
     .find(name=>t.includes(name.toLowerCase()));
 
-  if(!matchedName)return null;
+  if(!matchedName)return {intent:true,status:null};
 
   const matches=doses.filter(d=>d.medication===matchedName);
   const now=new Date();
@@ -163,12 +216,15 @@ function findMedicationStatus(text){
   const due=matches
     .filter(d=>doseMinutes(d.time)<=currentMinutes)
     .sort((a,b)=>doseMinutes(b.time)-doseMinutes(a.time));
-  const dose=due[0] || matches.sort((a,b)=>doseMinutes(a.time)-doseMinutes(b.time))[0];
+  const dose=due[0] || matches.slice().sort((a,b)=>doseMinutes(a.time)-doseMinutes(b.time))[0];
 
   return {
-    medication:dose.medication,
-    taken:dose.checked?'Yes':'No',
-    recorded:dose.checked?(dose.recorded||'Recorded'):'Not recorded'
+    intent:true,
+    status:{
+      medication:dose.medication,
+      taken:dose.checked?'Yes':'No',
+      recorded:dose.checked?(dose.recorded||'Recorded'):'Not recorded'
+    }
   };
 }
 
@@ -177,22 +233,28 @@ function medicationStatusMessage(status){
 }
 
 function openAria(){
-  document.getElementById('ariaBubblePanel').hidden=false;
-  document.getElementById('ariaBubbleInput').focus();
-}
-function closeAria(){document.getElementById('ariaBubblePanel').hidden=true;}
-
-document.getElementById('ariaChatLauncher').addEventListener('click',()=>{
   const panel=document.getElementById('ariaBubblePanel');
+  const input=document.getElementById('ariaBubbleInput');
+  if(panel)panel.hidden=false;
+  input?.focus();
+}
+
+function closeAria(){
+  const panel=document.getElementById('ariaBubblePanel');
+  if(panel)panel.hidden=true;
+}
+
+document.getElementById('ariaChatLauncher')?.addEventListener('click',()=>{
+  const panel=document.getElementById('ariaBubblePanel');
+  if(!panel)return;
   panel.hidden=!panel.hidden;
-  if(!panel.hidden)document.getElementById('ariaBubbleInput').focus();
+  if(!panel.hidden)document.getElementById('ariaBubbleInput')?.focus();
 });
-document.getElementById('ariaChatClose').addEventListener('click',closeAria);
-document.getElementById('openAriaFromHero').addEventListener('click',openAria);
-document.getElementById('openAriaCard').addEventListener('click',openAria);
+document.getElementById('ariaChatClose')?.addEventListener('click',closeAria);
 
 function addBubbleMessage(type,text){
   const log=document.getElementById('ariaBubbleLog');
+  if(!log)return;
   const div=document.createElement('div');
   div.className=`aria-bubble-msg ${type}`;
   div.innerHTML=`${escapeHtml(text).replace(/\n/g,'<br>')}<span class="aria-bubble-time">${nowTime()}</span>`;
@@ -202,7 +264,7 @@ function addBubbleMessage(type,text){
 
 function addSafetyActions(){
   const log=document.getElementById('ariaBubbleLog');
-  if(log.querySelector('.aria-bubble-actions'))return;
+  if(!log||log.querySelector('.aria-bubble-actions'))return;
   const wrap=document.createElement('div');
   wrap.className='aria-bubble-actions';
   wrap.innerHTML='<button class="contact" id="bubbleContactCare">Contact Care Circle</button><button class="emergency" id="bubbleEmergency">Emergency services</button>';
@@ -214,14 +276,14 @@ function addSafetyActions(){
 
 function sendBubbleMessage(){
   const input=document.getElementById('ariaBubbleInput');
-  const text=input.value.trim();
-  if(!text)return;
+  const text=input?.value.trim();
+  if(!input||!text)return;
   addBubbleMessage('user',text);
   input.value='';
 
-  const medicationStatus=findMedicationStatus(text);
-  if(medicationStatus){
-    setTimeout(()=>addBubbleMessage('aria',medicationStatusMessage(medicationStatus)),180);
+  const lookup=findMedicationStatus(text);
+  if(lookup.intent){
+    setTimeout(()=>addBubbleMessage('aria',lookup.status?medicationStatusMessage(lookup.status):'Which medication?'),180);
     return;
   }
 
@@ -233,29 +295,33 @@ function sendBubbleMessage(){
   },180);
 }
 
-document.getElementById('ariaBubbleSend').addEventListener('click',sendBubbleMessage);
-document.getElementById('ariaBubbleInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendBubbleMessage();});
+document.getElementById('ariaBubbleSend')?.addEventListener('click',sendBubbleMessage);
+document.getElementById('ariaBubbleInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')sendBubbleMessage();});
 
 function renderIncidents(){
   const empty=document.getElementById('incidentEmpty');
   const list=document.getElementById('incidentList');
+  if(!empty||!list)return;
   empty.classList.toggle('hidden',incidents.length>0);
   list.innerHTML=incidents.map(i=>`
     <div class="incident-row">
-      <div><strong>${i.id}</strong><span>Started ${i.started} • Synthetic demo event • Timestamped conversation retained separately in production</span></div>
-      <span class="risk-badge ${i.level}">${i.level.toUpperCase()}</span>
+      <div><strong>${escapeHtml(i.id)}</strong><span>Started ${escapeHtml(i.started)} • Synthetic demo event • Timestamped conversation retained separately in production</span></div>
+      <span class="risk-badge ${escapeHtml(i.level)}">${escapeHtml(i.level.toUpperCase())}</span>
     </div>`).join('');
 }
 
 function openModal(html){
-  document.getElementById('modalBody').innerHTML=html;
-  document.getElementById('modalBackdrop').classList.remove('hidden');
+  const body=document.getElementById('modalBody');
+  const backdrop=document.getElementById('modalBackdrop');
+  if(body)body.innerHTML=html;
+  backdrop?.classList.remove('hidden');
 }
-function closeModal(){document.getElementById('modalBackdrop').classList.add('hidden');}
-document.getElementById('modalClose').addEventListener('click',closeModal);
-document.getElementById('modalBackdrop').addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal();});
 
-document.getElementById('addMedicationBtn').addEventListener('click',()=>{
+function closeModal(){document.getElementById('modalBackdrop')?.classList.add('hidden');}
+document.getElementById('modalClose')?.addEventListener('click',closeModal);
+document.getElementById('modalBackdrop')?.addEventListener('click',e=>{if(e.target.id==='modalBackdrop')closeModal();});
+
+document.getElementById('addMedicationBtn')?.addEventListener('click',()=>{
   openModal(`
     <div class="eyebrow">MEDICATION</div>
     <h2 id="modalTitle">Add medication</h2>
@@ -272,11 +338,14 @@ document.getElementById('addMedicationBtn').addEventListener('click',()=>{
     const detail=(document.getElementById('newMedDose').value.trim()||'demo dose')+' • user-entered';
     const time=document.getElementById('newMedTime').value.trim()||'6:00 PM';
     doses.push({id:`dose-${Date.now()}`,medication:name,detail,time,checked:false});
-    saveDemo();renderDoses();renderReminders();closeModal();
+    saveDemo();
+    renderDoses();
+    renderReminders();
+    closeModal();
   };
 });
 
-document.getElementById('demoReset').addEventListener('click',()=>{
+document.getElementById('demoReset')?.addEventListener('click',()=>{
   sessionStorage.removeItem('aria-demo-doses');
   sessionStorage.removeItem('aria-demo-incidents');
   location.reload();
@@ -285,5 +354,6 @@ document.getElementById('demoReset').addEventListener('click',()=>{
 renderDoses();
 renderReminders();
 renderIncidents();
+renderDashboardSummary();
 showPage('dashboard');
 addBubbleMessage('aria','Hi I’m Aria, your health companion.');
