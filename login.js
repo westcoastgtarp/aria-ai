@@ -8,7 +8,7 @@ const INVITE_KEY='aria-member-invitations';
 const ACCOUNT_KEY='aria-demo-member-accounts';
 const demoUsers={
   member:{email:'member@aria.demo',password:'AriaDemo1!',name:'Demo Member',destination:'index.html'},
-  staff:{email:'staff@aria.demo',password:'StaffDemo1!',name:'Founder / Co-Founder',destination:'staff.html'}
+  staff:{email:'staff@aria.demo',password:'StaffDemo1!',name:'Founder / Co-Founder',staffRole:'Founder / Co-Founder',destination:'staff.html'}
 };
 let registrationContext={email:null,inviteId:null,verificationCode:null};
 
@@ -48,6 +48,7 @@ document.getElementById('loginForm').addEventListener('submit',e=>{
   }else if(email===demoUsers.staff.email&&password===demoUsers.staff.password)user=demoUsers.staff;
   if(!user){setError(errorBox,`Incorrect ${role} credentials.`);return;}
   const session={role,name:user.name,email:user.email,signedInAt:new Date().toISOString()};
+  if(role==='staff')session.staffRole=user.staffRole||user.name;
   sessionStorage.setItem('aria-auth-session',JSON.stringify(session));
   if(role==='member')sessionStorage.setItem('aria-member-name',user.name);
   if(document.getElementById('rememberDemo').checked)localStorage.setItem('aria-demo-last-role',role);else localStorage.removeItem('aria-demo-last-role');
