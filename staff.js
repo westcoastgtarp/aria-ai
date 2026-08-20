@@ -13,6 +13,11 @@
         notes.onload=()=>{
           const invites=document.createElement('script');
           invites.src='account-invites.js';
+          invites.onload=()=>{
+            const provisioning=document.createElement('script');
+            provisioning.src='staff-account-provisioning.js';
+            document.body.appendChild(provisioning);
+          };
           document.body.appendChild(invites);
         };
         document.body.appendChild(notes);
