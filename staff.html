@@ -45,35 +45,77 @@
       <section class="page active" id="dashboard-page">
         <div class="grid cards-4">
           <article class="card"><span>Pending hires</span><strong id="pendingCount">2</strong></article>
-          <article class="card"><span>Active staff</span><strong>12</strong></article>
-          <article class="card"><span>Departments</span><strong>4</strong></article>
-          <article class="card"><span>Access reviews</span><strong>1</strong></article>
+          <article class="card"><span>Open work tickets</span><strong id="openTicketCount">0</strong></article>
+          <article class="card"><span>Open HR cases</span><strong id="openHrCount">0</strong></article>
+          <article class="card"><span>Active employees</span><strong id="activeEmployeeCount">0</strong></article>
         </div>
         <article class="panel">
-          <div class="panel-head"><div><div class="eyebrow">HIRING FLOW</div><h2>Department assignment happens before activation</h2></div></div>
+          <div class="panel-head"><div><div class="eyebrow">HIRING FLOW</div><h2>Hiring through account activation</h2></div></div>
           <div class="flow">
             <div class="flow-step done"><span>1</span><strong>Candidate</strong></div>
             <div class="flow-step done"><span>2</span><strong>Hired</strong></div>
             <div class="flow-step current"><span>3</span><strong>Department Assignment</strong><small>Founder / Co-Founder</small></div>
-            <div class="flow-step"><span>4</span><strong>Role & Permissions</strong></div>
-            <div class="flow-step"><span>5</span><strong>Account Activated</strong></div>
+            <div class="flow-step"><span>4</span><strong>Onboarding</strong></div>
+            <div class="flow-step"><span>5</span><strong>Role & Permissions</strong></div>
+            <div class="flow-step"><span>6</span><strong>Account Activated</strong></div>
           </div>
-          <div class="planned"><strong>Planned later:</strong> Onboarding will be inserted between department assignment and full account activation.</div>
         </article>
       </section>
 
       <section class="page" id="hiring-page">
-        <div class="section-head"><div><div class="eyebrow">EXECUTIVE CONTROL</div><h2>Hiring & Department Assignment</h2><p>Founder or Co-Founder assigns the employee's department before staff access is activated.</p></div></div>
+        <div class="section-head action-head">
+          <div><div class="eyebrow">EXECUTIVE CONTROL</div><h2>Hiring & Department Assignment</h2><p>Assign the department, then send the potential employee into the onboarding workflow before account activation.</p></div>
+          <a class="primary button-link" href="onboarding.html">Open Onboarding</a>
+        </div>
         <div id="candidateList" class="candidate-list"></div>
       </section>
 
-      <section class="page" id="operations-page"><article class="panel"><div class="eyebrow">OPERATIONS</div><h2>Customer Support, Sales, Refunds & Audits</h2><p>Operations handles customer support, sales support, refunds, and operational audits.</p></article></section>
-      <section class="page" id="hr-page"><article class="panel"><div class="eyebrow">HUMAN RESOURCES</div><h2>Staff Decisions & Disciplinary Actions</h2><p>HR manages staff records, disciplinary actions, and personnel decisions after the employee is activated.</p></article></section>
-      <section class="page" id="it-page"><article class="panel"><div class="eyebrow">INFORMATION TECHNOLOGY</div><h2>Aria AI & Lifeline Operations</h2><p>IT manages Aria AI and Aria Lifeline logistics, service health, maintenance, and integrations.</p></article></section>
-      <section class="page" id="engineering-page"><article class="panel"><div class="eyebrow">ENGINEERING</div><h2>Backups, Recovery & Infrastructure</h2><p>Engineering manages hardware backups, recovery systems, infrastructure recovery, and member recovery tooling.</p></article></section>
-      <section class="page" id="admin-page"><article class="panel"><div class="eyebrow">FOUNDER / CO-FOUNDER</div><h2>System Administration</h2><p>Executive-only controls for departments, roles, permissions, system settings, and staff account activation.</p></article></section>
+      <section class="page" id="operations-page">
+        <div class="section-head action-head">
+          <div><div class="eyebrow">OPERATIONS</div><h2>Operations Work Queue</h2><p>Track Sales, Customer Service, Refunds, Audits, and other operational work that needs attention.</p></div>
+          <button class="icon-action" id="addOperationsTicket" aria-label="Create operations ticket">+</button>
+        </div>
+        <div class="queue-summary" id="operationsSummary"></div>
+        <div class="ticket-board" id="operationsQueue"></div>
+      </section>
+
+      <section class="page" id="hr-page">
+        <div class="section-head action-head">
+          <div><div class="eyebrow">HUMAN RESOURCES</div><h2>Disciplinary Action Cases</h2><p>Create and track employee disciplinary actions as controlled HR cases.</p></div>
+          <button class="icon-action" id="addHrCase" aria-label="Add disciplinary action">+</button>
+        </div>
+        <div class="queue-summary" id="hrSummary"></div>
+        <div class="ticket-board" id="hrQueue"></div>
+      </section>
+
+      <section class="page" id="it-page">
+        <div class="section-head action-head">
+          <div><div class="eyebrow">INFORMATION TECHNOLOGY</div><h2>IT Technical Tickets</h2><p>Aria AI, Lifeline, integrations, staff systems, access, software, and service-health work.</p></div>
+          <button class="icon-action" data-ticket-create="IT" aria-label="Create IT ticket">+</button>
+        </div>
+        <div class="queue-summary" id="itSummary"></div>
+        <div class="ticket-board" id="itQueue"></div>
+      </section>
+
+      <section class="page" id="engineering-page">
+        <div class="section-head action-head">
+          <div><div class="eyebrow">ENGINEERING</div><h2>Engineering Technical Tickets</h2><p>Infrastructure, backups, recovery systems, hardware, deployment, and member recovery tooling.</p></div>
+          <button class="icon-action" data-ticket-create="Engineering" aria-label="Create engineering ticket">+</button>
+        </div>
+        <div class="queue-summary" id="engineeringSummary"></div>
+        <div class="ticket-board" id="engineeringQueue"></div>
+      </section>
+
+      <section class="page" id="admin-page">
+        <div class="section-head action-head">
+          <div><div class="eyebrow">FOUNDER / CO-FOUNDER</div><h2>System Administration</h2><p>Create employee records, review department placement, and prepare staff accounts for access provisioning.</p></div>
+          <button class="icon-action" id="addEmployee" aria-label="Add employee">+</button>
+        </div>
+        <div class="employee-grid" id="employeeRoster"></div>
+      </section>
+
       <section class="page" id="privacy-page"><article class="panel"><h2>Privacy & Compliance</h2><p>Privacy and compliance controls appear here according to applicable requirements and company policy.</p></article></section>
-      <section class="page" id="audit-page"><article class="panel"><h2>Audit Log</h2><p>Track staff actions such as access changes, refunds, account recovery, and department assignment.</p></article></section>
+      <section class="page" id="audit-page"><article class="panel"><h2>Audit Log</h2><p>Track staff actions such as access changes, refunds, account recovery, department assignment, and case activity.</p></article></section>
       <section class="page" id="billing-page"><article class="panel"><h2>Billing / Finance</h2><p>Subscription reconciliation, chargebacks, and finance oversight.</p></article></section>
       <section class="page" id="security-page"><article class="panel"><h2>Security & Access</h2><p>Role permissions, privileged access, access reviews, and employee account status.</p></article></section>
       <section class="page" id="policies-page"><article class="panel"><h2>System Policies</h2><p>Internal company and system policies.</p></article></section>
@@ -82,7 +124,7 @@
 
   <div class="modal-backdrop hidden" id="assignModal">
     <div class="modal">
-      <button class="close" id="closeModal">×</button>
+      <button class="close" data-close-modal="assignModal">×</button>
       <div class="eyebrow">DEPARTMENT ASSIGNMENT</div>
       <h2 id="candidateName">Assign employee</h2>
       <p>Choose the department this employee will enter. This determines the staff portal area shown after activation.</p>
@@ -99,8 +141,54 @@
       </label>
       <div class="modal-actions">
         <button class="primary" id="saveAssignment">Assign Department</button>
-        <button class="secondary" id="cancelAssignment">Cancel</button>
+        <button class="secondary" data-close-modal="assignModal">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="ticketModal">
+    <div class="modal">
+      <button class="close" data-close-modal="ticketModal">×</button>
+      <div class="eyebrow">WORK TICKET</div>
+      <h2 id="ticketModalTitle">Create ticket</h2>
+      <label>Category
+        <select id="ticketCategory"></select>
+      </label>
+      <label>Priority
+        <select id="ticketPriority"><option>Normal</option><option>High</option><option>Urgent</option></select>
+      </label>
+      <label>Title<input id="ticketTitle" maxlength="80" placeholder="Short description of the work" /></label>
+      <label>Details<textarea id="ticketDetails" maxlength="500" placeholder="What needs attention?"></textarea></label>
+      <div class="modal-actions"><button class="primary" id="saveTicket">Create Ticket</button><button class="secondary" data-close-modal="ticketModal">Cancel</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="hrModal">
+    <div class="modal">
+      <button class="close" data-close-modal="hrModal">×</button>
+      <div class="eyebrow">HR CASE</div>
+      <h2>Add disciplinary action</h2>
+      <label>Employee<select id="hrEmployee"></select></label>
+      <label>Action type
+        <select id="hrActionType"><option>Coaching / Counseling</option><option>Verbal Warning</option><option>Written Warning</option><option>Final Warning</option><option>Suspension Review</option><option>Termination Review</option></select>
+      </label>
+      <label>Reason<input id="hrReason" maxlength="100" placeholder="Reason for action" /></label>
+      <label>Notes<textarea id="hrNotes" maxlength="500" placeholder="Document the facts and next steps"></textarea></label>
+      <div class="modal-actions"><button class="primary" id="saveHrCase">Create HR Case</button><button class="secondary" data-close-modal="hrModal">Cancel</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="employeeModal">
+    <div class="modal">
+      <button class="close" data-close-modal="employeeModal">×</button>
+      <div class="eyebrow">SYSTEM ADMINISTRATION</div>
+      <h2>Add employee</h2>
+      <label>Full name<input id="employeeName" maxlength="80" /></label>
+      <label>Work email<input id="employeeEmail" type="email" maxlength="120" /></label>
+      <label>Department<select id="employeeDepartment"><option>Operations</option><option>HR</option><option>IT</option><option>Engineering</option></select></label>
+      <label>Role<input id="employeeRole" maxlength="80" /></label>
+      <label>Account status<select id="employeeStatus"><option>Pending activation</option><option>Active</option></select></label>
+      <div class="modal-actions"><button class="primary" id="saveEmployee">Add Employee</button><button class="secondary" data-close-modal="employeeModal">Cancel</button></div>
     </div>
   </div>
 
