@@ -34,7 +34,7 @@ const titleMap = {
 };
 
 const ticketCategories = {
-  Operations:['Customer Service','Sales','Refunds','Audits','Billing Support','Other Operations'],
+  Operations:['Customer Service','Sales','Refunds','Audits','Billing Support','Privacy & Compliance','Other Operations'],
   IT:['Aria AI','Aria Lifeline','Staff Systems','Access & Accounts','Software','Integrations','Service Health'],
   Engineering:['Infrastructure','Backups','Recovery','Hardware','Deployment','Member Recovery Tooling']
 };
