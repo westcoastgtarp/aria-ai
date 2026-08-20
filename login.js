@@ -6,9 +6,9 @@ const credentialsBox=document.getElementById('demoCredentials');
 
 const INVITE_KEY='aria-member-invitations';
 const ACCOUNT_KEY='aria-demo-member-accounts';
-const demoUsers={
-  member:{email:'member@aria.demo',password:'AriaDemo1!',name:'Demo Member',destination:'index.html'},
-  staff:{email:'staff@aria.demo',password:'StaffDemo1!',name:'Founder / Co-Founder',staffRole:'Founder / Co-Founder',destination:'staff.html'}
+const portalDefaults={
+  member:{placeholder:'member@example.com',destination:'index.html'},
+  staff:{placeholder:'staff@example.com',destination:'staff.html'}
 };
 let registrationContext={email:null,inviteId:null,verificationCode:null};
 
@@ -18,11 +18,10 @@ function setError(el,message=''){el.textContent=message;el.hidden=!message;}
 function setRole(role){
   roleInput.value=role;
   document.querySelectorAll('.portal-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.role===role));
-  const demo=demoUsers[role];
-  emailInput.placeholder=demo.email;
+  emailInput.placeholder=portalDefaults[role].placeholder;
   passwordInput.value='';
   errorBox.hidden=true;
-  credentialsBox.innerHTML=`<strong>Demo ${role} login</strong><span>Email: ${demo.email}</span><span>Password: ${demo.password}</span>`;
+  credentialsBox.hidden=true;
   document.getElementById('openRegistration').hidden=role!=='member';
   emailInput.focus();
 }
@@ -33,26 +32,65 @@ document.getElementById('togglePassword').addEventListener('click',e=>{
   passwordInput.type=showing?'password':'text';
   e.currentTarget.textContent=showing?'Show':'Hide';
 });
-document.getElementById('forgotPassword').addEventListener('click',()=>setError(errorBox,'Password recovery is not connected in this prototype.'));
+document.getElementById('forgotPassword').addEventListener('click',()=>setError(errorBox,'Password recovery is not connected yet.'));
 
-document.getElementById('loginForm').addEventListener('submit',e=>{
+document.getElementById('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
-  const role=roleInput.value;
+  const requestedPortal=roleInput.value;
   const email=emailInput.value.trim().toLowerCase();
   const password=passwordInput.value;
-  let user=null;
-  if(role==='member'){
-    const created=loadArray(ACCOUNT_KEY).find(a=>a.email===email&&a.password===password&&a.status==='Active');
-    if(created)user={email:created.email,name:created.name||created.email.split('@')[0],destination:'index.html'};
-    else if(email===demoUsers.member.email&&password===demoUsers.member.password)user=demoUsers.member;
-  }else if(email===demoUsers.staff.email&&password===demoUsers.staff.password)user=demoUsers.staff;
-  if(!user){setError(errorBox,`Incorrect ${role} credentials.`);return;}
-  const session={role,name:user.name,email:user.email,signedInAt:new Date().toISOString()};
-  if(role==='staff')session.staffRole=user.staffRole||user.name;
-  sessionStorage.setItem('aria-auth-session',JSON.stringify(session));
-  if(role==='member')sessionStorage.setItem('aria-member-name',user.name);
-  if(document.getElementById('rememberDemo').checked)localStorage.setItem('aria-demo-last-role',role);else localStorage.removeItem('aria-demo-last-role');
-  window.location.href=user.destination;
+  const submit=e.currentTarget.querySelector('button[type="submit"]');
+
+  setError(errorBox);
+  if(!email||!password){setError(errorBox,'Email and password are required.');return;}
+
+  submit.disabled=true;
+  submit.textContent='Signing in…';
+  try{
+    const response=await fetch('/api/auth/login',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      credentials:'same-origin',
+      body:JSON.stringify({email,password})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok)throw new Error(data.error||'Unable to sign in.');
+
+    const sessionResponse=await fetch('/api/auth/session',{credentials:'same-origin'});
+    const sessionData=await sessionResponse.json().catch(()=>({}));
+    if(!sessionResponse.ok||!sessionData.authenticated)throw new Error('Your session could not be verified. Please try again.');
+
+    const user=sessionData.user||{};
+    const actualPortal=user.accountType==='staff'?'staff':'member';
+    if(actualPortal!==requestedPortal){
+      await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'}).catch(()=>{});
+      throw new Error(`This account belongs to the ${actualPortal} portal. Choose ${actualPortal[0].toUpperCase()+actualPortal.slice(1)} and try again.`);
+    }
+
+    const compatibilitySession={
+      role:actualPortal,
+      name:user.name||email.split('@')[0],
+      email:user.email||email,
+      signedInAt:new Date().toISOString(),
+      serverAuthenticated:true
+    };
+    if(actualPortal==='staff'){
+      compatibilitySession.staffRole=user.role||'';
+      compatibilitySession.department=user.department||'';
+    }
+    sessionStorage.setItem('aria-auth-session',JSON.stringify(compatibilitySession));
+    if(actualPortal==='member')sessionStorage.setItem('aria-member-name',compatibilitySession.name);
+
+    if(document.getElementById('rememberDemo').checked)localStorage.setItem('aria-last-portal',actualPortal);
+    else localStorage.removeItem('aria-last-portal');
+
+    window.location.href=portalDefaults[actualPortal].destination;
+  }catch(error){
+    setError(errorBox,error?.message||'Unable to sign in.');
+  }finally{
+    submit.disabled=false;
+    submit.textContent='Sign in';
+  }
 });
 
 function showRegistration(){
@@ -74,57 +112,30 @@ function resetRegistration(){
 document.getElementById('openRegistration').addEventListener('click',showRegistration);
 document.getElementById('backToSignIn').addEventListener('click',showSignIn);
 
-document.getElementById('checkEligibility').addEventListener('click',()=>{
+document.getElementById('checkEligibility').addEventListener('click',async()=>{
   const email=document.getElementById('registrationEmail').value.trim().toLowerCase();
   const code=document.getElementById('registrationAccessCode').value.trim().toUpperCase();
-  const invitations=loadArray(INVITE_KEY);
-  if(!email||!email.includes('@')){setError(document.getElementById('registrationError'),'Enter the email used on your Aria application.');return;}
-  const emailMatch=invitations.find(i=>i.email===email&&i.status==='Pending');
-  let invite=emailMatch;
-  if(!emailMatch){
-    document.getElementById('accessCodeWrap').hidden=false;
-    if(!code){setError(document.getElementById('registrationError'),'This email does not match an approved invitation. Enter your Aria access code.');return;}
-    invite=invitations.find(i=>String(i.code).toUpperCase()===code&&i.status==='Pending');
-    if(!invite){setError(document.getElementById('registrationError'),'That access code is invalid, expired, used, or revoked.');return;}
-  }
-  const accounts=loadArray(ACCOUNT_KEY);
-  if(accounts.some(a=>a.email===email&&a.status==='Active')){setError(document.getElementById('registrationError'),'An account already exists for this email. Sign in instead.');return;}
-  registrationContext.email=email;
-  registrationContext.inviteId=invite.id;
-  registrationContext.verificationCode=String(Math.floor(100000+Math.random()*900000));
-  document.getElementById('eligibilityStep').hidden=true;
-  document.getElementById('verificationStep').hidden=false;
-  document.getElementById('registrationStatus').textContent='Step 2 of 3 — Verify your email';
-  document.getElementById('prototypeVerificationCode').textContent=`Prototype verification code: ${registrationContext.verificationCode}`;
-  setError(document.getElementById('registrationError'));
+  const error=document.getElementById('registrationError');
+  if(!email||!email.includes('@')){setError(error,'Enter the email used on your Aria application.');return;}
+
+  try{
+    const response=await fetch('/api/invitations/eligibility',{
+      method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({email,code})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||'Unable to check invitation eligibility.');
+    if(!data.eligible){
+      document.getElementById('accessCodeWrap').hidden=false;
+      setError(error,data.accessCodeRequired?'This email does not match an approved invitation. Enter your Aria access code.':'This invitation is not eligible.');
+      return;
+    }
+    registrationContext.email=email;
+    setError(error,'Invitation confirmed. Email verification and account creation are the next backend step and are not enabled yet.');
+  }catch(err){setError(error,err?.message||'Unable to check invitation eligibility.');}
 });
 
-document.getElementById('verifyEmailCode').addEventListener('click',()=>{
-  const entered=document.getElementById('emailVerificationCode').value.trim();
-  if(entered!==registrationContext.verificationCode){setError(document.getElementById('verificationError'),'Incorrect verification code.');return;}
-  document.getElementById('verificationStep').hidden=true;
-  document.getElementById('passwordStep').hidden=false;
-  document.getElementById('registrationStatus').textContent='Step 3 of 3 — Secure your account';
-  setError(document.getElementById('verificationError'));
-});
+document.getElementById('verifyEmailCode').addEventListener('click',()=>setError(document.getElementById('verificationError'),'Server-side email verification is not connected yet.'));
+document.getElementById('createMemberAccount').addEventListener('click',()=>setError(document.getElementById('passwordError'),'Server-side member account creation is not connected yet.'));
 
-document.getElementById('createMemberAccount').addEventListener('click',()=>{
-  const password=document.getElementById('newMemberPassword').value;
-  const confirm=document.getElementById('confirmMemberPassword').value;
-  if(password.length<8){setError(document.getElementById('passwordError'),'Password must be at least 8 characters.');return;}
-  if(password!==confirm){setError(document.getElementById('passwordError'),'Passwords do not match.');return;}
-  const accounts=loadArray(ACCOUNT_KEY);
-  accounts.push({id:`MEM-${Date.now()}`,email:registrationContext.email,password,name:registrationContext.email.split('@')[0],status:'Active',createdAt:new Date().toISOString()});
-  saveArray(ACCOUNT_KEY,accounts);
-  const invites=loadArray(INVITE_KEY);
-  const invite=invites.find(i=>i.id===registrationContext.inviteId);
-  if(invite){invite.status='Used';invite.usedAt=new Date().toISOString();}
-  saveArray(INVITE_KEY,invites);
-  showSignIn();
-  setRole('member');
-  emailInput.value=registrationContext.email;
-  setError(errorBox,'Member account created. Sign in with your new password.');
-});
-
-const lastRole=localStorage.getItem('aria-demo-last-role');
-if(lastRole&&demoUsers[lastRole])setRole(lastRole);else setRole('member');
+const lastRole=localStorage.getItem('aria-last-portal');
+if(lastRole&&portalDefaults[lastRole])setRole(lastRole);else setRole('member');
