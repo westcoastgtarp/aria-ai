@@ -122,8 +122,74 @@
           <p>Privacy & Compliance works with Operations, HR, IT, Engineering, and System Administration to make sure sensitive information is handled according to applicable requirements and approved company policy. Issues that need action can be opened as a Privacy & Compliance ticket in the Operations work queue and routed to the appropriate team for resolution.</p>
         </article>
       </section>
-      <section class="page" id="audit-page"><article class="panel"><h2>Audit Log</h2><p>Track staff actions such as access changes, refunds, account recovery, department assignment, and case activity.</p></article></section>
-      <section class="page" id="billing-page"><article class="panel"><h2>Billing / Finance</h2><p>Subscription reconciliation, chargebacks, and finance oversight.</p></article></section>
+
+      <section class="page" id="audit-page"><article class="panel"><h2>Audit Log</h2><p>Reserved for member chat, Lifeline, disclosure, escalation, and authorized-access audit records when production logging is connected.</p></article></section>
+
+      <section class="page" id="billing-page">
+        <div class="section-head action-head">
+          <div>
+            <div class="eyebrow">BILLING / FINANCE</div>
+            <h2>Subscription & Finance Operations</h2>
+            <p>Review synthetic subscription activity, payment records, refunds, chargebacks, and reconciliation work. No real payment processor is connected in this prototype.</p>
+          </div>
+          <button class="icon-action" id="addFinanceCase" aria-label="Create finance case">+</button>
+        </div>
+
+        <div class="finance-alert"><strong>Demo finance workspace:</strong> actions below update the prototype record only. They do not charge, refund, cancel, or modify a real customer account.</div>
+
+        <div class="grid finance-metrics">
+          <article class="card"><span>Active Lifeline subscribers</span><strong id="billingActiveSubscribers">0</strong><small>$4.99 / week</small></article>
+          <article class="card"><span>Estimated weekly recurring revenue</span><strong id="billingWeeklyRevenue">$0.00</strong><small>Synthetic estimate</small></article>
+          <article class="card"><span>Pending finance cases</span><strong id="billingPendingCases">0</strong><small>Refunds, disputes & failures</small></article>
+          <article class="card"><span>Processor connection</span><strong class="processor-offline">Offline</strong><small>Backend integration required</small></article>
+        </div>
+
+        <div class="billing-layout">
+          <article class="panel billing-plans-panel">
+            <div class="panel-head"><div><div class="eyebrow">PLANS</div><h2>Subscription Plans</h2></div></div>
+            <div class="plan-row"><div><strong>Aria Free</strong><span>Medication entry, tracking, scheduled reminders, user-controlled dose checkoffs.</span></div><div class="plan-price">$0</div></div>
+            <div class="plan-row featured"><div><strong>Aria Lifeline</strong><span>Aria AI companion, Care Circle, Lifeline support, escalation features, and incident history.</span></div><div class="plan-price">$4.99<span>/week</span></div></div>
+          </article>
+
+          <article class="panel billing-status-panel">
+            <div class="eyebrow">READINESS</div>
+            <h2>Payment Integration</h2>
+            <div class="readiness-row"><span>Payment processor</span><strong>Not connected</strong></div>
+            <div class="readiness-row"><span>Webhook verification</span><strong>Not configured</strong></div>
+            <div class="readiness-row"><span>Automatic refunds</span><strong>Disabled</strong></div>
+            <div class="readiness-row"><span>Production ledger</span><strong>Not connected</strong></div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head finance-toolbar">
+            <div><div class="eyebrow">TRANSACTIONS</div><h2>Finance Ledger</h2></div>
+            <div class="finance-filters">
+              <input id="financeSearch" type="search" placeholder="Search member or transaction" aria-label="Search finance ledger" />
+              <select id="financeStatusFilter" aria-label="Filter finance status">
+                <option value="All">All statuses</option>
+                <option value="Paid">Paid</option>
+                <option value="Refunded">Refunded</option>
+                <option value="Failed">Failed</option>
+                <option value="Disputed">Disputed</option>
+              </select>
+            </div>
+          </div>
+          <div class="finance-table-wrap">
+            <table class="finance-table">
+              <thead><tr><th>Transaction</th><th>Member</th><th>Plan</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="financeLedger"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><div class="eyebrow">WORK QUEUE</div><h2>Refunds, Chargebacks & Billing Cases</h2></div></div>
+          <div class="queue-summary" id="financeCaseSummary"></div>
+          <div class="ticket-board" id="financeCaseQueue"></div>
+        </article>
+      </section>
+
       <section class="page" id="security-page"><article class="panel"><h2>Security & Access</h2><p>Role permissions, privileged access, access reviews, and employee account status.</p></article></section>
       <section class="page" id="policies-page"><article class="panel"><h2>System Policies</h2><p>Internal company and system policies.</p></article></section>
     </main>
@@ -135,35 +201,18 @@
       <div class="eyebrow">DEPARTMENT ASSIGNMENT</div>
       <h2 id="candidateName">Assign employee</h2>
       <p>Choose the department this employee will enter. This determines the staff portal area shown after activation.</p>
-      <label>Department
-        <select id="departmentSelect">
-          <option value="Operations">Operations</option>
-          <option value="HR">HR</option>
-          <option value="IT">IT</option>
-          <option value="Engineering">Engineering</option>
-        </select>
-      </label>
-      <label>Role
-        <input id="roleInput" placeholder="Example: IT Technician" />
-      </label>
-      <div class="modal-actions">
-        <button class="primary" id="saveAssignment">Assign Department</button>
-        <button class="secondary" data-close-modal="assignModal">Cancel</button>
-      </div>
+      <label>Department<select id="departmentSelect"><option value="Operations">Operations</option><option value="HR">HR</option><option value="IT">IT</option><option value="Engineering">Engineering</option></select></label>
+      <label>Role<input id="roleInput" placeholder="Example: IT Technician" /></label>
+      <div class="modal-actions"><button class="primary" id="saveAssignment">Assign Department</button><button class="secondary" data-close-modal="assignModal">Cancel</button></div>
     </div>
   </div>
 
   <div class="modal-backdrop hidden" id="ticketModal">
     <div class="modal">
       <button class="close" data-close-modal="ticketModal">×</button>
-      <div class="eyebrow">WORK TICKET</div>
-      <h2 id="ticketModalTitle">Create ticket</h2>
-      <label>Category
-        <select id="ticketCategory"></select>
-      </label>
-      <label>Priority
-        <select id="ticketPriority"><option>Normal</option><option>High</option><option>Urgent</option></select>
-      </label>
+      <div class="eyebrow">WORK TICKET</div><h2 id="ticketModalTitle">Create ticket</h2>
+      <label>Category<select id="ticketCategory"></select></label>
+      <label>Priority<select id="ticketPriority"><option>Normal</option><option>High</option><option>Urgent</option></select></label>
       <label>Title<input id="ticketTitle" maxlength="80" placeholder="Short description of the work" /></label>
       <label>Details<textarea id="ticketDetails" maxlength="500" placeholder="What needs attention?"></textarea></label>
       <div class="modal-actions"><button class="primary" id="saveTicket">Create Ticket</button><button class="secondary" data-close-modal="ticketModal">Cancel</button></div>
@@ -173,12 +222,9 @@
   <div class="modal-backdrop hidden" id="hrModal">
     <div class="modal">
       <button class="close" data-close-modal="hrModal">×</button>
-      <div class="eyebrow">HR CASE</div>
-      <h2>Add disciplinary action</h2>
+      <div class="eyebrow">HR CASE</div><h2>Add disciplinary action</h2>
       <label>Employee<select id="hrEmployee"></select></label>
-      <label>Action type
-        <select id="hrActionType"><option>Coaching / Counseling</option><option>Verbal Warning</option><option>Written Warning</option><option>Final Warning</option><option>Suspension Review</option><option>Termination Review</option></select>
-      </label>
+      <label>Action type<select id="hrActionType"><option>Coaching / Counseling</option><option>Verbal Warning</option><option>Written Warning</option><option>Final Warning</option><option>Suspension Review</option><option>Termination Review</option></select></label>
       <label>Reason<input id="hrReason" maxlength="100" placeholder="Reason for action" /></label>
       <label>Notes<textarea id="hrNotes" maxlength="500" placeholder="Document the facts and next steps"></textarea></label>
       <div class="modal-actions"><button class="primary" id="saveHrCase">Create HR Case</button><button class="secondary" data-close-modal="hrModal">Cancel</button></div>
@@ -188,14 +234,29 @@
   <div class="modal-backdrop hidden" id="employeeModal">
     <div class="modal">
       <button class="close" data-close-modal="employeeModal">×</button>
-      <div class="eyebrow">SYSTEM ADMINISTRATION</div>
-      <h2>Add employee</h2>
+      <div class="eyebrow">SYSTEM ADMINISTRATION</div><h2>Add employee</h2>
       <label>Full name<input id="employeeName" maxlength="80" /></label>
       <label>Work email<input id="employeeEmail" type="email" maxlength="120" /></label>
       <label>Department<select id="employeeDepartment"><option>Operations</option><option>HR</option><option>IT</option><option>Engineering</option></select></label>
       <label>Role<input id="employeeRole" maxlength="80" /></label>
       <label>Account status<select id="employeeStatus"><option>Pending activation</option><option>Active</option></select></label>
       <div class="modal-actions"><button class="primary" id="saveEmployee">Add Employee</button><button class="secondary" data-close-modal="employeeModal">Cancel</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="financeModal">
+    <div class="modal">
+      <button class="close" data-close-modal="financeModal">×</button>
+      <div class="eyebrow">BILLING / FINANCE CASE</div>
+      <h2>Create finance case</h2>
+      <div class="finance-alert compact"><strong>Prototype only:</strong> this creates an internal record and does not move money.</div>
+      <label>Case type<select id="financeCaseType"><option>Refund Review</option><option>Chargeback / Dispute</option><option>Payment Failure</option><option>Subscription Adjustment</option><option>Revenue Reconciliation</option><option>Other Billing Issue</option></select></label>
+      <label>Member / account reference<input id="financeMemberRef" maxlength="80" placeholder="Example: Member 1042 or demo@email.test" /></label>
+      <label>Related transaction ID<input id="financeTransactionRef" maxlength="50" placeholder="Optional" /></label>
+      <label>Amount<input id="financeAmount" type="number" min="0" step="0.01" placeholder="0.00" /></label>
+      <label>Priority<select id="financePriority"><option>Normal</option><option>High</option><option>Urgent</option></select></label>
+      <label>Notes<textarea id="financeNotes" maxlength="500" placeholder="Document what needs review and the requested next step"></textarea></label>
+      <div class="modal-actions"><button class="primary" id="saveFinanceCase">Create Finance Case</button><button class="secondary" data-close-modal="financeModal">Cancel</button></div>
     </div>
   </div>
 
