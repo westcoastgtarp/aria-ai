@@ -29,6 +29,13 @@ function hexToBytes(hex) {
   return out;
 }
 
+function randomAccessCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const chars = [...bytes].map(b => alphabet[b % alphabet.length]).join('');
+  return `ARIA-${chars.slice(0, 8)}-${chars.slice(8, 16)}`;
+}
+
 async function sha256(value) {
   return bytesToHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value))));
 }
@@ -189,7 +196,7 @@ async function handleIssueInvitation(request, env) {
   const email = normalizeEmail(body?.email);
   if (!email || !email.includes('@')) return json({ ok: false, error: 'A valid approved member email is required.' }, { status: 400 });
 
-  const code = `ARIA-${crypto.randomUUID().replaceAll('-', '').slice(0, 4).toUpperCase()}-${crypto.randomUUID().replaceAll('-', '').slice(0, 4).toUpperCase()}`;
+  const code = randomAccessCode();
   const codeHash = await sha256(code);
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + 1000 * 60 * 60 * 24 * 7);
@@ -234,7 +241,7 @@ export default {
         ok: true,
         service: 'aria-ai-backend',
         environment: 'prototype-to-production',
-        version: '0.2.0-auth-foundation',
+        version: '0.2.1-auth-foundation',
         databaseConnected: databaseReady(env),
         time: new Date().toISOString()
       });
