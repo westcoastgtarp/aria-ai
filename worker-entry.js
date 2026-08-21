@@ -3,9 +3,13 @@ import { handleStaffProvisioningRoute } from './staff-provisioning-api.js';
 import { handleMemberSignupRoute } from './member-signup-api.js';
 import { handleInvitationManagementRoute } from './invitation-management-api.js';
 import { handlePasswordRecoveryRoute } from './password-recovery-api.js';
+import { handleStaffTicketRoute } from './staff-ticket-api.js';
 
 export default {
   async fetch(request, env, ctx) {
+    const staffTicketResponse = await handleStaffTicketRoute(request, env);
+    if (staffTicketResponse) return staffTicketResponse;
+
     const staffResponse = await handleStaffProvisioningRoute(request, env);
     if (staffResponse) return staffResponse;
 
