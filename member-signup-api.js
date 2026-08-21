@@ -1,4 +1,5 @@
 const MEMBER_CONSENT_VERSION = '2026-08-20-v1';
+const VERIFICATION_FROM = 'verify@ariaishere.com';
 
 const jsonHeaders = {
   'content-type': 'application/json; charset=utf-8',
@@ -114,6 +115,21 @@ async function requestIpHash(request) {
   return sha256(`aria-member-signup-v1:${ip}`);
 }
 
+function emailReady(env) {
+  return Boolean(env.EMAIL && typeof env.EMAIL.send === 'function');
+}
+
+async function sendVerificationEmail(env, email, verificationCode) {
+  if (!emailReady(env)) throw new Error('email_binding_unavailable');
+  return env.EMAIL.send({
+    to: email,
+    from: VERIFICATION_FROM,
+    subject: 'Your Aria verification code',
+    text: `Your Aria verification code is ${verificationCode}. This code expires in 15 minutes. If you did not request an Aria account, you can ignore this email.`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#142033"><div style="font-size:12px;letter-spacing:.12em;font-weight:700;color:#6269e5">ARIA AI</div><h1 style="font-size:26px;margin:8px 0 12px">Verify your email</h1><p>Use this 6-digit code to continue creating your Aria account:</p><div style="font-size:34px;font-weight:800;letter-spacing:.18em;margin:24px 0;color:#4f56c8">${verificationCode}</div><p style="color:#6d788a">This code expires in 15 minutes.</p><p style="color:#6d788a;font-size:13px">If you did not request an Aria account, you can ignore this email.</p></div>`
+  });
+}
+
 async function handleConsent(request, env) {
   if (!databaseReady(env)) return databaseRequired();
   const body = await readBody(request);
@@ -178,7 +194,43 @@ async function handleConsent(request, env) {
     details: { consentVersion: MEMBER_CONSENT_VERSION, invitationId: invitation.id }
   });
 
-  const devCodeAllowed = String(env.MEMBER_SIGNUP_DEV_CODES || '').toLowerCase() === 'true' && usedAccessCode;
+  let delivery = 'sent';
+  try {
+    await sendVerificationEmail(env, email, verificationCode);
+    await recordAudit(env, {
+      category: 'Account Access',
+      eventType: 'member_verification_email_sent',
+      actorUserId: userId,
+      subjectType: 'user',
+      subjectId: userId,
+      details: { expiresAt }
+    });
+  } catch (error) {
+    delivery = 'failed';
+    await recordAudit(env, {
+      category: 'Account Access',
+      eventType: 'member_verification_email_failed',
+      actorUserId: userId,
+      subjectType: 'user',
+      subjectId: userId,
+      details: { reason: error?.message === 'email_binding_unavailable' ? 'email_binding_unavailable' : 'provider_error' }
+    });
+
+    const devCodeAllowed = String(env.MEMBER_SIGNUP_DEV_CODES || '').toLowerCase() === 'true' && usedAccessCode;
+    return json({
+      ok: false,
+      consentAccepted: true,
+      consentVersion: MEMBER_CONSENT_VERSION,
+      error: 'We could not send your verification email. Please try again in a moment.',
+      emailVerification: {
+        required: true,
+        expiresAt,
+        delivery,
+        developmentCode: devCodeAllowed ? verificationCode : null
+      }
+    }, { status: 502 });
+  }
+
   return json({
     ok: true,
     consentAccepted: true,
@@ -186,9 +238,9 @@ async function handleConsent(request, env) {
     emailVerification: {
       required: true,
       expiresAt,
-      delivery: 'not_connected',
-      message: 'Email delivery is not connected yet. Verification codes are generated and stored securely server-side.',
-      developmentCode: devCodeAllowed ? verificationCode : null
+      delivery,
+      message: 'A 6-digit verification code was sent to your email address.',
+      developmentCode: null
     }
   }, { status: 201 });
 }
@@ -338,6 +390,7 @@ export async function handleMemberSignupRoute(request, env) {
     return json({
       ok: true,
       consentVersion: MEMBER_CONSENT_VERSION,
+      emailDelivery: emailReady(env) ? 'connected' : 'not_connected',
       plans: [
         { code: 'free', name: 'Aria Free', price: '$0', status: 'available' },
         { code: 'lifeline_weekly', name: 'Aria Lifeline', price: '$4.99/week', status: 'payment_not_connected' },
