@@ -57,6 +57,47 @@ async function audit(env,event){
   `).bind(uuid('AUD'),'Account Access',event.type,event.actorUserId,'member_invitation',event.invitationId,JSON.stringify(event.details||{}),now,now).run();
 }
 
+async function handleList(request,env){
+  const auth=await requireRole(request,env,['Founder / Co-Founder','Founder','Co-Founder','System Administrator','System Admin']);
+  if(auth.error)return auth.error;
+
+  const url=new URL(request.url);
+  const includeArchived=url.searchParams.get('includeArchived')==='1';
+  const now=new Date().toISOString();
+
+  const statement=includeArchived
+    ? env.DB.prepare(`
+        SELECT i.id,i.email,i.status,i.issued_at,i.expires_at,i.used_at,
+               COALESCE(u.display_name,u.email,'Authorized administrator') AS issued_by
+        FROM member_invitations i
+        LEFT JOIN users u ON u.id=i.issued_by_user_id
+        ORDER BY i.issued_at DESC
+        LIMIT 100
+      `)
+    : env.DB.prepare(`
+        SELECT i.id,i.email,i.status,i.issued_at,i.expires_at,i.used_at,
+               COALESCE(u.display_name,u.email,'Authorized administrator') AS issued_by
+        FROM member_invitations i
+        LEFT JOIN users u ON u.id=i.issued_by_user_id
+        WHERE i.status='pending' AND (i.expires_at IS NULL OR i.expires_at>?)
+        ORDER BY i.issued_at DESC
+        LIMIT 100
+      `).bind(now);
+
+  const result=await statement.all();
+  const invitations=(result.results||[]).map(item=>({
+    id:item.id,
+    email:item.email,
+    status:item.status==='pending'&&item.expires_at&&item.expires_at<=now?'expired':item.status,
+    issuedAt:item.issued_at,
+    expiresAt:item.expires_at,
+    usedAt:item.used_at,
+    issuedBy:item.issued_by
+  }));
+
+  return json({ok:true,invitations,includeArchived});
+}
+
 async function handleRevoke(request,env){
   const auth=await requireRole(request,env,['Founder / Co-Founder','Founder','Co-Founder','System Administrator','System Admin']);
   if(auth.error)return auth.error;
@@ -151,6 +192,7 @@ async function handleDelete(request,env){
 
 export async function handleInvitationManagementRoute(request,env){
   const url=new URL(request.url);
+  if(url.pathname==='/api/invitations/list'&&request.method==='GET')return handleList(request,env);
   if(url.pathname==='/api/invitations/revoke'&&request.method==='POST')return handleRevoke(request,env);
   if(url.pathname==='/api/invitations/delete'&&request.method==='POST')return handleDelete(request,env);
   return null;
