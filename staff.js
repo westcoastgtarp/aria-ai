@@ -70,6 +70,11 @@
     core.src='staff-core.js';
     core.onload=()=>{
       applyStaffIdentity();
+
+      const footer=document.createElement('script');
+      footer.src='staff-footer.js';
+      document.body.appendChild(footer);
+
       const guard=document.createElement('script');
       guard.src='staff-access-guard.js';
       guard.onload=()=>{
