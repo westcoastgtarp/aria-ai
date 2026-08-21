@@ -2,9 +2,31 @@
   document.body.style.visibility='hidden';
   let authenticatedStaff=null;
 
+  function loadPolishStyles(){
+    if(document.querySelector('link[data-staff-polish]'))return;
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='staff-polish.css?v=20260821-1';
+    link.dataset.staffPolish='true';
+    document.head.appendChild(link);
+  }
+
   function firstName(value=''){
     const clean=String(value).trim();
     return clean?clean.split(/\s+/)[0]:'there';
+  }
+
+  function ensureTopbarActions(){
+    const topbar=document.querySelector('.staff-topbar');
+    if(!topbar)return null;
+    let actions=topbar.querySelector('.staff-topbar-actions');
+    if(actions)return actions;
+    actions=document.createElement('div');
+    actions.className='staff-topbar-actions';
+    const chip=topbar.querySelector('.user-chip');
+    if(chip)actions.appendChild(chip);
+    topbar.appendChild(actions);
+    return actions;
   }
 
   function applyStaffIdentity(){
@@ -14,6 +36,7 @@
     const eyebrow=document.querySelector('.staff-topbar .eyebrow');
     const userChip=document.querySelector('.staff-topbar .user-chip');
 
+    ensureTopbarActions();
     if(eyebrow)eyebrow.textContent='STAFF WORKSPACE';
     if(userChip){
       userChip.textContent=authenticatedStaff.role||'Staff';
@@ -62,8 +85,10 @@
   }
 
   function loadPortal(){
+    loadPolishStyles();
+
     const logout=document.createElement('script');
-    logout.src='portal-logout.js';
+    logout.src='portal-logout.js?v=20260821-2';
     document.body.appendChild(logout);
 
     const core=document.createElement('script');
@@ -82,7 +107,7 @@
         audit.src='audit-blueprint.js';
         audit.onload=()=>{
           const notes=document.createElement('script');
-          notes.src='ticket-notes.js?v=20260821-live1';
+          notes.src='ticket-notes.js?v=20260821-d1';
           notes.onload=()=>{
             const invites=document.createElement('script');
             invites.src='account-invites.js';
