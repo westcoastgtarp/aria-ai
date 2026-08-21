@@ -82,7 +82,7 @@
         audit.src='audit-blueprint.js';
         audit.onload=()=>{
           const notes=document.createElement('script');
-          notes.src='ticket-notes.js';
+          notes.src='ticket-notes.js?v=20260821-live1';
           notes.onload=()=>{
             const invites=document.createElement('script');
             invites.src='account-invites.js';
