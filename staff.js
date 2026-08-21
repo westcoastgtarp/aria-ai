@@ -1,4 +1,8 @@
 (function(){
+  const logout=document.createElement('script');
+  logout.src='portal-logout.js';
+  document.body.appendChild(logout);
+
   const core=document.createElement('script');
   core.src='staff-core.js';
   core.onload=()=>{
