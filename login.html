@@ -16,7 +16,7 @@
         <h1>Your medication. Your reminders. Your lifeline.</h1>
         <p>Member accounts are invitation-only. Staff accounts are provisioned internally by authorized administrators.</p>
       </div>
-      <div class="trust-note"><strong>Secure sign-in foundation</strong><span>Sign-in now validates credentials against Aria's server-side account database and creates a secure session cookie. Member email verification and full account creation are still being connected.</span></div>
+      <div class="trust-note"><strong>Development Preview</strong><span>Authentication and consent records are server-backed. Email delivery and paid billing are still being connected and are clearly identified during signup.</span></div>
     </section>
 
     <section class="login-card-wrap">
@@ -37,29 +37,64 @@
         </div>
 
         <div id="registrationView" hidden>
-          <div class="login-heading"><div class="eyebrow">INVITATION REQUIRED</div><h2>Create Member Account</h2><p>Use the same email provided on your approved Aria application.</p></div>
-          <div class="registration-status" id="registrationStatus">Step 1 of 3 — Confirm account eligibility</div>
+          <div class="login-heading"><div class="eyebrow">INVITATION REQUIRED</div><h2>Create Member Account</h2><p>Use the email listed on your approved Aria invitation.</p></div>
+          <div class="registration-status" id="registrationStatus">Step 1 of 5 — Confirm invitation</div>
 
           <section id="eligibilityStep" class="registration-step">
             <label>Application email<input id="registrationEmail" type="email" autocomplete="email" placeholder="you@example.com" /></label>
-            <div id="accessCodeWrap" hidden><label>Aria access code<input id="registrationAccessCode" type="text" autocomplete="one-time-code" placeholder="ARIA-XXXX-XXXX" /></label><p class="field-help">We couldn't match that email to an approved invitation. Enter the unique code issued by an Aria administrator.</p></div>
+            <div id="accessCodeWrap" hidden><label>Aria access code<input id="registrationAccessCode" type="text" autocomplete="one-time-code" placeholder="ARIA-XXXX-XXXX" /></label><p class="field-help">Enter the unique code issued with your Aria invitation.</p></div>
             <div class="login-error" id="registrationError" role="alert" hidden></div>
             <button class="sign-in" id="checkEligibility" type="button">Continue</button>
           </section>
 
+          <section id="consentStep" class="registration-step" hidden>
+            <div class="consent-card">
+              <div class="eyebrow">MEMBER CONSENT</div>
+              <h3>Review before continuing</h3>
+              <p>Aria helps you record medication information and reminders. Aria Lifeline adds AI conversation support, Care Circle features, and safety-escalation tools when enabled.</p>
+              <ul>
+                <li>Aria is not a medical professional and does not prescribe medication or replace medical advice.</li>
+                <li>Aria is not an emergency dispatch service. Emergency calling remains a direct action from your device.</li>
+                <li>Your account activity, consent, medication records, reminders, and enabled Lifeline activity may be stored so Aria can provide the service and maintain an audit history.</li>
+                <li>Care Circle and Lifeline location sharing are optional features and require separate choices inside the app.</li>
+              </ul>
+              <label class="consent-check"><input id="memberConsentRequired" type="checkbox" /> <span>I have reviewed this consent summary and agree to continue creating my Aria account.</span></label>
+              <div class="consent-version">Consent version: <span id="consentVersionLabel">Loading…</span></div>
+            </div>
+            <div class="login-error" id="consentError" role="alert" hidden></div>
+            <button class="sign-in" id="acceptConsent" type="button">Accept & Continue</button>
+          </section>
+
           <section id="verificationStep" class="registration-step" hidden>
-            <p class="verification-copy">Email verification will be completed through Aria's server-side verification service.</p>
-            <div class="prototype-code" id="prototypeVerificationCode"></div>
+            <p class="verification-copy" id="verificationCopy">A verification code is required before you can create the account.</p>
+            <div class="prototype-code" id="prototypeVerificationCode" hidden></div>
             <label>Email verification code<input id="emailVerificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" /></label>
             <div class="login-error" id="verificationError" role="alert" hidden></div>
             <button class="sign-in" id="verifyEmailCode" type="button">Verify Email</button>
           </section>
 
           <section id="passwordStep" class="registration-step" hidden>
+            <label>Your name<input id="newMemberName" type="text" autocomplete="name" maxlength="120" placeholder="First and last name" /></label>
             <label>Create password<input id="newMemberPassword" type="password" autocomplete="new-password" minlength="14" placeholder="At least 14 characters" /></label>
             <label>Confirm password<input id="confirmMemberPassword" type="password" autocomplete="new-password" minlength="14" placeholder="Confirm password" /></label>
+            <p class="field-help">Use at least 14 characters. Aria stores a secure password hash, not your plaintext password.</p>
             <div class="login-error" id="passwordError" role="alert" hidden></div>
+            <button class="sign-in" id="continueToPlan" type="button">Continue to Plan</button>
+          </section>
+
+          <section id="planStep" class="registration-step" hidden>
+            <div class="plan-heading"><h3>Choose how Aria supports you</h3><p>Free helps you remember. Lifeline helps look out for you.</p></div>
+            <label class="plan-card selected" data-plan-card="free"><input type="radio" name="ariaPlan" value="free" checked /><span class="plan-copy"><strong>Aria Free</strong><small>Medication tracking, scheduled reminders and dose checkoffs.</small></span><span class="plan-price">$0</span></label>
+            <label class="plan-card" data-plan-card="lifeline_weekly"><input type="radio" name="ariaPlan" value="lifeline_weekly" /><span class="plan-copy"><strong>Aria Lifeline</strong><small>AI companion, Care Circle, safety escalation, incident history and optional Lifeline-event location support.</small></span><span class="plan-price">$4.99<small>/week</small></span></label>
+            <label class="plan-card" data-plan-card="lifeline_annual"><input type="radio" name="ariaPlan" value="lifeline_annual" /><span class="plan-copy"><strong>Aria Lifeline</strong><small>Same Lifeline features with annual billing.</small></span><span class="plan-price">$259<small>/year</small></span></label>
+            <div class="plan-note">Paid billing is not connected yet. Choosing Lifeline records your selection but does not activate paid Lifeline access or charge you.</div>
+            <div class="login-error" id="planError" role="alert" hidden></div>
             <button class="sign-in" id="createMemberAccount" type="button">Create Account</button>
+          </section>
+
+          <section id="successStep" class="registration-step" hidden>
+            <div class="success-panel"><div class="success-icon">✓</div><h3>Account created</h3><p id="successMessage">Your Aria account is ready.</p></div>
+            <button class="sign-in" id="returnToSignIn" type="button">Go to Sign In</button>
           </section>
 
           <button class="create-account-link" id="backToSignIn" type="button">Back to sign in</button>
