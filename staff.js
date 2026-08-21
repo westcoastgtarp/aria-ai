@@ -16,8 +16,8 @@
 
     if(eyebrow)eyebrow.textContent='STAFF WORKSPACE';
     if(userChip){
-      userChip.textContent=displayName;
-      userChip.title=[authenticatedStaff.role,authenticatedStaff.department].filter(Boolean).join(' • ');
+      userChip.textContent=authenticatedStaff.role||'Staff';
+      userChip.title=[displayName,authenticatedStaff.department].filter(Boolean).join(' • ');
     }
     if(pageTitle)pageTitle.textContent=`Welcome, ${firstName(displayName)}`;
 
@@ -72,7 +72,7 @@
       applyStaffIdentity();
 
       const footer=document.createElement('script');
-      footer.src='staff-footer.js?v=20260821-2';
+      footer.src='staff-footer.js?v=20260821-3';
       document.body.appendChild(footer);
 
       const guard=document.createElement('script');
