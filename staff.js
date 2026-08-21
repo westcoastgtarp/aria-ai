@@ -72,7 +72,7 @@
       applyStaffIdentity();
 
       const footer=document.createElement('script');
-      footer.src='staff-footer.js';
+      footer.src='staff-footer.js?v=20260821-2';
       document.body.appendChild(footer);
 
       const guard=document.createElement('script');
