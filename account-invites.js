@@ -39,7 +39,7 @@
       <button class="primary" id="createMemberInvite" type="button">Issue Access Code</button>
     </div>
     <p>Issue, revoke, or remove member invitations from one place. Revoking keeps the audit record but makes the code unusable.</p>
-    <div class="security-alert"><strong>Permissions:</strong> Founder/Co-Founder and System Administrator can revoke invitations. Permanent deletion is Founder/Co-Founder only and is blocked when member consent or account history exists.</div>
+    <div class="security-alert"><strong>Permissions:</strong> Founder/Co-Founder and System Administrator can revoke invitations. Founder/Co-Founder can permanently remove pending or revoked test invitations and their unfinished signup data. Invitations tied to an active/used member account stay protected.</div>
     <div id="memberInviteForm" style="display:none;border:1px solid #e5eaf1;border-radius:14px;padding:16px;margin:16px 0;background:#fafbfe">
       <label style="display:block;font-size:12px;font-weight:700;color:#59667a">Approved member email<input id="inviteEmail" type="email" placeholder="member@example.com" style="width:100%;margin-top:7px;border:1px solid #dfe5ed;border-radius:11px;padding:11px 12px" /></label>
       <div id="inviteServerError" class="security-alert compact" style="display:none;margin-top:12px"></div>
@@ -115,14 +115,14 @@
   }
 
   async function deleteInvitation(id,button){
-    if(!confirm('Permanently delete this invitation? This is only allowed when no member consent or account history is attached.'))return;
+    if(!confirm('Permanently delete this invitation? For an unfinished signup, Aria will also remove the pending consent/verification data created by this invitation. Active or used member accounts cannot be deleted here.'))return;
     button.disabled=true;button.textContent='Deleting…';
     try{
       const response=await fetch('/api/invitations/delete',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({invitationId:id})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||'Unable to permanently delete invitation.');
       const items=loadInvites().filter(item=>item.id!==id);
-      saveInvites(items);render();showActionMessage('Invitation permanently deleted.');
+      saveInvites(items);render();showActionMessage(data.removedPendingSignup?'Invitation and unfinished signup data permanently deleted.':'Invitation permanently deleted.');
     }catch(err){showActionMessage(err?.message||'Unable to permanently delete invitation.',true);button.disabled=false;button.textContent='Delete permanently';}
   }
 
