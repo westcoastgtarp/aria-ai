@@ -113,7 +113,7 @@
             invites.src='account-invites.js';
             invites.onload=()=>{
               const provisioning=document.createElement('script');
-              provisioning.src='staff-account-provisioning.js';
+              provisioning.src='staff-account-provisioning.js?v=20260821-d1-roster';
               document.body.appendChild(provisioning);
             };
             document.body.appendChild(invites);
