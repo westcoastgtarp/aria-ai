@@ -1,5 +1,34 @@
 (function(){
   document.body.style.visibility='hidden';
+  let authenticatedStaff=null;
+
+  function firstName(value=''){
+    const clean=String(value).trim();
+    return clean?clean.split(/\s+/)[0]:'there';
+  }
+
+  function applyStaffIdentity(){
+    if(!authenticatedStaff)return;
+    const displayName=authenticatedStaff.name||authenticatedStaff.email?.split('@')[0]||'Staff';
+    const pageTitle=document.getElementById('pageTitle');
+    const eyebrow=document.querySelector('.staff-topbar .eyebrow');
+    const userChip=document.querySelector('.staff-topbar .user-chip');
+
+    if(eyebrow)eyebrow.textContent='STAFF WORKSPACE';
+    if(userChip){
+      userChip.textContent=displayName;
+      userChip.title=[authenticatedStaff.role,authenticatedStaff.department].filter(Boolean).join(' • ');
+    }
+    if(pageTitle)pageTitle.textContent=`Welcome, ${firstName(displayName)}`;
+
+    document.querySelectorAll('[data-page]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        if(button.dataset.page==='dashboard'&&pageTitle){
+          queueMicrotask(()=>{pageTitle.textContent=`Welcome, ${firstName(displayName)}`;});
+        }
+      });
+    });
+  }
 
   async function requireStaffSession(){
     try{
@@ -12,6 +41,7 @@
         return false;
       }
 
+      authenticatedStaff=user;
       const compatibilitySession={
         role:'staff',
         name:user.name||user.email?.split('@')[0]||'Staff',
@@ -39,6 +69,7 @@
     const core=document.createElement('script');
     core.src='staff-core.js';
     core.onload=()=>{
+      applyStaffIdentity();
       const guard=document.createElement('script');
       guard.src='staff-access-guard.js';
       guard.onload=()=>{
