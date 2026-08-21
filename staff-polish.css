@@ -1,0 +1,316 @@
+:root{
+  --staff-surface:#ffffff;
+  --staff-surface-soft:#f8f9fc;
+  --staff-border:#e8ebf2;
+  --staff-text:#172033;
+  --staff-muted:#758197;
+  --staff-accent:#6269e5;
+}
+
+/* Modern app shell overrides */
+body{
+  background:linear-gradient(180deg,#f7f8fc 0,#f4f6fa 100%);
+}
+
+.staff-shell{
+  grid-template-columns:264px minmax(0,1fr);
+}
+
+.staff-sidebar{
+  background:#11192b;
+  padding:22px 16px;
+  border-right:1px solid rgba(255,255,255,.06);
+  box-shadow:none;
+}
+
+.brand-block{
+  padding:2px 8px 24px;
+}
+
+.brand-mark{
+  border-radius:13px;
+  box-shadow:0 8px 24px rgba(98,105,229,.24);
+}
+
+.staff-sidebar nav{
+  gap:4px;
+}
+
+.nav-btn{
+  position:relative;
+  min-height:44px;
+  padding:11px 13px;
+  border-radius:12px;
+  color:#aab6ca;
+  font-size:13px;
+  font-weight:650;
+}
+
+.nav-btn:hover{
+  background:rgba(255,255,255,.055);
+}
+
+.nav-btn.active{
+  background:rgba(113,120,241,.14);
+  box-shadow:none;
+  color:#fff;
+}
+
+.nav-btn.active::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:11px;
+  bottom:11px;
+  width:3px;
+  border-radius:999px;
+  background:#8a90ff;
+}
+
+.footer-links{
+  display:none!important;
+}
+
+.staff-main{
+  padding:0 36px 54px;
+}
+
+.staff-topbar{
+  position:sticky;
+  top:0;
+  z-index:30;
+  height:88px;
+  margin:0 -36px 26px;
+  padding:0 36px;
+  background:rgba(247,248,252,.88);
+  border-bottom:1px solid rgba(225,229,238,.9);
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.staff-topbar h1{
+  font-size:25px;
+  letter-spacing:-.025em;
+}
+
+.staff-topbar .eyebrow{
+  color:#8b95a6;
+}
+
+.staff-topbar-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-left:auto;
+}
+
+.user-chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid #dfe2fb;
+  background:#f0f1ff;
+  color:#555dcc;
+  box-shadow:none;
+}
+
+.portal-logout-btn{
+  appearance:none;
+  -webkit-appearance:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid var(--staff-border);
+  border-radius:10px;
+  background:rgba(255,255,255,.8);
+  color:#677388;
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:none;
+}
+
+.portal-logout-btn:hover{
+  border-color:#d5d9e3;
+  background:#fff;
+  color:#2e3a4f;
+}
+
+.portal-logout-btn:disabled{
+  opacity:.6;
+  cursor:wait;
+}
+
+.card,.panel,.candidate-card,.ticket-card,.employee-card,.onboarding-card{
+  border-color:var(--staff-border);
+  border-radius:16px;
+  box-shadow:0 8px 24px rgba(25,37,63,.045);
+}
+
+.card{
+  padding:19px;
+}
+
+.panel{
+  padding:22px;
+}
+
+.ticket-card,.candidate-card{
+  padding:18px;
+}
+
+.primary,.icon-action{
+  background:linear-gradient(135deg,#6269e5,#747bef);
+  box-shadow:0 7px 18px rgba(98,105,229,.18);
+}
+
+.secondary,.status-btn{
+  border:1px solid #e3e7ef;
+  background:#f7f8fb;
+  color:#526076;
+  box-shadow:none;
+}
+
+.summary-chip{
+  background:rgba(255,255,255,.78);
+  border-color:var(--staff-border);
+  box-shadow:none;
+}
+
+.ticket-note-input,
+.modal input,.modal select,.modal textarea,
+.form-grid input,.form-grid select,.form-grid textarea{
+  border-color:#dfe4ed!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+
+.ticket-note-input:focus,
+.modal input:focus,.modal select:focus,.modal textarea:focus,
+.form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus{
+  border-color:#9ca2ef!important;
+  box-shadow:0 0 0 3px rgba(98,105,229,.08)!important;
+}
+
+.staff-utility-footer{
+  margin-top:44px!important;
+}
+
+@media(max-width:900px){
+  .staff-shell{
+    display:block;
+  }
+
+  .staff-sidebar{
+    position:sticky;
+    top:0;
+    z-index:50;
+    height:auto;
+    padding:10px 12px 8px;
+    border-right:0;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+
+  .brand-block{
+    padding:3px 4px 10px;
+  }
+
+  .brand-mark{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+  }
+
+  .brand-block span{
+    display:none;
+  }
+
+  .staff-sidebar nav{
+    flex-direction:row;
+    gap:5px;
+    overflow-x:auto;
+    padding:0 1px 2px;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .staff-sidebar nav::-webkit-scrollbar{
+    display:none;
+  }
+
+  .nav-btn{
+    flex:0 0 auto;
+    min-height:36px;
+    padding:8px 11px;
+    border-radius:10px;
+    font-size:12px;
+    white-space:nowrap;
+  }
+
+  .nav-btn.active::before{
+    display:none;
+  }
+
+  .staff-main{
+    padding:0 16px 34px;
+  }
+
+  .staff-topbar{
+    position:relative;
+    height:auto;
+    min-height:82px;
+    margin:0 -16px 20px;
+    padding:15px 16px;
+    background:rgba(247,248,252,.94);
+  }
+
+  .staff-topbar h1{
+    font-size:21px;
+  }
+
+  .staff-topbar-actions{
+    gap:7px;
+  }
+
+  .user-chip,
+  .portal-logout-btn{
+    min-height:34px;
+    padding:0 10px;
+    font-size:11px;
+  }
+}
+
+@media(max-width:560px){
+  .staff-topbar{
+    align-items:flex-start;
+    gap:12px;
+  }
+
+  .staff-topbar-actions{
+    align-self:center;
+  }
+
+  .user-chip{
+    display:none;
+  }
+
+  .portal-logout-btn{
+    background:#fff;
+  }
+
+  .card,.panel,.candidate-card,.ticket-card,.employee-card{
+    border-radius:14px;
+  }
+
+  .panel{
+    padding:18px;
+  }
+
+  .ticket-card{
+    padding:16px;
+  }
+}
