@@ -64,12 +64,12 @@ async function currentSession(request, env) {
 async function requireProvisioner(request, env) {
   const session = await currentSession(request, env);
   const role = String(session?.staff_role || '').trim().toLowerCase();
-  const allowed = ['founder', 'founder / co-founder', 'co-founder', 'system administrator', 'system admin'];
+  const allowed = ['founder', 'system administrator', 'system admin'];
   if (!session || session.account_type !== 'staff' || session.status !== 'active') {
     return { error: json({ ok: false, error: 'Authentication required.' }, { status: 401 }) };
   }
   if (!allowed.includes(role)) {
-    return { error: json({ ok: false, error: 'You do not have permission to provision staff accounts.' }, { status: 403 }) };
+    return { error: json({ ok: false, error: 'You do not have permission to manage staff accounts.' }, { status: 403 }) };
   }
   return { session, role };
 }
@@ -107,13 +107,12 @@ async function createStaffInvitation(request, env) {
   if (!roleName || roleName.length > 120) return json({ ok: false, error: 'Role is required.' }, { status: 400 });
 
   const requestedRole = roleName.toLowerCase();
-  if (requestedRole === 'founder' || requestedRole === 'founder / co-founder') {
+  if (requestedRole === 'founder') {
     return json({ ok: false, error: 'Founder access cannot be created through the employee provisioning workflow.' }, { status: 400 });
   }
-  const privileged = ['co-founder', 'system administrator', 'system admin'];
-  const founderCreator = ['founder', 'founder / co-founder', 'co-founder'].includes(auth.role);
-  if (privileged.includes(requestedRole) && !founderCreator) {
-    return json({ ok: false, error: 'Only Founder / Co-Founder access can assign privileged staff roles.' }, { status: 403 });
+  const privileged = ['system administrator', 'system admin'];
+  if (privileged.includes(requestedRole) && auth.role !== 'founder') {
+    return json({ ok: false, error: 'Only Founder access can assign privileged staff roles.' }, { status: 403 });
   }
 
   const existing = await env.DB.prepare(`SELECT id, status FROM users WHERE email = ? LIMIT 1`).bind(email).first();
@@ -166,17 +165,74 @@ async function listStaffAccounts(request, env) {
   if (auth.error) return auth.error;
 
   const result = await env.DB.prepare(`
-    SELECT u.id, u.email, u.display_name, u.status, u.created_at,
+    SELECT u.id, u.email, u.display_name, u.status, u.created_at, u.updated_at,
       (SELECT role_name FROM staff_roles r WHERE r.user_id = u.id AND r.active = 1 ORDER BY r.assigned_at DESC LIMIT 1) AS role_name,
       (SELECT department FROM staff_roles r WHERE r.user_id = u.id AND r.active = 1 ORDER BY r.assigned_at DESC LIMIT 1) AS department,
       (SELECT status FROM staff_account_invitations i WHERE i.user_id = u.id ORDER BY i.issued_at DESC LIMIT 1) AS invitation_status,
-      (SELECT expires_at FROM staff_account_invitations i WHERE i.user_id = u.id ORDER BY i.issued_at DESC LIMIT 1) AS invitation_expires_at
+      (SELECT expires_at FROM staff_account_invitations i WHERE i.user_id = u.id ORDER BY i.issued_at DESC LIMIT 1) AS invitation_expires_at,
+      (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id AND s.revoked_at IS NULL AND s.expires_at > ?) AS active_sessions
     FROM users u
     WHERE u.account_type = 'staff'
-    ORDER BY u.created_at DESC
-  `).all();
+    ORDER BY CASE WHEN LOWER(COALESCE((SELECT role_name FROM staff_roles r WHERE r.user_id = u.id AND r.active = 1 ORDER BY r.assigned_at DESC LIMIT 1), '')) = 'founder' THEN 0 ELSE 1 END,
+      COALESCE(u.display_name, u.email) COLLATE NOCASE
+  `).bind(new Date().toISOString()).all();
 
-  return json({ ok: true, employees: result.results || [] });
+  return json({ ok: true, employees: result.results || [], viewer: { id: auth.session.user_id, role: auth.session.staff_role } });
+}
+
+async function updateStaffAccountStatus(request, env, userId) {
+  const auth = await requireProvisioner(request, env);
+  if (auth.error) return auth.error;
+  const body = await readBody(request);
+  const requestedStatus = String(body?.status || '').trim().toLowerCase();
+  if (!['active', 'suspended'].includes(requestedStatus)) {
+    return json({ ok: false, error: 'Status must be active or suspended.' }, { status: 400 });
+  }
+
+  const target = await env.DB.prepare(`
+    SELECT u.id, u.email, u.display_name, u.status,
+      (SELECT role_name FROM staff_roles r WHERE r.user_id = u.id AND r.active = 1 ORDER BY r.assigned_at DESC LIMIT 1) AS role_name
+    FROM users u
+    WHERE u.id = ? AND u.account_type = 'staff'
+    LIMIT 1
+  `).bind(userId).first();
+  if (!target) return json({ ok: false, error: 'Staff account not found.' }, { status: 404 });
+
+  const targetRole = String(target.role_name || '').trim().toLowerCase();
+  if (targetRole === 'founder') {
+    return json({ ok: false, error: 'Founder account status cannot be changed from employee access controls.' }, { status: 403 });
+  }
+  if (target.id === auth.session.user_id) {
+    return json({ ok: false, error: 'You cannot change your own account status from this control.' }, { status: 400 });
+  }
+  if (targetRole === 'system administrator' || targetRole === 'system admin') {
+    if (auth.role !== 'founder') {
+      return json({ ok: false, error: 'Only Founder access can change a System Administrator account.' }, { status: 403 });
+    }
+  }
+  if (target.status === 'pending') {
+    return json({ ok: false, error: 'Pending staff must complete account setup before status can be changed.' }, { status: 409 });
+  }
+
+  const now = new Date().toISOString();
+  const statements = [
+    env.DB.prepare(`UPDATE users SET status = ?, updated_at = ? WHERE id = ?`).bind(requestedStatus, now, userId)
+  ];
+  if (requestedStatus === 'suspended') {
+    statements.push(env.DB.prepare(`UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`).bind(now, userId));
+  }
+  await env.DB.batch(statements);
+
+  await recordAudit(env, {
+    category: 'Account Access',
+    eventType: requestedStatus === 'suspended' ? 'staff_account_suspended' : 'staff_account_reactivated',
+    actorUserId: auth.session.user_id,
+    subjectType: 'user',
+    subjectId: userId,
+    details: { email: target.email, displayName: target.display_name, previousStatus: target.status, status: requestedStatus }
+  });
+
+  return json({ ok: true, id: userId, status: requestedStatus, sessionsRevoked: requestedStatus === 'suspended' });
 }
 
 async function validateStaffSetup(request, env) {
@@ -240,6 +296,8 @@ export async function handleStaffProvisioningRoute(request, env) {
   const url = new URL(request.url);
   if (url.pathname === '/api/staff/invitations' && request.method === 'POST') return createStaffInvitation(request, env);
   if (url.pathname === '/api/staff/accounts' && request.method === 'GET') return listStaffAccounts(request, env);
+  const accountMatch = url.pathname.match(/^\/api\/staff\/accounts\/([^/]+)\/status$/);
+  if (accountMatch && request.method === 'PATCH') return updateStaffAccountStatus(request, env, decodeURIComponent(accountMatch[1]));
   if (url.pathname === '/api/staff/setup/validate' && request.method === 'GET') return validateStaffSetup(request, env);
   if (url.pathname === '/api/staff/setup/complete' && request.method === 'POST') return completeStaffSetup(request, env);
   return null;
