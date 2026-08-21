@@ -1,0 +1,244 @@
+function json(data, init = {}) {
+  return new Response(JSON.stringify(data), {
+    ...init,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
+      ...(init.headers || {})
+    }
+  });
+}
+
+function uuid(prefix) {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function bytesToHex(bytes) {
+  return [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256(value) {
+  return bytesToHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value))));
+}
+
+function parseCookies(request) {
+  const raw = request.headers.get('cookie') || '';
+  return Object.fromEntries(raw.split(';').map(v => v.trim()).filter(Boolean).map(v => {
+    const index = v.indexOf('=');
+    return [v.slice(0, index), decodeURIComponent(v.slice(index + 1))];
+  }));
+}
+
+async function readBody(request) {
+  try { return await request.json(); } catch { return null; }
+}
+
+async function currentSession(request, env) {
+  const token = parseCookies(request).aria_session;
+  if (!token || !env.DB) return null;
+  const tokenHash = await sha256(token);
+  return await env.DB.prepare(`
+    SELECT s.id AS session_id, u.id AS user_id, u.email, u.display_name, u.account_type, u.status,
+      (SELECT role_name FROM staff_roles r WHERE r.user_id = u.id AND r.active = 1 ORDER BY r.assigned_at DESC LIMIT 1) AS staff_role,
+      (SELECT department FROM staff_roles r WHERE r.user_id = u.id AND r.active = 1 ORDER BY r.assigned_at DESC LIMIT 1) AS department
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ?
+    LIMIT 1
+  `).bind(tokenHash, new Date().toISOString()).first();
+}
+
+async function requireHiringManager(request, env) {
+  const session = await currentSession(request, env);
+  if (!session || session.account_type !== 'staff' || session.status !== 'active') {
+    return { error: json({ ok: false, error: 'Authentication required.' }, { status: 401 }) };
+  }
+  const role = String(session.staff_role || '').trim().toLowerCase();
+  if (!['founder','founder / co-founder','co-founder','system administrator','system admin','hr'].includes(role) && String(session.department || '').trim().toLowerCase() !== 'hr') {
+    return { error: json({ ok: false, error: 'You do not have permission to manage hiring.' }, { status: 403 }) };
+  }
+  return { session, role };
+}
+
+async function recordAudit(env, event) {
+  const now = new Date().toISOString();
+  await env.DB.prepare(`
+    INSERT INTO audit_events
+    (id, category, event_type, actor_user_id, subject_type, subject_id, details_json, occurred_at, recorded_at)
+    VALUES (?, 'Hiring & Onboarding', ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    uuid('AUD'), event.eventType, event.actorUserId || null,
+    event.subjectType || 'candidate', event.subjectId || null,
+    JSON.stringify(event.details || {}), now, now
+  ).run();
+}
+
+function makeToken() {
+  return `${crypto.randomUUID()}${crypto.randomUUID()}`.replaceAll('-', '');
+}
+
+async function createCandidate(request, env) {
+  const auth = await requireHiringManager(request, env);
+  if (auth.error) return auth.error;
+  const body = await readBody(request);
+  const fullName = String(body?.fullName || '').trim();
+  const email = String(body?.email || '').trim().toLowerCase();
+  const department = String(body?.department || '').trim();
+  const expectedRole = String(body?.expectedRole || '').trim();
+
+  if (!fullName || fullName.length > 120) return json({ ok: false, error: 'Candidate name is required.' }, { status: 400 });
+  if (!email || !email.includes('@') || email.length > 254) return json({ ok: false, error: 'A valid candidate email is required.' }, { status: 400 });
+  if (!['Operations','HR','IT','Engineering'].includes(department)) return json({ ok: false, error: 'Select a valid department.' }, { status: 400 });
+  if (!expectedRole || expectedRole.length > 120) return json({ ok: false, error: 'Expected role is required.' }, { status: 400 });
+
+  const existing = await env.DB.prepare(`SELECT id, status FROM hiring_candidates WHERE email = ? AND status != 'archived' LIMIT 1`).bind(email).first();
+  if (existing) return json({ ok: false, error: 'An active hiring record already exists for this email.' }, { status: 409 });
+
+  const id = uuid('CAN');
+  const token = makeToken();
+  const tokenHash = await sha256(token);
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 7);
+
+  await env.DB.prepare(`
+    INSERT INTO hiring_candidates
+    (id, full_name, email, department, expected_role, status, onboarding_token_hash, invited_by_user_id, invited_at, onboarding_expires_at)
+    VALUES (?, ?, ?, ?, ?, 'invited', ?, ?, ?, ?)
+  `).bind(id, fullName, email, department, expectedRole, tokenHash, auth.session.user_id, now.toISOString(), expiresAt.toISOString()).run();
+
+  await recordAudit(env, {
+    eventType: 'onboarding_invitation_created',
+    actorUserId: auth.session.user_id,
+    subjectId: id,
+    details: { email, fullName, department, expectedRole, expiresAt: expiresAt.toISOString() }
+  });
+
+  const onboardingUrl = `${new URL(request.url).origin}/onboarding.html?token=${encodeURIComponent(token)}`;
+  return json({ ok: true, candidate: { id, fullName, email, department, expectedRole, status: 'invited', expiresAt: expiresAt.toISOString() }, onboardingUrl }, { status: 201 });
+}
+
+async function listCandidates(request, env) {
+  const auth = await requireHiringManager(request, env);
+  if (auth.error) return auth.error;
+  const result = await env.DB.prepare(`
+    SELECT c.id, c.full_name, c.email, c.department, c.expected_role, c.status,
+      c.invited_at, c.onboarding_expires_at, c.submitted_at, c.reviewed_at,
+      s.preferred_name, s.personal_email, s.phone, s.city, s.state,
+      s.preferred_start_date, s.availability, s.emergency_contact, s.notes,
+      s.submitted_at AS submission_time
+    FROM hiring_candidates c
+    LEFT JOIN onboarding_submissions s ON s.candidate_id = c.id
+    WHERE c.status != 'archived'
+    ORDER BY c.invited_at DESC
+    LIMIT 200
+  `).all();
+  return json({ ok: true, candidates: result.results || [] });
+}
+
+async function markReviewed(request, env, id) {
+  const auth = await requireHiringManager(request, env);
+  if (auth.error) return auth.error;
+  const row = await env.DB.prepare(`SELECT id, status FROM hiring_candidates WHERE id = ? LIMIT 1`).bind(id).first();
+  if (!row) return json({ ok: false, error: 'Candidate not found.' }, { status: 404 });
+  if (row.status !== 'submitted' && row.status !== 'reviewed') return json({ ok: false, error: 'Onboarding has not been submitted yet.' }, { status: 409 });
+  const now = new Date().toISOString();
+  await env.DB.prepare(`UPDATE hiring_candidates SET status = 'reviewed', reviewed_at = ? WHERE id = ?`).bind(now, id).run();
+  await recordAudit(env, { eventType: 'onboarding_reviewed', actorUserId: auth.session.user_id, subjectId: id });
+  return json({ ok: true, status: 'reviewed', reviewedAt: now });
+}
+
+async function validateOnboarding(request, env) {
+  const token = String(new URL(request.url).searchParams.get('token') || '');
+  if (token.length < 32) return json({ ok: false, valid: false, error: 'This onboarding link is invalid.' }, { status: 400 });
+  const tokenHash = await sha256(token);
+  const row = await env.DB.prepare(`
+    SELECT id, full_name, email, department, expected_role, status, onboarding_expires_at
+    FROM hiring_candidates
+    WHERE onboarding_token_hash = ? AND status IN ('invited','submitted') AND onboarding_expires_at > ?
+    LIMIT 1
+  `).bind(tokenHash, new Date().toISOString()).first();
+  if (!row) return json({ ok: false, valid: false, error: 'This onboarding link is invalid or expired.' }, { status: 404 });
+  return json({ ok: true, valid: true, candidate: { id: row.id, fullName: row.full_name, email: row.email, department: row.department, expectedRole: row.expected_role, status: row.status } });
+}
+
+async function submitOnboarding(request, env) {
+  const body = await readBody(request);
+  const token = String(body?.token || '');
+  if (token.length < 32) return json({ ok: false, error: 'This onboarding link is invalid.' }, { status: 400 });
+  const tokenHash = await sha256(token);
+  const candidate = await env.DB.prepare(`
+    SELECT id, status, onboarding_expires_at FROM hiring_candidates
+    WHERE onboarding_token_hash = ? AND status IN ('invited','submitted') AND onboarding_expires_at > ?
+    LIMIT 1
+  `).bind(tokenHash, new Date().toISOString()).first();
+  if (!candidate) return json({ ok: false, error: 'This onboarding link is invalid or expired.' }, { status: 404 });
+
+  const values = {
+    legalName: String(body?.legalName || '').trim(),
+    preferredName: String(body?.preferredName || '').trim(),
+    personalEmail: String(body?.personalEmail || '').trim().toLowerCase(),
+    phone: String(body?.phone || '').trim(),
+    city: String(body?.city || '').trim(),
+    state: String(body?.state || '').trim(),
+    department: String(body?.department || '').trim(),
+    expectedRole: String(body?.expectedRole || '').trim(),
+    startDate: String(body?.startDate || '').trim(),
+    availability: String(body?.availability || '').trim(),
+    emergencyContact: String(body?.emergencyContact || '').trim(),
+    notes: String(body?.notes || '').trim(),
+    accuracyAck: body?.accuracyAck === true,
+    policyAck: body?.policyAck === true
+  };
+
+  if (!values.legalName || values.legalName.length > 120) return json({ ok: false, error: 'Legal name is required.' }, { status: 400 });
+  if (!values.personalEmail || !values.personalEmail.includes('@') || values.personalEmail.length > 254) return json({ ok: false, error: 'A valid personal email is required.' }, { status: 400 });
+  if (!values.phone || values.phone.length > 40) return json({ ok: false, error: 'Phone number is required.' }, { status: 400 });
+  if (!values.city || !values.state) return json({ ok: false, error: 'City and state are required.' }, { status: 400 });
+  if (!['Operations','HR','IT','Engineering'].includes(values.department)) return json({ ok: false, error: 'Select a valid department.' }, { status: 400 });
+  if (!values.expectedRole || values.expectedRole.length > 120) return json({ ok: false, error: 'Expected role is required.' }, { status: 400 });
+  if (!values.startDate) return json({ ok: false, error: 'Preferred start date is required.' }, { status: 400 });
+  if (!values.availability) return json({ ok: false, error: 'Availability is required.' }, { status: 400 });
+  if (values.emergencyContact.length > 160 || values.notes.length > 1000) return json({ ok: false, error: 'One or more fields are too long.' }, { status: 400 });
+  if (!values.accuracyAck || !values.policyAck) return json({ ok: false, error: 'Both acknowledgments are required.' }, { status: 400 });
+
+  const now = new Date().toISOString();
+  const existing = await env.DB.prepare(`SELECT id FROM onboarding_submissions WHERE candidate_id = ? LIMIT 1`).bind(candidate.id).first();
+  if (existing) {
+    await env.DB.prepare(`
+      UPDATE onboarding_submissions SET
+        legal_name = ?, preferred_name = ?, personal_email = ?, phone = ?, city = ?, state = ?,
+        department = ?, expected_role = ?, preferred_start_date = ?, availability = ?, emergency_contact = ?, notes = ?,
+        accuracy_ack = 1, policy_ack = 1, updated_at = ?
+      WHERE candidate_id = ?
+    `).bind(values.legalName, values.preferredName || null, values.personalEmail, values.phone, values.city, values.state,
+      values.department, values.expectedRole, values.startDate, values.availability, values.emergencyContact || null, values.notes || null,
+      now, candidate.id).run();
+  } else {
+    await env.DB.prepare(`
+      INSERT INTO onboarding_submissions
+      (id, candidate_id, legal_name, preferred_name, personal_email, phone, city, state, department, expected_role,
+       preferred_start_date, availability, emergency_contact, notes, accuracy_ack, policy_ack, submitted_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+    `).bind(uuid('ONB'), candidate.id, values.legalName, values.preferredName || null, values.personalEmail, values.phone,
+      values.city, values.state, values.department, values.expectedRole, values.startDate, values.availability,
+      values.emergencyContact || null, values.notes || null, now, now).run();
+  }
+
+  await env.DB.prepare(`UPDATE hiring_candidates SET status = 'submitted', submitted_at = ? WHERE id = ?`).bind(now, candidate.id).run();
+  await recordAudit(env, { eventType: existing ? 'onboarding_resubmitted' : 'onboarding_submitted', subjectId: candidate.id, details: { department: values.department, expectedRole: values.expectedRole } });
+  return json({ ok: true, submitted: true, submittedAt: now });
+}
+
+export async function handleHiringOnboardingRoute(request, env) {
+  const url = new URL(request.url);
+  if (url.pathname === '/api/staff/hiring/candidates' && request.method === 'GET') return listCandidates(request, env);
+  if (url.pathname === '/api/staff/hiring/candidates' && request.method === 'POST') return createCandidate(request, env);
+
+  const reviewed = url.pathname.match(/^\/api\/staff\/hiring\/candidates\/([^/]+)\/reviewed$/);
+  if (reviewed && request.method === 'POST') return markReviewed(request, env, decodeURIComponent(reviewed[1]));
+
+  if (url.pathname === '/api/onboarding/validate' && request.method === 'GET') return validateOnboarding(request, env);
+  if (url.pathname === '/api/onboarding/submit' && request.method === 'POST') return submitOnboarding(request, env);
+  return null;
+}
