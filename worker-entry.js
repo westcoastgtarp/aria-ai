@@ -1,11 +1,15 @@
 import baseWorker from './worker.js';
 import { handleStaffProvisioningRoute } from './staff-provisioning-api.js';
 import { handleMemberSignupRoute } from './member-signup-api.js';
+import { handleInvitationManagementRoute } from './invitation-management-api.js';
 
 export default {
   async fetch(request, env, ctx) {
     const staffResponse = await handleStaffProvisioningRoute(request, env);
     if (staffResponse) return staffResponse;
+
+    const invitationResponse = await handleInvitationManagementRoute(request, env);
+    if (invitationResponse) return invitationResponse;
 
     const memberSignupResponse = await handleMemberSignupRoute(request, env);
     if (memberSignupResponse) return memberSignupResponse;
