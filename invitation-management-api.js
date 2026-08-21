@@ -83,21 +83,70 @@ async function handleDelete(request,env){
 
   const invitation=await env.DB.prepare(`SELECT id,email,status FROM member_invitations WHERE id=? LIMIT 1`).bind(invitationId).first();
   if(!invitation)return json({ok:false,error:'Invitation not found.'},{status:404});
-  if(invitation.status==='used')return json({ok:false,error:'This invitation was used and must remain in the audit history.'},{status:409});
+  if(invitation.status==='used')return json({ok:false,error:'This invitation was used to create a member account and must remain in history.'},{status:409});
 
-  const consentCount=await env.DB.prepare(`SELECT COUNT(*) AS count FROM member_consents WHERE invitation_id=?`).bind(invitationId).first();
-  if(Number(consentCount?.count||0)>0){
-    return json({ok:false,error:'This invitation has member consent history and cannot be permanently deleted.'},{status:409});
+  const member=await env.DB.prepare(`
+    SELECT id,status,email_verified_at,password_hash
+    FROM users
+    WHERE email=? AND account_type='member'
+    LIMIT 1
+  `).bind(invitation.email).first();
+
+  if(member?.status==='active'){
+    return json({ok:false,error:'An active member account exists for this invitation. It cannot be permanently deleted.'},{status:409});
   }
 
-  const accountCount=await env.DB.prepare(`SELECT COUNT(*) AS count FROM users WHERE email=? AND account_type='member'`).bind(invitation.email).first();
-  if(Number(accountCount?.count||0)>0){
-    return json({ok:false,error:'A member account history exists for this email. Revoke the invitation instead.'},{status:409});
+  let removedPendingSignup=false;
+  let removedConsentRecords=0;
+
+  if(member){
+    const planCount=await env.DB.prepare(`SELECT COUNT(*) AS count FROM member_plan_selections WHERE user_id=?`).bind(member.id).first();
+    if(Number(planCount?.count||0)>0){
+      return json({ok:false,error:'This member has plan/account history. Keep the invitation in the audit history.'},{status:409});
+    }
+
+    const consentForInvite=await env.DB.prepare(`SELECT COUNT(*) AS count FROM member_consents WHERE user_id=? AND invitation_id=?`).bind(member.id,invitationId).first();
+    const allConsent=await env.DB.prepare(`SELECT COUNT(*) AS count FROM member_consents WHERE user_id=?`).bind(member.id).first();
+    const inviteConsentCount=Number(consentForInvite?.count||0);
+    const allConsentCount=Number(allConsent?.count||0);
+    removedConsentRecords=inviteConsentCount;
+
+    if(allConsentCount===inviteConsentCount){
+      await env.DB.batch([
+        env.DB.prepare(`DELETE FROM email_verifications WHERE user_id=?`).bind(member.id),
+        env.DB.prepare(`DELETE FROM sessions WHERE user_id=?`).bind(member.id),
+        env.DB.prepare(`DELETE FROM member_consents WHERE invitation_id=?`).bind(invitationId),
+        env.DB.prepare(`DELETE FROM users WHERE id=? AND account_type='member' AND status='pending'`).bind(member.id),
+        env.DB.prepare(`DELETE FROM member_invitations WHERE id=?`).bind(invitationId)
+      ]);
+      removedPendingSignup=true;
+    }else{
+      await env.DB.batch([
+        env.DB.prepare(`DELETE FROM member_consents WHERE invitation_id=?`).bind(invitationId),
+        env.DB.prepare(`DELETE FROM member_invitations WHERE id=?`).bind(invitationId)
+      ]);
+    }
+  }else{
+    await env.DB.batch([
+      env.DB.prepare(`DELETE FROM member_consents WHERE invitation_id=?`).bind(invitationId),
+      env.DB.prepare(`DELETE FROM member_invitations WHERE id=?`).bind(invitationId)
+    ]);
   }
 
-  await env.DB.prepare(`DELETE FROM member_invitations WHERE id=?`).bind(invitationId).run();
-  await audit(env,{type:'member_invitation_deleted',actorUserId:auth.session.user_id,invitationId,details:{email:invitation.email,previousStatus:invitation.status,permanent:true}});
-  return json({ok:true,deleted:true,invitationId});
+  await audit(env,{
+    type:'member_invitation_deleted',
+    actorUserId:auth.session.user_id,
+    invitationId,
+    details:{
+      email:invitation.email,
+      previousStatus:invitation.status,
+      permanent:true,
+      removedPendingSignup,
+      removedConsentRecords
+    }
+  });
+
+  return json({ok:true,deleted:true,invitationId,removedPendingSignup,removedConsentRecords});
 }
 
 export async function handleInvitationManagementRoute(request,env){
