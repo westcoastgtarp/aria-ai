@@ -103,8 +103,11 @@
       const result=document.getElementById('hiringInviteResult');
       result.innerHTML=`<strong>Onboarding link created.</strong><div style="margin-top:8px;word-break:break-all">${escapeHtml(data.onboardingUrl||'')}</div><button class="secondary" id="copyHiringLink" type="button" style="margin-top:10px">Copy Link</button><div style="margin-top:8px;font-size:11px">The link expires in 7 days.</div>`;
       result.classList.remove('hidden');
-      document.getElementById('copyHiringLink')?.addEventListener('click',async()=>{
-        try{await navigator.clipboard.writeText(data.onboardingUrl||'');event.target.textContent='Copied';}catch{}
+      document.getElementById('copyHiringLink')?.addEventListener('click',async event=>{
+        try{
+          await navigator.clipboard.writeText(data.onboardingUrl||'');
+          event.currentTarget.textContent='Copied';
+        }catch{}
       });
       await loadCandidates();
     }catch(error){alert(error?.message||'Unable to create candidate invitation.');}
