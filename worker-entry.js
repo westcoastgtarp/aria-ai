@@ -2,6 +2,7 @@ import baseWorker from './worker.js';
 import { handleStaffProvisioningRoute } from './staff-provisioning-api.js';
 import { handleMemberSignupRoute } from './member-signup-api.js';
 import { handleInvitationManagementRoute } from './invitation-management-api.js';
+import { handlePasswordRecoveryRoute } from './password-recovery-api.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -10,6 +11,9 @@ export default {
 
     const invitationResponse = await handleInvitationManagementRoute(request, env);
     if (invitationResponse) return invitationResponse;
+
+    const passwordRecoveryResponse = await handlePasswordRecoveryRoute(request, env);
+    if (passwordRecoveryResponse) return passwordRecoveryResponse;
 
     const memberSignupResponse = await handleMemberSignupRoute(request, env);
     if (memberSignupResponse) return memberSignupResponse;
