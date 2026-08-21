@@ -8,23 +8,32 @@
     nodes.forEach(node=>{node.nodeValue=node.nodeValue.replaceAll('Founder / Co-Founder','Founder');});
   }
 
+  function removeSidebarFooter(){
+    document.querySelectorAll('.staff-sidebar .footer-links').forEach(node=>node.remove());
+  }
+
   function addStyles(){
     const style=document.createElement('style');
     style.textContent=`
-      .staff-sidebar .footer-links{display:none!important}
-      .staff-utility-footer{margin-top:42px;border-top:1px solid var(--line);padding:26px 4px 8px;display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:34px;color:var(--muted)}
-      .staff-footer-group{min-width:0}
-      .staff-footer-group h3{margin:0 0 10px;color:var(--text);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-      .staff-footer-links{display:flex;flex-wrap:wrap;gap:7px 16px;align-items:center}
-      .staff-footer-links button,.staff-footer-links a{border:0;background:transparent;padding:0;color:#66738a;text-decoration:none;font-size:12px;cursor:pointer;text-align:left}
-      .staff-footer-links button:hover,.staff-footer-links a:hover{color:#565dd0}
-      .staff-footer-copy{font-size:11px;line-height:1.55;color:#8893a4;margin-top:9px;max-width:540px}
-      .staff-footer-bottom{grid-column:1/-1;border-top:1px solid var(--line);padding-top:14px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:10px;color:#929cac}
+      .staff-utility-footer{margin-top:46px;background:linear-gradient(180deg,#ffffff,#fafbfe);border:1px solid var(--line);border-radius:20px;box-shadow:0 14px 34px rgba(17,31,56,.06);overflow:hidden;color:var(--muted)}
+      .staff-footer-grid{display:grid;grid-template-columns:1.45fr 1fr 1fr;gap:0}
+      .staff-footer-group{min-width:0;padding:24px 26px}
+      .staff-footer-group+.staff-footer-group{border-left:1px solid var(--line)}
+      .staff-footer-kicker{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#8a95a5;margin-bottom:7px}
+      .staff-footer-group h3{margin:0 0 12px;color:var(--text);font-size:15px;letter-spacing:0}
+      .staff-footer-links{display:flex;flex-wrap:wrap;gap:8px}
+      .staff-footer-links button,.staff-footer-links a{appearance:none;-webkit-appearance:none;border:1px solid #e1e5f0;background:#fff;border-radius:999px;padding:8px 11px;color:#59667a;text-decoration:none;font-size:11px;font-weight:700;line-height:1;cursor:pointer;box-shadow:0 2px 5px rgba(17,31,56,.03)}
+      .staff-footer-links button:hover,.staff-footer-links a:hover{border-color:#bfc3f3;background:#f5f5ff;color:#565dd0;transform:translateY(-1px)}
+      .staff-footer-copy{font-size:11px;line-height:1.55;color:#8b95a5;margin-top:12px;max-width:520px}
+      .staff-footer-contact{display:inline-flex;align-items:center;gap:8px;color:#565dd0!important;background:#f5f5ff!important;border-color:#d8daf8!important}
+      .staff-footer-contact:before{content:'✉';font-size:12px}
+      .staff-footer-bottom{border-top:1px solid var(--line);padding:13px 26px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;background:#f7f8fb;font-size:10px;color:#929cac}
+      .staff-footer-bottom strong{color:#687487;font-weight:750}
       .terms-list{padding-left:20px;color:var(--muted);line-height:1.65}
       .terms-list li+li{margin-top:8px}
       .terms-callout{margin-top:18px;padding:14px 16px;border:1px solid #dfe3f7;border-radius:13px;background:#f7f8ff;color:#59667a;font-size:12px;line-height:1.55}
-      @media(max-width:900px){.staff-utility-footer{grid-template-columns:1fr 1fr;gap:24px}.staff-footer-group:first-child{grid-column:1/-1}}
-      @media(max-width:560px){.staff-utility-footer{grid-template-columns:1fr;padding-top:22px}.staff-footer-group:first-child{grid-column:auto}.staff-footer-links{flex-direction:column;align-items:flex-start}.staff-footer-bottom{flex-direction:column}}
+      @media(max-width:900px){.staff-footer-grid{grid-template-columns:1fr 1fr}.staff-footer-group:first-child{grid-column:1/-1;border-bottom:1px solid var(--line)}.staff-footer-group:nth-child(2){border-left:0}}
+      @media(max-width:560px){.staff-utility-footer{border-radius:16px}.staff-footer-grid{grid-template-columns:1fr}.staff-footer-group,.staff-footer-group:first-child{grid-column:auto;padding:20px}.staff-footer-group+.staff-footer-group{border-left:0;border-top:1px solid var(--line)}.staff-footer-links{gap:7px}.staff-footer-bottom{padding:12px 20px;flex-direction:column;gap:5px}}
     `;
     document.head.appendChild(style);
   }
@@ -73,30 +82,35 @@
     const footer=document.createElement('footer');
     footer.className='staff-utility-footer';
     footer.innerHTML=`
-      <section class="staff-footer-group">
-        <h3>Company & Operations</h3>
-        <div class="staff-footer-links">
-          <button type="button" data-footer-page="privacy">Privacy & Compliance</button>
-          <button type="button" data-footer-page="audit">Audit Log</button>
-          <button type="button" data-footer-page="billing">Billing / Finance</button>
-          <button type="button" data-footer-page="security">Security & Access</button>
-        </div>
-        <div class="staff-footer-copy">Internal tools for privacy, operational review, finance readiness, security, and accountable system access.</div>
-      </section>
-      <section class="staff-footer-group">
-        <h3>Policies & Use</h3>
-        <div class="staff-footer-links">
-          <button type="button" data-footer-page="policies">System Policies</button>
-          <button type="button" data-footer-page="terms">Terms of Service</button>
-        </div>
-        <div class="staff-footer-copy">Guidance for properly using Aria systems and treating company, member, and employee information responsibly.</div>
-      </section>
-      <section class="staff-footer-group">
-        <h3>Contact Us</h3>
-        <div class="staff-footer-links"><a href="mailto:customerservice@ariaishere.com">customerservice@ariaishere.com</a></div>
-        <div class="staff-footer-copy">Customer service and general support contact for Aria AI.</div>
-      </section>
-      <div class="staff-footer-bottom"><span>Aria AI • Staff Workspace</span><span>Authorized use only</span></div>`;
+      <div class="staff-footer-grid">
+        <section class="staff-footer-group">
+          <div class="staff-footer-kicker">Internal workspace</div>
+          <h3>Company & Operations</h3>
+          <div class="staff-footer-links">
+            <button type="button" data-footer-page="privacy">Privacy & Compliance</button>
+            <button type="button" data-footer-page="audit">Audit Log</button>
+            <button type="button" data-footer-page="billing">Billing / Finance</button>
+            <button type="button" data-footer-page="security">Security & Access</button>
+          </div>
+          <div class="staff-footer-copy">Privacy, operational review, finance readiness, security, and accountable system access.</div>
+        </section>
+        <section class="staff-footer-group">
+          <div class="staff-footer-kicker">Standards</div>
+          <h3>Policies & Use</h3>
+          <div class="staff-footer-links">
+            <button type="button" data-footer-page="policies">System Policies</button>
+            <button type="button" data-footer-page="terms">Terms of Service</button>
+          </div>
+          <div class="staff-footer-copy">Guidance for using Aria systems and handling company, member, and employee information responsibly.</div>
+        </section>
+        <section class="staff-footer-group">
+          <div class="staff-footer-kicker">Need help?</div>
+          <h3>Contact Us</h3>
+          <div class="staff-footer-links"><a class="staff-footer-contact" href="mailto:customerservice@ariaishere.com">customerservice@ariaishere.com</a></div>
+          <div class="staff-footer-copy">Customer service and general support for Aria AI.</div>
+        </section>
+      </div>
+      <div class="staff-footer-bottom"><strong>Aria AI · Staff Workspace</strong><span>Authorized use only</span></div>`;
     main.appendChild(footer);
 
     footer.addEventListener('click',event=>{
@@ -108,6 +122,7 @@
     });
   }
 
+  removeSidebarFooter();
   addStyles();
   replaceVisibleFounderLabels();
   buildFooter();
