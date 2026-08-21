@@ -10,7 +10,7 @@
   <div class="onboarding-shell">
     <header class="onboarding-topbar">
       <div class="onboarding-brand"><div class="brand-mark">A</div><div><strong>Aria AI</strong><div style="font-size:12px;color:#9eabc0">Employee Onboarding</div></div></div>
-      <a href="staff.html">← Back to Staff Portal</a>
+      <span style="font-size:12px;color:#9eabc0">Secure onboarding</span>
     </header>
 
     <main class="onboarding-main">
@@ -18,29 +18,29 @@
       <section class="onboarding-card">
         <div class="eyebrow">PRE-EMPLOYMENT / NEW HIRE</div>
         <h1>Employee Onboarding</h1>
-        <p id="candidateIntro">Complete the information below so Aria AI staff can prepare your department, role, and account access.</p>
-        <div class="notice"><strong>Demo notice:</strong> Use synthetic information only. Do not enter Social Security numbers, banking information, government IDs, medical information, or other sensitive personal data into this public prototype.</div>
+        <p id="candidateIntro">Use the onboarding link provided by Aria AI staff to complete your new-hire information.</p>
+        <div class="notice"><strong>Privacy reminder:</strong> Do not enter Social Security numbers, banking information, government ID numbers, medical information, passwords, or other highly sensitive information into this form. Those items are not requested here.</div>
 
         <form id="onboardingForm" class="form-grid">
-          <label>Legal name<input id="legalName" required maxlength="100" /></label>
+          <label>Legal name<input id="legalName" required maxlength="120" /></label>
           <label>Preferred name<input id="preferredName" maxlength="80" /></label>
-          <label>Personal email<input id="personalEmail" type="email" required maxlength="120" /></label>
-          <label>Phone number<input id="phone" required maxlength="30" /></label>
+          <label>Personal email<input id="personalEmail" type="email" required maxlength="254" /></label>
+          <label>Phone number<input id="phone" required maxlength="40" /></label>
           <label>City<input id="city" required maxlength="80" /></label>
           <label>State<input id="state" required maxlength="50" /></label>
           <label>Assigned department<select id="onboardingDepartment" required><option value="">Select department</option><option>Operations</option><option>HR</option><option>IT</option><option>Engineering</option></select></label>
-          <label>Expected role<input id="expectedRole" required maxlength="80" /></label>
+          <label>Expected role<input id="expectedRole" required maxlength="120" /></label>
           <label>Preferred start date<input id="startDate" type="date" required /></label>
-          <label>General availability<select id="availability"><option>Full-time</option><option>Part-time</option><option>Flexible / To be discussed</option></select></label>
-          <label class="full">Emergency contact for workplace purposes<input id="emergencyContact" maxlength="120" placeholder="Name and phone number" /></label>
-          <label class="full">Anything staff should know before your first day<textarea id="notes" maxlength="600" placeholder="Scheduling, equipment, accessibility, or other onboarding notes"></textarea></label>
-          <label class="full" style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input id="accuracyAck" type="checkbox" required style="width:auto;margin-top:3px" /> I confirm that the information entered in this demo is accurate for the purpose of this onboarding submission.</label>
+          <label>General availability<select id="availability" required><option>Full-time</option><option>Part-time</option><option>Flexible / To be discussed</option></select></label>
+          <label class="full">Emergency contact for workplace purposes<input id="emergencyContact" maxlength="160" placeholder="Name and phone number" /></label>
+          <label class="full">Anything staff should know before your first day<textarea id="notes" maxlength="1000" placeholder="Scheduling, equipment, accessibility, or other onboarding notes"></textarea></label>
+          <label class="full" style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input id="accuracyAck" type="checkbox" required style="width:auto;margin-top:3px" /> I confirm that the information entered is accurate for the purpose of this onboarding submission.</label>
           <label class="full" style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input id="policyAck" type="checkbox" required style="width:auto;margin-top:3px" /> I understand that access, security, privacy, and company-policy acknowledgments will be completed before account activation.</label>
-          <div class="full modal-actions"><button class="primary" type="submit">Submit Onboarding</button><a class="secondary button-link" href="staff.html">Cancel</a></div>
+          <div class="full modal-actions"><button class="primary" type="submit">Submit Onboarding</button></div>
         </form>
       </section>
     </main>
   </div>
-  <script src="onboarding.js"></script>
+  <script src="onboarding.js?v=20260821-d1"></script>
 </body>
 </html>
