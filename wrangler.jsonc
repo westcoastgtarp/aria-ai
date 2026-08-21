@@ -14,5 +14,11 @@
       "database_name": "aria-ai-db",
       "database_id": "4aaec952-16d6-44a7-a125-d7ccdcac26de"
     }
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "remote": true
+    }
   ]
 }
