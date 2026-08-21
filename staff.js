@@ -96,6 +96,10 @@
     core.onload=()=>{
       applyStaffIdentity();
 
+      const hiring=document.createElement('script');
+      hiring.src='hiring-live.js?v=20260821-d1';
+      document.body.appendChild(hiring);
+
       const footer=document.createElement('script');
       footer.src='staff-footer.js?v=20260821-3';
       document.body.appendChild(footer);
