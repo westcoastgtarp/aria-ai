@@ -11,12 +11,12 @@ function ticketNotesMarkup(ticket){
   const history=notes.length
     ? notes.slice().reverse().map(note=>`<div style="padding:10px 0;border-top:1px solid #e8edf3"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><strong style="font-size:11px;color:#4d5a70">${escapeHtml(note.author||'Staff')}</strong><span style="font-size:10px;color:#8a95a5">${escapeHtml(note.created||'')}</span></div><div style="font-size:12px;color:#59667a;line-height:1.55;margin-top:4px;white-space:pre-wrap">${escapeHtml(note.text||'')}</div></div>`).join('')
     : '<div style="font-size:11px;color:#8a95a5;padding:8px 0">No progress notes yet.</div>';
-  return `<div style="margin-top:16px;max-width:620px;border:1px solid #e3e8f0;border-radius:14px;background:#fafbfe;padding:13px">
+  return `<div style="margin-top:16px;width:100%;max-width:900px;border:1px solid #e3e8f0;border-radius:14px;background:#fafbfe;padding:13px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><strong style="font-size:12px;color:#46536a">Team Notes</strong><span style="font-size:10px;color:#8a95a5">Authorized ticket team</span></div>
     <div style="font-size:10px;color:#8a95a5;line-height:1.45;margin-top:4px">Use notes for progress updates, blockers, troubleshooting, handoffs, and problems encountered. Prototype note access is not yet enforced by backend permissions.</div>
     <div style="max-height:190px;overflow:auto;margin-top:8px">${history}</div>
-    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px">
-      <textarea class="ticket-note-input" data-ticket-note-input="${escapeHtml(ticket.id)}" maxlength="600" placeholder="Add a progress update, blocker, or problem encountered..." style="width:100%;min-height:72px;resize:vertical;border:1px solid #dfe5ed;border-radius:10px;padding:9px 10px;font:inherit;font-size:12px;outline:none"></textarea>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px">
+      <textarea class="ticket-note-input" data-ticket-note-input="${escapeHtml(ticket.id)}" maxlength="600" placeholder="Add a progress update, blocker, or problem encountered..." style="width:100%;min-height:82px;resize:vertical;border:1px solid #dfe5ed;border-radius:10px;padding:9px 10px;font:inherit;font-size:12px;outline:none"></textarea>
       <button class="status-btn ticket-note-add" data-id="${escapeHtml(ticket.id)}" style="align-self:end">Add Note</button>
     </div>
   </div>`;
