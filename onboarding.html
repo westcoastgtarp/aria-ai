@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Aria AI — Employee Onboarding</title>
   <link rel="stylesheet" href="staff.css" />
+  <style>
+    .acknowledgment-group{grid-column:1/-1;display:grid;gap:10px;margin-top:4px}
+    .acknowledgment-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:#fbfcff;cursor:pointer;font-weight:650;color:var(--text)}
+    .acknowledgment-row:hover{border-color:#cfd4f5;background:#f8f9ff}
+    .acknowledgment-copy{display:block;min-width:0}
+    .acknowledgment-copy strong{display:block;font-size:13px;line-height:1.4}
+    .acknowledgment-copy small{display:block;margin-top:3px;color:var(--muted);font-size:11px;font-weight:500;line-height:1.4}
+    .acknowledgment-row input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:20px;height:20px;min-width:20px;margin:0;border:1.5px solid #b8c0cf;border-radius:6px;background:#fff;display:grid;place-items:center;cursor:pointer;transition:.15s ease}
+    .acknowledgment-row input[type="checkbox"]:checked{background:#6269e5;border-color:#6269e5}
+    .acknowledgment-row input[type="checkbox"]:checked::after{content:'✓';color:#fff;font-size:13px;font-weight:900;line-height:1}
+    .acknowledgment-row input[type="checkbox"]:focus-visible{outline:3px solid rgba(98,105,229,.18);outline-offset:2px}
+    @media(max-width:560px){.acknowledgment-row{padding:12px;gap:12px}.acknowledgment-copy strong{font-size:12px}}
+  </style>
 </head>
 <body>
   <div class="onboarding-shell">
@@ -34,8 +47,18 @@
           <label>General availability<select id="availability" required><option>Full-time</option><option>Part-time</option><option>Flexible / To be discussed</option></select></label>
           <label class="full">Emergency contact for workplace purposes<input id="emergencyContact" maxlength="160" placeholder="Name and phone number" /></label>
           <label class="full">Anything staff should know before your first day<textarea id="notes" maxlength="1000" placeholder="Scheduling, equipment, accessibility, or other onboarding notes"></textarea></label>
-          <label class="full" style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input id="accuracyAck" type="checkbox" required style="width:auto;margin-top:3px" /> I confirm that the information entered is accurate for the purpose of this onboarding submission.</label>
-          <label class="full" style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input id="policyAck" type="checkbox" required style="width:auto;margin-top:3px" /> I understand that access, security, privacy, and company-policy acknowledgments will be completed before account activation.</label>
+
+          <div class="acknowledgment-group">
+            <label class="acknowledgment-row" for="accuracyAck">
+              <span class="acknowledgment-copy"><strong>Information is accurate</strong><small>I confirm the details I entered are correct.</small></span>
+              <input id="accuracyAck" type="checkbox" required />
+            </label>
+            <label class="acknowledgment-row" for="policyAck">
+              <span class="acknowledgment-copy"><strong>Complete required policies before activation</strong><small>Access, security, privacy, and company-policy acknowledgments come next.</small></span>
+              <input id="policyAck" type="checkbox" required />
+            </label>
+          </div>
+
           <div class="full modal-actions"><button class="primary" type="submit">Submit Onboarding</button></div>
         </form>
       </section>
