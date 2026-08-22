@@ -6,9 +6,13 @@ import { handlePasswordRecoveryRoute } from './password-recovery-api.js';
 import { handleStaffTicketRoute } from './staff-ticket-api.js';
 import { handleHiringOnboardingRoute } from './hiring-onboarding-api.js';
 import { handleCandidateManagementRoute } from './candidate-management-api.js';
+import { handleHrRoute } from './hr-api.js';
 
 export default {
   async fetch(request, env, ctx) {
+    const hrResponse = await handleHrRoute(request, env);
+    if (hrResponse) return hrResponse;
+
     const candidateManagementResponse = await handleCandidateManagementRoute(request, env);
     if (candidateManagementResponse) return candidateManagementResponse;
 
