@@ -105,6 +105,10 @@
       };
       document.body.appendChild(hiring);
 
+      const hr=document.createElement('script');
+      hr.src='hr-live.js?v=20260821-d1-1';
+      document.body.appendChild(hr);
+
       const footer=document.createElement('script');
       footer.src='staff-footer.js?v=20260821-3';
       document.body.appendChild(footer);
