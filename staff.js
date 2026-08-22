@@ -97,7 +97,12 @@
       applyStaffIdentity();
 
       const hiring=document.createElement('script');
-      hiring.src='hiring-live.js?v=20260821-d1';
+      hiring.src='hiring-live.js?v=20260821-d1-applications';
+      hiring.onload=()=>{
+        const candidateActions=document.createElement('script');
+        candidateActions.src='candidate-actions.js?v=20260821-launch1';
+        document.body.appendChild(candidateActions);
+      };
       document.body.appendChild(hiring);
 
       const footer=document.createElement('script');
