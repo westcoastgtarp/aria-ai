@@ -16,7 +16,11 @@
     .acknowledgment-row input[type="checkbox"]:checked{background:#6269e5;border-color:#6269e5}
     .acknowledgment-row input[type="checkbox"]:checked::after{content:'✓';color:#fff;font-size:13px;font-weight:900;line-height:1}
     .acknowledgment-row input[type="checkbox"]:focus-visible{outline:3px solid rgba(98,105,229,.18);outline-offset:2px}
-    @media(max-width:560px){.acknowledgment-row{padding:12px;gap:12px}.acknowledgment-copy strong{font-size:12px}}
+    .new-hire-docs{grid-column:1/-1;border:1px solid #d9dcf6;border-radius:14px;background:#f8f9ff;padding:14px 15px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .new-hire-docs strong{display:block;font-size:13px}
+    .new-hire-docs p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+    .new-hire-docs a{white-space:nowrap;text-decoration:none}
+    @media(max-width:560px){.acknowledgment-row{padding:12px;gap:12px}.acknowledgment-copy strong{font-size:12px}.new-hire-docs{display:block}.new-hire-docs a{display:inline-flex;margin-top:11px}}
   </style>
 </head>
 <body>
@@ -47,6 +51,11 @@
           <label>General availability<select id="availability" required><option>Full-time</option><option>Part-time</option><option>Flexible / To be discussed</option></select></label>
           <label class="full">Emergency contact for workplace purposes<input id="emergencyContact" maxlength="160" placeholder="Name and phone number" /></label>
           <label class="full">Anything staff should know before your first day<textarea id="notes" maxlength="1000" placeholder="Scheduling, equipment, accessibility, or other onboarding notes"></textarea></label>
+
+          <div class="new-hire-docs">
+            <div><strong>Required new-hire documents</strong><p>Open the official I-9, W-4, California DE 4, pay notice, and other current onboarding resources. Do not upload sensitive completed forms here.</p></div>
+            <a class="secondary button-link" href="new-hire-documents.html" target="_blank" rel="noopener">Open Documents</a>
+          </div>
 
           <div class="acknowledgment-group">
             <label class="acknowledgment-row" for="accuracyAck">
