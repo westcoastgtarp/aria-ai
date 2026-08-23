@@ -2,17 +2,12 @@
   const button=document.getElementById('backToOnboarding');
   if(!button)return;
 
-  button.addEventListener('click',()=>{
-    try{
-      const referrer=document.referrer?new URL(document.referrer):null;
-      if(referrer&&referrer.origin===location.origin&&referrer.pathname.endsWith('/onboarding.html')){
-        location.href=referrer.href;
-        return;
-      }
-    }catch{}
+  const params=new URLSearchParams(location.search);
+  const token=params.get('token')||'';
 
-    if(history.length>1){
-      history.back();
+  button.addEventListener('click',()=>{
+    if(token){
+      location.href=`/onboarding.html?token=${encodeURIComponent(token)}`;
       return;
     }
 
