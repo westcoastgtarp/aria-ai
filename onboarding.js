@@ -3,7 +3,12 @@ const token=params.get('token')||'';
 const form=document.getElementById('onboardingForm');
 const banner=document.getElementById('submissionBanner');
 const submitButton=form?.querySelector('button[type="submit"]');
+const documentsLink=document.getElementById('newHireDocumentsLink');
 let candidate=null;
+
+if(documentsLink&&token){
+  documentsLink.href=`new-hire-documents.html?token=${encodeURIComponent(token)}`;
+}
 
 function setFormEnabled(enabled){
   form?.querySelectorAll('input,select,textarea,button').forEach(el=>{el.disabled=!enabled;});
