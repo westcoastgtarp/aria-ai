@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aria AI — New Hire Documents</title>
+  <link rel="stylesheet" href="staff.css" />
+  <style>
+    .docs-shell{max-width:980px;margin:0 auto;padding:28px 18px 54px}
+    .docs-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}
+    .docs-head h1{margin:4px 0 8px}
+    .docs-intro{color:var(--muted);line-height:1.6;max-width:720px;margin:0}
+    .docs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .doc-card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:17px;display:flex;flex-direction:column;gap:10px}
+    .doc-card h2{font-size:16px;margin:0}
+    .doc-card p{font-size:12px;line-height:1.55;color:var(--muted);margin:0}
+    .doc-meta{display:flex;gap:7px;flex-wrap:wrap}
+    .doc-tag{font-size:10px;font-weight:750;border:1px solid var(--line);border-radius:999px;padding:5px 8px;background:#f8f9ff}
+    .doc-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+    .doc-actions a{text-decoration:none}
+    .security-note{margin:0 0 18px;padding:14px 15px;border:1px solid #d9dcf6;border-radius:14px;background:#f8f9ff;font-size:12px;line-height:1.6;color:var(--text)}
+    .footer-note{margin-top:18px;color:var(--muted);font-size:11px;line-height:1.55}
+    @media(max-width:720px){.docs-grid{grid-template-columns:1fr}.docs-head{display:block}.docs-head .secondary{margin-top:12px}}
+  </style>
+</head>
+<body>
+  <main class="docs-shell">
+    <div class="docs-head">
+      <div>
+        <div class="eyebrow">HIRING & ONBOARDING</div>
+        <h1>New Hire Documents</h1>
+        <p class="docs-intro">Official federal and California forms and notices used during employee onboarding. Always use the current government version linked below.</p>
+      </div>
+      <a class="secondary button-link" href="javascript:history.back()">Back</a>
+    </div>
+
+    <div class="security-note"><strong>Privacy:</strong> Do not upload Social Security numbers, identity documents, banking details, tax forms, or other highly sensitive records into Aria AI's general onboarding form. This page links to the official sources only. Secure collection/storage should be handled through an approved HR/payroll process.</div>
+
+    <section class="docs-grid" aria-label="New hire documents">
+      <article class="doc-card">
+        <div class="doc-meta"><span class="doc-tag">FEDERAL</span><span class="doc-tag">EMPLOYMENT ELIGIBILITY</span></div>
+        <h2>Form I-9</h2>
+        <p>Employment Eligibility Verification. The employee completes Section 1 and the employer completes the employer review portion according to USCIS timing requirements.</p>
+        <div class="doc-actions"><a class="primary button-link" href="https://www.uscis.gov/i-9-central/form-i-9" target="_blank" rel="noopener noreferrer">Open USCIS I-9</a></div>
+      </article>
+
+      <article class="doc-card">
+        <div class="doc-meta"><span class="doc-tag">FEDERAL</span><span class="doc-tag">TAX WITHHOLDING</span></div>
+        <h2>2026 Form W-4</h2>
+        <p>Employee's Withholding Certificate for federal income-tax withholding. A W-2 is issued by the employer later; it is not a new-hire form the employee completes.</p>
+        <div class="doc-actions"><a class="primary button-link" href="https://www.irs.gov/pub/irs-pdf/fw4.pdf" target="_blank" rel="noopener noreferrer">Open IRS W-4</a></div>
+      </article>
+
+      <article class="doc-card">
+        <div class="doc-meta"><span class="doc-tag">CALIFORNIA</span><span class="doc-tag">TAX WITHHOLDING</span></div>
+        <h2>California DE 4</h2>
+        <p>Employee's Withholding Allowance Certificate used for California Personal Income Tax withholding.</p>
+        <div class="doc-actions"><a class="primary button-link" href="https://edd.ca.gov/pdf_pub_ctr/de4.pdf" target="_blank" rel="noopener noreferrer">Open DE 4</a></div>
+      </article>
+
+      <article class="doc-card">
+        <div class="doc-meta"><span class="doc-tag">CALIFORNIA</span><span class="doc-tag">PAY NOTICE</span></div>
+        <h2>Notice to Employee — Labor Code §2810.5</h2>
+        <p>For covered employees, this notice records employer details, pay rate, payday, workers' compensation information, and paid-sick-leave information.</p>
+        <div class="doc-actions"><a class="primary button-link" href="https://www.dir.ca.gov/dlse/LC_2810.5_Notice.pdf" target="_blank" rel="noopener noreferrer">Open Notice</a></div>
+      </article>
+
+      <article class="doc-card">
+        <div class="doc-meta"><span class="doc-tag">CALIFORNIA</span><span class="doc-tag">WORKERS' COMP</span></div>
+        <h2>Time of Hire Notice</h2>
+        <p>California Division of Workers' Compensation time-of-hire information for newly hired employees.</p>
+        <div class="doc-actions"><a class="primary button-link" href="https://www.dir.ca.gov/dwc/DWCPamphlets/TimeOfHireNotice.pdf" target="_blank" rel="noopener noreferrer">Open Notice</a></div>
+      </article>
+
+      <article class="doc-card">
+        <div class="doc-meta"><span class="doc-tag">CALIFORNIA</span><span class="doc-tag">EMPLOYER RESOURCE</span></div>
+        <h2>Required Notices & Pamphlets</h2>
+        <p>California EDD's current employer resource for required employee notices, including disability and paid-family-leave information.</p>
+        <div class="doc-actions"><a class="primary button-link" href="https://edd.ca.gov/en/Payroll_Taxes/Required_Notices_and_Pamphlets/" target="_blank" rel="noopener noreferrer">Open EDD Resource</a></div>
+      </article>
+    </section>
+
+    <p class="footer-note">This page is an onboarding aid, not legal or tax advice. Requirements can depend on employee classification, work location, company size, benefits, and other facts. HR should verify the current requirements before each hiring cycle.</p>
+  </main>
+</body>
+</html>
