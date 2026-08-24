@@ -9,9 +9,13 @@ import { handleCandidateManagementRoute } from './candidate-management-api.js';
 import { handleHrRoute } from './hr-api.js';
 import { handleAuditRoute } from './audit-api.js';
 import { handleMemberEntitlementsRoute } from './member-entitlements-api.js';
+import { handleCareCircleRoute } from './care-circle-api.js';
 
 export default {
   async fetch(request, env, ctx) {
+    const careCircleResponse = await handleCareCircleRoute(request, env);
+    if (careCircleResponse) return careCircleResponse;
+
     const memberEntitlementsResponse = await handleMemberEntitlementsRoute(request, env);
     if (memberEntitlementsResponse) return memberEntitlementsResponse;
 
