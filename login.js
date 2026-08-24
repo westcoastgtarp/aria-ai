@@ -57,7 +57,6 @@ document.getElementById('togglePassword').addEventListener('click',e=>{
   passwordInput.type=showing?'password':'text';
   e.currentTarget.textContent=showing?'Show':'Hide';
 });
-document.getElementById('forgotPassword').addEventListener('click',()=>setError(errorBox,'Password recovery is not connected yet.'));
 
 document.getElementById('loginForm').addEventListener('submit',async e=>{
   e.preventDefault();
