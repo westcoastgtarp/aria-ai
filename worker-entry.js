@@ -11,6 +11,18 @@ import { handleAuditRoute } from './audit-api.js';
 import { handleMemberEntitlementsRoute } from './member-entitlements-api.js';
 import { handleCareCircleRoute } from './care-circle-api.js';
 
+function withAriaFormSystem(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('text/html') || typeof HTMLRewriter === 'undefined') return response;
+  return new HTMLRewriter()
+    .on('head', {
+      element(element) {
+        element.append('<link rel="stylesheet" href="/aria-form-system.css?v=20260824-1" />', { html: true });
+      }
+    })
+    .transform(response);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const careCircleResponse = await handleCareCircleRoute(request, env);
@@ -46,6 +58,7 @@ export default {
     const memberSignupResponse = await handleMemberSignupRoute(request, env);
     if (memberSignupResponse) return memberSignupResponse;
 
-    return baseWorker.fetch(request, env, ctx);
+    const response = await baseWorker.fetch(request, env, ctx);
+    return withAriaFormSystem(response);
   }
 };
