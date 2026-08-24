@@ -73,6 +73,65 @@
     return '<span class="table-subtext">No action available</span>';
   }
 
+  function setupLiveSecurityPage(){
+    const page=document.getElementById('security-page');
+    if(!page)return;
+
+    const head=page.querySelector('.section-head');
+    if(head){
+      const eyebrow=head.querySelector('.eyebrow');
+      const heading=head.querySelector('h2');
+      const paragraph=head.querySelector('p');
+      if(eyebrow)eyebrow.textContent='SECURITY & ACCESS';
+      if(heading)heading.textContent='Identity, Roles & Account Control';
+      if(paragraph)paragraph.textContent='Live staff identity and account controls backed by Aria D1. Department membership does not grant blanket access; permissions are assigned by role and approved responsibility.';
+    }
+
+    const addReview=document.getElementById('addAccessReview');
+    if(addReview)addReview.remove();
+
+    const alerts=[...page.querySelectorAll('.security-alert')];
+    if(alerts[0])alerts[0].innerHTML='<strong>Live controls:</strong> staff status, active-session counts, suspension and reactivation are connected to production authentication. Suspending an account revokes its active sessions.';
+
+    const roleMatrix=page.querySelector('.role-matrix');
+    if(roleMatrix){
+      roleMatrix.innerHTML=`
+        <div class="role-card"><strong>Founder</strong><span>Highest company escalation authority, privileged account oversight and protected administrative controls.</span></div>
+        <div class="role-card"><strong>Operations</strong><span>Umbrella department. Customer Service, Hiring Committee, supervisors and other Operations positions receive separate role-level permissions.</span></div>
+        <div class="role-card"><strong>HR</strong><span>Staff personnel records, employment documentation, disciplinary cases and controlled workforce information.</span></div>
+        <div class="role-card"><strong>IT</strong><span>Staff systems, approved devices, access support, integrations and service-health responsibilities within assigned privileges.</span></div>
+        <div class="role-card"><strong>Engineering</strong><span>Infrastructure, deployment, backups, recovery and approved technical systems within assigned privileges.</span></div>`;
+    }
+
+    const reviewQueue=document.getElementById('securityReviewQueue');
+    const reviewSummary=document.getElementById('securityReviewSummary');
+    const reviewCount=document.getElementById('securityReviewCount');
+    const reviewPanel=reviewQueue?.closest('.panel');
+    if(reviewPanel)reviewPanel.remove();
+    if(reviewSummary)reviewSummary.remove();
+    if(reviewCount){
+      const card=reviewCount.closest('.card');
+      if(card){
+        card.querySelector('span')?.replaceChildren(document.createTextNode('Account control source'));
+        reviewCount.textContent='D1';
+        const small=card.querySelector('small');
+        if(small)small.textContent='Live staff records';
+      }
+    }
+
+    if(!document.getElementById('securityBoundaryNotice')){
+      const tablePanel=document.getElementById('securityEmployeeTable')?.closest('.panel');
+      if(tablePanel){
+        const note=document.createElement('div');
+        note.id='securityBoundaryNotice';
+        note.className='security-alert';
+        note.style.marginTop='16px';
+        note.innerHTML='<strong>Access boundary:</strong> this screen manages staff account state. Future badge, approved-device, personal-device enrollment and restricted-record approvals will be separate audited security controls rather than blanket department permissions.';
+        tablePanel.appendChild(note);
+      }
+    }
+  }
+
   function renderRoster(){
     if(!roster)return;
     roster.innerHTML=realEmployees.length?realEmployees.map(employee=>{
@@ -120,6 +179,7 @@
   }
 
   function renderAllRealStaff(){
+    setupLiveSecurityPage();
     renderRoster();
     renderSecurityAccess();
     renderDashboardCount();
@@ -218,6 +278,8 @@
       button.textContent=oldText;
     }
   }
+
+  setupLiveSecurityPage();
 
   document.addEventListener('click',event=>{
     if(event.target.closest('#addEmployee'))return openEmployeeModal(event);
