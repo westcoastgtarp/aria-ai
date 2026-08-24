@@ -196,8 +196,171 @@ body{
   box-shadow:0 0 0 3px rgba(98,105,229,.08)!important;
 }
 
+/* Staff Workspace footer */
 .staff-utility-footer{
-  margin-top:44px!important;
+  margin-top:52px;
+  padding:0 0 12px;
+  color:var(--staff-muted);
+}
+.staff-footer-kicker{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 0 14px 2px;
+  color:#748198;
+  font-size:12px;
+  font-weight:750;
+}
+.staff-footer-kicker::before{
+  content:"";
+  width:28px;
+  height:28px;
+  border-radius:10px;
+  background:linear-gradient(135deg,#eef1ff,#f6f2ff);
+  box-shadow:inset 0 0 0 1px #e4e7f7;
+}
+.staff-footer-shell{
+  display:grid;
+  gap:14px;
+}
+.staff-footer-card{
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr);
+  gap:22px;
+  align-items:start;
+  padding:24px 26px;
+  background:linear-gradient(180deg,#fff,#fcfdff);
+  border:1px solid #e3e8f0;
+  border-radius:22px;
+  box-shadow:0 14px 34px rgba(17,31,56,.055);
+}
+.staff-footer-icon{
+  width:58px;
+  height:58px;
+  display:grid;
+  place-items:center;
+  border-radius:18px;
+  background:linear-gradient(135deg,#f0f1ff,#f7f3ff);
+  color:#5c64d8;
+  font-size:12px;
+  font-weight:850;
+  letter-spacing:.06em;
+}
+.staff-footer-content{min-width:0}
+.staff-footer-group-title{
+  margin:1px 0 0;
+  color:var(--staff-text);
+  font-size:21px;
+  letter-spacing:-.02em;
+}
+.staff-footer-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-top:16px;
+}
+.staff-footer-actions.two{
+  grid-template-columns:repeat(2,minmax(0,240px));
+}
+.staff-footer-link{
+  appearance:none;
+  -webkit-appearance:none;
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:54px;
+  padding:0 38px 0 15px;
+  border:1px solid #dfe5ef;
+  border-radius:14px;
+  background:#fff;
+  color:#24324a;
+  font:inherit;
+  font-size:13px;
+  font-weight:700;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:0 2px 7px rgba(17,31,56,.025);
+  transition:border-color .16s ease,background .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+.staff-footer-link::before{
+  content:"";
+  width:8px;
+  height:8px;
+  margin-right:11px;
+  border-radius:3px;
+  background:#7077eb;
+  box-shadow:0 0 0 5px #f1f3ff;
+  flex:0 0 auto;
+}
+.staff-footer-link::after{
+  content:"";
+  position:absolute;
+  right:17px;
+  width:7px;
+  height:7px;
+  border-top:2px solid #7379dd;
+  border-right:2px solid #7379dd;
+  transform:rotate(45deg);
+}
+.staff-footer-link:hover{
+  border-color:#cbd0f4;
+  background:#fafaff;
+  color:#5158ca;
+  transform:translateY(-1px);
+  box-shadow:0 8px 18px rgba(17,31,56,.06);
+}
+.staff-footer-copy{
+  max-width:900px;
+  margin-top:14px;
+  color:#7d899b;
+  font-size:12px;
+  line-height:1.6;
+}
+.staff-footer-contact-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:13px;
+}
+.staff-footer-contact{
+  display:inline-flex;
+  align-items:center;
+  min-height:42px;
+  padding:0 13px;
+  border:1px solid #dfe4f6;
+  border-radius:12px;
+  background:#f8f9ff;
+  color:#565dd0;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:750;
+}
+.staff-footer-contact:hover{
+  background:#f2f3ff;
+  border-color:#cfd4f4;
+}
+.staff-footer-bottom{
+  margin-top:16px;
+  padding:14px 2px 0;
+  border-top:1px solid #edf0f4;
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  color:#9aa4b3;
+  font-size:10px;
+}
+.staff-footer-bottom strong{
+  color:#69768a;
+  font-weight:750;
+}
+.terms-list{padding-left:20px;color:var(--staff-muted);line-height:1.65}
+.terms-list li+li{margin-top:8px}
+.terms-callout{margin-top:18px;padding:14px 16px;border:1px solid #dfe3f7;border-radius:13px;background:#f7f8ff;color:#59667a;font-size:12px;line-height:1.55}
+
+@media(max-width:1120px){
+  .staff-footer-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 @media(max-width:900px){
@@ -282,6 +445,14 @@ body{
     padding:0 10px;
     font-size:11px;
   }
+
+  .staff-footer-card{
+    grid-template-columns:1fr;
+    padding:21px;
+  }
+  .staff-footer-icon{width:50px;height:50px}
+  .staff-footer-actions,.staff-footer-actions.two{grid-template-columns:1fr}
+  .staff-footer-group-title{font-size:19px}
 }
 
 @media(max-width:560px){
@@ -313,4 +484,9 @@ body{
   .ticket-card{
     padding:16px;
   }
+
+  .staff-utility-footer{margin-top:36px}
+  .staff-footer-card{padding:18px;border-radius:18px}
+  .staff-footer-kicker{margin-left:0}
+  .staff-footer-bottom{flex-direction:column;gap:4px}
 }
