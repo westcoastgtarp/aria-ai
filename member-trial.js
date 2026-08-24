@@ -4,6 +4,14 @@
 
   let entitlementState=null;
 
+  function loadCareCircle(){
+    if(document.querySelector('script[data-care-circle-live]'))return;
+    const script=document.createElement('script');
+    script.src='/care-circle-live.js?v=20260824-1';
+    script.dataset.careCircleLive='true';
+    document.body.appendChild(script);
+  }
+
   function escapeHtml(value=''){
     return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
   }
@@ -108,5 +116,6 @@
     showExpiredModal();
   },true);
 
+  loadCareCircle();
   loadEntitlements();
 })();
