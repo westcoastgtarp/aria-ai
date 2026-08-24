@@ -254,10 +254,11 @@ document.getElementById('createMemberAccount').addEventListener('click',async()=
     registrationContext.password='';
     document.getElementById('newMemberPassword').value='';
     document.getElementById('confirmMemberPassword').value='';
-    document.getElementById('successMessage').textContent=data.message||'Your Aria account is ready.';
-    setRegistrationStep('successStep','Account setup complete');
+    const planLabel=planCode==='free'?'Aria Free':'Aria Lifeline';
+    document.getElementById('successMessage').textContent=`Your ${planLabel} account is ready. Your 30-day Aria Assistant trial starts today.`;
+    setRegistrationStep('successStep','Account setup complete — trial started');
   }catch(err){setError(error,err?.message||'Unable to create the account.');}
-  finally{button.disabled=false;button.textContent='Create Account';}
+  finally{button.disabled=false;button.textContent='Create Account & Start Trial';}
 });
 
 const lastRole=localStorage.getItem('aria-last-portal');
