@@ -10,7 +10,7 @@
   let editingId=null;
 
   function esc(value=''){
-    return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+    return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[ch]));
   }
 
   function telHref(phone=''){
@@ -65,15 +65,38 @@
     body.innerHTML=`
       <div class="eyebrow">CARE CIRCLE</div>
       <h2 id="modalTitle">${contact?'Edit approved contact':'Add approved contact'}</h2>
-      <p>${contact?'Update the contact information below.':'Add someone who has agreed to be an approved Aria contact.'}</p>
-      <label>Contact name<input id="careName" maxlength="120" autocomplete="name" value="${esc(contact?.display_name||'')}" placeholder="Name" /></label>
-      <label>Relationship<input id="careRelationship" maxlength="80" value="${esc(contact?.relationship||'')}" placeholder="Example: Parent, partner, friend" /></label>
-      <label>Phone number<input id="carePhone" maxlength="32" inputmode="tel" autocomplete="tel" value="${esc(contact?.phone||'')}" placeholder="Phone number" /></label>
-      <label>Priority<select id="carePriority">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}" ${Number(contact?.priority||1)===n?'selected':''}>Priority ${n}</option>`).join('')}</select></label>
-      <label style="display:flex;gap:9px;align-items:flex-start;margin-top:12px"><input id="careConsent" type="checkbox" ${contact?'checked':''} style="width:auto;margin-top:3px"/><span>I confirm this person has agreed to be an approved Aria contact and understands they may be contacted during a serious safety concern.</span></label>
-      <div class="login-error" id="careFormError" role="alert" hidden style="margin-top:12px"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px"><button class="primary" id="saveCareContact" type="button">${contact?'Save changes':'Add contact'}</button><button class="ghost-btn" id="cancelCareContact" type="button">Cancel</button></div>`;
+      <p class="aria-contact-form-intro">${contact?'Update the details for this approved contact.':'Add someone who has agreed to be part of your Aria Care Circle.'}</p>
+      <div class="aria-form-grid">
+        <label class="aria-field">
+          <span class="aria-field-label">Contact name</span>
+          <input id="careName" maxlength="120" autocomplete="name" value="${esc(contact?.display_name||'')}" placeholder="e.g. Jordan Lee" />
+        </label>
+        <label class="aria-field">
+          <span class="aria-field-label">Relationship</span>
+          <input id="careRelationship" maxlength="80" value="${esc(contact?.relationship||'')}" placeholder="Parent, partner, friend" />
+        </label>
+        <label class="aria-field">
+          <span class="aria-field-label">Phone number</span>
+          <input id="carePhone" maxlength="32" inputmode="tel" autocomplete="tel" value="${esc(contact?.phone||'')}" placeholder="(555) 555-0123" />
+          <span class="aria-field-help">Used only for direct calling and approved Lifeline contact workflows.</span>
+        </label>
+        <label class="aria-field">
+          <span class="aria-field-label">Contact priority</span>
+          <select id="carePriority">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}" ${Number(contact?.priority||1)===n?'selected':''}>Priority ${n}</option>`).join('')}</select>
+          <span class="aria-field-help">Priority 1 is the first person Aria should surface.</span>
+        </label>
+        <label class="aria-check-row aria-care-consent" for="careConsent">
+          <input id="careConsent" type="checkbox" ${contact?'checked':''}/>
+          <span class="aria-check-copy"><strong>Consent confirmed</strong><small>I confirm this person agreed to be an approved Aria contact and understands they may be contacted during a serious safety concern.</small></span>
+        </label>
+        <div class="aria-form-error" id="careFormError" role="alert" hidden></div>
+      </div>
+      <div class="aria-form-actions">
+        <button class="primary" id="saveCareContact" type="button">${contact?'Save changes':'Add contact'}</button>
+        <button class="secondary" id="cancelCareContact" type="button">Cancel</button>
+      </div>`;
     backdrop.classList.remove('hidden');
+    document.getElementById('careName')?.focus();
     document.getElementById('cancelCareContact')?.addEventListener('click',()=>backdrop.classList.add('hidden'));
     document.getElementById('saveCareContact')?.addEventListener('click',saveContact);
   }
