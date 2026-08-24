@@ -132,6 +132,39 @@
     }
   }
 
+  function setupSystemAdministrationPage(){
+    const page=document.getElementById('admin-page');
+    if(!page)return;
+
+    const head=page.querySelector('.section-head');
+    if(head){
+      const eyebrow=head.querySelector('.eyebrow');
+      const heading=head.querySelector('h2');
+      const paragraph=head.querySelector('p');
+      if(eyebrow)eyebrow.textContent='SYSTEM ADMINISTRATION';
+      if(heading)heading.textContent='Staff Account Provisioning';
+      if(paragraph)paragraph.textContent='Create and review real staff accounts backed by Aria D1. Department placement organizes the employee; the assigned role controls what that employee may actually access.';
+    }
+
+    addButton.setAttribute('aria-label','Create staff account invitation');
+    addButton.setAttribute('title','Create staff account invitation');
+
+    const modalHeading=modal.querySelector('h2');
+    if(modalHeading)modalHeading.textContent='Create Staff Account';
+    const roleInput=document.getElementById('employeeRole');
+    if(roleInput)roleInput.placeholder='Specific role — permissions follow role, not department';
+
+    if(!document.getElementById('adminProvisioningNotice')){
+      const note=document.createElement('div');
+      note.id='adminProvisioningNotice';
+      note.className='security-alert';
+      note.style.margin='0 0 18px';
+      note.innerHTML='<strong>Provisioning boundary:</strong> new accounts begin Pending activation and use a one-time setup link. Founder access is protected and cannot be created here. System Administrator is a privileged role and can only be assigned by Founder. Department membership alone never grants blanket permissions.';
+      const list=roster;
+      list?.parentNode?.insertBefore(note,list);
+    }
+  }
+
   function renderRoster(){
     if(!roster)return;
     roster.innerHTML=realEmployees.length?realEmployees.map(employee=>{
@@ -180,6 +213,7 @@
 
   function renderAllRealStaff(){
     setupLiveSecurityPage();
+    setupSystemAdministrationPage();
     renderRoster();
     renderSecurityAccess();
     renderDashboardCount();
@@ -280,6 +314,7 @@
   }
 
   setupLiveSecurityPage();
+  setupSystemAdministrationPage();
 
   document.addEventListener('click',event=>{
     if(event.target.closest('#addEmployee'))return openEmployeeModal(event);
