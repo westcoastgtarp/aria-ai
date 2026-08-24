@@ -1,0 +1,166 @@
+/* Aria AI shared form system — member + staff + hiring + onboarding */
+:root{
+  --aria-form-accent:var(--accent,#6269e5);
+  --aria-form-text:var(--text,#142033);
+  --aria-form-muted:var(--muted,#6b778a);
+  --aria-form-line:var(--line,#dfe5ed);
+  --aria-form-surface:#fff;
+  --aria-form-soft:#f7f8fc;
+  --aria-form-focus:rgba(98,105,229,.13);
+  --aria-form-danger:#b23f53;
+}
+
+input,select,textarea,button{font:inherit}
+input,select,textarea{accent-color:var(--aria-form-accent)}
+
+/* Form rhythm */
+.form-grid,.aria-form-grid{gap:18px!important}
+.form-grid>label,.aria-form-grid>label,.modal label,.registration-step>label,form>label{
+  color:var(--aria-form-text);
+  font-size:13px;
+  font-weight:700;
+  line-height:1.35;
+  margin-top:0;
+}
+
+/* Modern controls */
+.form-grid input:not([type="checkbox"]):not([type="radio"]),
+.form-grid select,.form-grid textarea,
+.aria-form-grid input:not([type="checkbox"]):not([type="radio"]),
+.aria-form-grid select,.aria-form-grid textarea,
+.modal input:not([type="checkbox"]):not([type="radio"]),
+.modal select,.modal textarea,
+.registration-step input:not([type="checkbox"]):not([type="radio"]),
+.registration-step select,.registration-step textarea,
+#loginForm input:not([type="checkbox"]):not([type="radio"]){
+  width:100%;
+  min-height:48px;
+  margin-top:8px;
+  border:1px solid #d8deea;
+  border-radius:13px;
+  padding:12px 14px;
+  background:linear-gradient(180deg,#fff,#fcfdff);
+  color:var(--aria-form-text);
+  outline:none;
+  box-shadow:0 1px 2px rgba(17,31,56,.025);
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease,transform .16s ease;
+}
+.form-grid textarea,.aria-form-grid textarea,.modal textarea,.registration-step textarea{min-height:120px;resize:vertical;line-height:1.5}
+.form-grid select,.aria-form-grid select,.modal select,.registration-step select{
+  appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,#7b8798 50%),linear-gradient(135deg,#7b8798 50%,transparent 50%);
+  background-position:calc(100% - 18px) 21px,calc(100% - 13px) 21px;
+  background-size:5px 5px,5px 5px;
+  background-repeat:no-repeat;
+  padding-right:38px;
+}
+.form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus,
+.aria-form-grid input:focus,.aria-form-grid select:focus,.aria-form-grid textarea:focus,
+.modal input:focus,.modal select:focus,.modal textarea:focus,
+.registration-step input:focus,.registration-step select:focus,.registration-step textarea:focus,
+#loginForm input:focus{
+  border-color:#8f95ee;
+  box-shadow:0 0 0 4px var(--aria-form-focus),0 5px 16px rgba(17,31,56,.045);
+  background:#fff;
+}
+input::placeholder,textarea::placeholder{color:#a0a9b8;opacity:1}
+
+/* Shared field components */
+.aria-field{display:flex;flex-direction:column;min-width:0}
+.aria-field-label{font-size:13px;font-weight:750;color:var(--aria-form-text);letter-spacing:-.005em}
+.aria-field-help,.field-help{margin:7px 0 0;color:var(--aria-form-muted);font-size:11px;line-height:1.5;font-weight:500}
+.aria-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:22px}
+.aria-form-grid .full{grid-column:1/-1}
+
+/* Checkbox / consent cards */
+.aria-check-row,.consent-check,.remember,.permissions-panel label:has(input[type="checkbox"]){
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:12px!important;
+}
+.aria-check-row{
+  grid-column:1/-1;
+  padding:15px 16px;
+  border:1px solid #e0e4ef;
+  border-radius:14px;
+  background:#fafbff;
+  cursor:pointer;
+}
+.aria-check-row:hover{border-color:#ccd1f5;background:#f8f9ff}
+.aria-check-row input[type="checkbox"],.consent-check input[type="checkbox"],.remember input[type="checkbox"]{
+  appearance:none;-webkit-appearance:none;
+  width:21px!important;height:21px!important;min-width:21px;
+  margin:1px 0 0!important;
+  border:1.5px solid #b9c2d2;
+  border-radius:7px;
+  background:#fff;
+  display:grid;place-items:center;
+  cursor:pointer;
+}
+.aria-check-row input[type="checkbox"]:checked,.consent-check input[type="checkbox"]:checked,.remember input[type="checkbox"]:checked{
+  background:var(--aria-form-accent);border-color:var(--aria-form-accent)
+}
+.aria-check-row input[type="checkbox"]:checked::after,.consent-check input[type="checkbox"]:checked::after,.remember input[type="checkbox"]:checked::after{
+  content:'✓';color:#fff;font-weight:900;font-size:13px;line-height:1
+}
+.aria-check-copy{display:block;font-size:12px;line-height:1.55;color:#4f5c70;font-weight:600}
+.aria-check-copy strong{display:block;color:var(--aria-form-text);font-size:13px;margin-bottom:3px}
+.aria-check-copy small{display:block;color:var(--aria-form-muted);font-size:11px;font-weight:500}
+
+/* Modal treatment */
+.modal-backdrop{backdrop-filter:blur(4px)}
+.modal{
+  width:min(620px,calc(100vw - 28px))!important;
+  border-radius:24px!important;
+  padding:28px!important;
+  border:1px solid rgba(221,226,237,.9);
+  box-shadow:0 34px 90px rgba(11,19,36,.24)!important;
+}
+.modal h2{font-size:26px;letter-spacing:-.025em;margin:6px 38px 8px 0}
+.modal>p,#modalBody>p{color:var(--aria-form-muted);line-height:1.6;margin:0 0 4px}
+.modal-close,.close{
+  width:36px;height:36px;border-radius:12px!important;
+  display:grid!important;place-items:center;
+  background:#f1f3f8!important;color:#6d788a!important;
+  font-size:18px!important;padding:0!important;
+}
+.modal-close:hover,.close:hover{background:#e9ecf4!important;color:#364258!important}
+.modal-actions,.aria-form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:22px!important}
+.modal-actions .primary,.aria-form-actions .primary{min-height:44px;padding:11px 17px;border-radius:12px}
+.modal-actions .secondary,.modal-actions .ghost-btn,.aria-form-actions .secondary{
+  min-height:44px;padding:11px 15px;border:1px solid #e0e5ee;border-radius:12px;background:#fff;color:#5b6880;font-weight:700
+}
+
+/* Search / toolbar controls */
+.finance-filters input,.finance-filters select,.security-toolbar input,[type="search"]{
+  min-height:42px;border-radius:12px!important;border-color:#dce2ec!important;padding:10px 12px!important;background:#fff!important
+}
+
+/* Login/recovery refinements */
+.login-card{border-radius:26px!important}
+.registration-step{margin-top:14px}
+.registration-step>label+label{margin-top:16px}
+.password-field input{margin-top:8px!important}
+.password-field button{top:16px!important}
+.login-error{border-radius:12px!important;padding:11px 13px!important}
+.sign-in,.create-account-link{min-height:46px;border-radius:12px!important}
+
+/* Application / onboarding */
+.application-card,.onboarding-card{border-radius:24px!important}
+.form-grid{row-gap:18px!important;column-gap:18px!important}
+.form-grid label{margin-top:0!important}
+.form-grid .modal-actions{padding-top:2px}
+
+/* Care Circle */
+.aria-contact-form-intro{margin:0;color:var(--aria-form-muted);line-height:1.6}
+.aria-care-consent{margin-top:2px}
+.aria-form-error{grid-column:1/-1;background:#fff0f2;border:1px solid #f1cdd4;color:var(--aria-form-danger);border-radius:12px;padding:11px 13px;font-size:12px}
+
+@media(max-width:680px){
+  .aria-form-grid,.form-grid{grid-template-columns:1fr!important}
+  .aria-form-grid .full,.form-grid .full{grid-column:auto!important}
+  .modal{padding:22px!important;border-radius:20px!important}
+  .modal h2{font-size:23px}
+  .modal-actions,.aria-form-actions{flex-direction:column-reverse;align-items:stretch}
+  .modal-actions button,.aria-form-actions button{width:100%}
+}
