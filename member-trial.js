@@ -40,7 +40,7 @@
         <button class="primary" type="button" id="trialOpenContacts">Contact approved contacts</button>
         <a class="ghost-btn" href="tel:911" style="text-decoration:none;display:inline-flex;align-items:center">Call 911</a>
       </div>
-      <p class="small muted" style="margin-top:14px">Only contacts you have approved in Care Circle should be used for this fallback. The current development preview still uses synthetic contact records until Care Circle persistence is connected.</p>`;
+      <p class="small muted" style="margin-top:14px">Your approved Care Circle list is saved to your Aria account and remains available after the Assistant trial ends.</p>`;
     backdrop.classList.remove('hidden');
     document.getElementById('trialOpenContacts')?.addEventListener('click',()=>{
       backdrop.classList.add('hidden');
