@@ -16,7 +16,7 @@
         <h1>Your medication. Your reminders. Your lifeline.</h1>
         <p>Member accounts are invitation-only. Staff accounts are provisioned internally by authorized administrators.</p>
       </div>
-      <div class="trust-note"><strong>Development Preview</strong><span>Authentication, consent, and verification records are server-backed. Paid billing is still being connected and is clearly identified during signup.</span></div>
+      <div class="trust-note"><strong>30-day Aria Assistant trial</strong><span>New members can explore Aria Assistant and Lifeline features for 30 days. Medication tracking and reminders remain available afterward, and members can still contact approved Care Circle contacts directly.</span></div>
     </section>
 
     <section class="login-card-wrap">
@@ -83,17 +83,17 @@
           </section>
 
           <section id="planStep" class="registration-step" hidden>
-            <div class="plan-heading"><h3>Choose how Aria supports you</h3><p>Free helps you remember. Lifeline helps look out for you.</p></div>
-            <label class="plan-card selected" data-plan-card="free"><input type="radio" name="ariaPlan" value="free" checked /><span class="plan-copy"><strong>Aria Free</strong><small>Medication tracking, scheduled reminders and dose checkoffs.</small></span><span class="plan-price">$0</span></label>
-            <label class="plan-card" data-plan-card="lifeline_weekly"><input type="radio" name="ariaPlan" value="lifeline_weekly" /><span class="plan-copy"><strong>Aria Lifeline</strong><small>AI companion, Care Circle, safety escalation, incident history and optional Lifeline-event location support.</small></span><span class="plan-price">$4.99<small>/week</small></span></label>
-            <label class="plan-card" data-plan-card="lifeline_annual"><input type="radio" name="ariaPlan" value="lifeline_annual" /><span class="plan-copy"><strong>Aria Lifeline</strong><small>Same Lifeline features with annual billing.</small></span><span class="plan-price">$259<small>/year</small></span></label>
-            <div class="plan-note">Paid billing is not connected yet. Choosing Lifeline records your selection but does not activate paid Lifeline access or charge you.</div>
+            <div class="plan-heading"><h3>Choose how Aria supports you</h3><p>Every new member starts with a 30-day Aria Assistant trial so you can learn the experience before deciding on Lifeline membership.</p></div>
+            <label class="plan-card selected" data-plan-card="free"><input type="radio" name="ariaPlan" value="free" checked /><span class="plan-copy"><strong>Aria Free</strong><small>Medication tracking, scheduled reminders and dose checkoffs. Includes the 30-day Aria Assistant trial.</small></span><span class="plan-price">$0</span></label>
+            <label class="plan-card" data-plan-card="lifeline_weekly"><input type="radio" name="ariaPlan" value="lifeline_weekly" /><span class="plan-copy"><strong>Aria Lifeline</strong><small>AI companion, Care Circle, safety escalation, incident history and optional Lifeline-event location support. Your first 30 days are available as the Aria Assistant trial.</small></span><span class="plan-price">$4.99<small>/week</small></span></label>
+            <label class="plan-card" data-plan-card="lifeline_annual"><input type="radio" name="ariaPlan" value="lifeline_annual" /><span class="plan-copy"><strong>Aria Lifeline</strong><small>Same Lifeline features with annual billing. Your first 30 days are available as the Aria Assistant trial.</small></span><span class="plan-price">$259<small>/year</small></span></label>
+            <div class="plan-note"><strong>Trial policy:</strong> the 30-day trial begins when the member account is created. When it ends, medication tracking and reminders remain available. Aria Assistant and enhanced Lifeline conversation features pause unless Lifeline membership is active. Approved Care Circle contact calling remains available. Paid billing is not connected yet, so no paid plan is charged or activated from this preview.</div>
             <div class="login-error" id="planError" role="alert" hidden></div>
-            <button class="sign-in" id="createMemberAccount" type="button">Create Account</button>
+            <button class="sign-in" id="createMemberAccount" type="button">Create Account & Start Trial</button>
           </section>
 
           <section id="successStep" class="registration-step" hidden>
-            <div class="success-panel"><div class="success-icon">✓</div><h3>Account created</h3><p id="successMessage">Your Aria account is ready.</p></div>
+            <div class="success-panel"><div class="success-icon">✓</div><h3>Account created</h3><p id="successMessage">Your Aria account is ready and your 30-day Aria Assistant trial has started.</p></div>
             <button class="sign-in" id="returnToSignIn" type="button">Go to Sign In</button>
           </section>
 
