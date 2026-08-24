@@ -8,9 +8,13 @@ import { handleHiringOnboardingRoute } from './hiring-onboarding-api.js';
 import { handleCandidateManagementRoute } from './candidate-management-api.js';
 import { handleHrRoute } from './hr-api.js';
 import { handleAuditRoute } from './audit-api.js';
+import { handleMemberEntitlementsRoute } from './member-entitlements-api.js';
 
 export default {
   async fetch(request, env, ctx) {
+    const memberEntitlementsResponse = await handleMemberEntitlementsRoute(request, env);
+    if (memberEntitlementsResponse) return memberEntitlementsResponse;
+
     const auditResponse = await handleAuditRoute(request, env);
     if (auditResponse) return auditResponse;
 
