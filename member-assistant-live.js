@@ -18,6 +18,11 @@
     return String(data.answer||'').trim();
   }
 
+  function markSafetyRisk(risk){
+    const actions=document.querySelector('#ariaBubbleLog .aria-bubble-actions:last-of-type');
+    if(actions)actions.dataset.lifelineRisk=risk;
+  }
+
   async function send(event){
     event?.preventDefault();
     event?.stopImmediatePropagation();
@@ -50,7 +55,10 @@
         :'I’m concerned about what you’re describing. If you may be in immediate danger, use your device to contact local emergency services now and reach someone you trust if possible.';
       setTimeout(()=>{
         add('aria',reply);
-        if(typeof window.addSafetyActions==='function')window.addSafetyActions();
+        if(typeof window.addSafetyActions==='function'){
+          window.addSafetyActions();
+          markSafetyRisk(risk);
+        }
       },120);
       return;
     }
