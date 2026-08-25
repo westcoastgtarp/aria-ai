@@ -1,9 +1,11 @@
 (function(){
   const EVENT_KEY='aria-demo-lifeline-events';
   const PREF_KEY='aria-demo-lifeline-preferences';
+  const RESPONSE_WINDOWS={high:300,critical:120};
   let timerId=null;
-  let secondsRemaining=120;
+  let secondsRemaining=0;
   let flowActive=false;
+  let activeRisk='normal';
 
   function load(key,fallback){
     try{return JSON.parse(sessionStorage.getItem(key)||'null')??fallback;}catch{return fallback;}
@@ -19,6 +21,8 @@
   function formatCountdown(total){
     const m=Math.floor(total/60);const s=String(total%60).padStart(2,'0');return `${m}:${s}`;
   }
+  function riskLabel(risk){return risk==='critical'?'Critical':'High Risk';}
+  function windowLabel(seconds){return seconds===120?'2-minute':'5-minute';}
 
   function renderPreferences(){
     const current=prefs();
@@ -74,7 +78,8 @@
     if(timerId)clearInterval(timerId);
     timerId=null;
     flowActive=false;
-    logEvent('member_response_window_stopped',{reason,secondsRemaining});
+    logEvent('member_response_window_stopped',{reason,risk:activeRisk,secondsRemaining});
+    activeRisk='normal';
   }
 
   function directCall911(){
@@ -107,26 +112,32 @@
     log.scrollTop=log.scrollHeight;
   }
 
-  function expireMemberWindow(container){
-    stopTimer('expired');
+  function expireMemberWindow(container,risk,durationSeconds){
     const current=prefs();
-    logEvent('emergency_contact_alert_prepared',{locationPermitted:current.locationMode!=='never'});
-    container.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45"><strong>2-minute response window ended.</strong><br>Prototype emergency-contact alert prepared${current.locationMode!=='never'?' with permitted location support':''}. No real notification was sent.</div>`;
+    const label=windowLabel(durationSeconds);
+    logEvent('emergency_contact_alert_prepared',{risk,locationPermitted:current.locationMode!=='never',durationSeconds});
+    stopTimer('expired');
+    container.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45"><strong>${label} response window ended.</strong><br>Prototype emergency-contact alert prepared${current.locationMode!=='never'?' with permitted location support':''}. No real notification was sent.</div>`;
     showContactOptions();
   }
 
   function activateMemberWindow(actions){
     if(flowActive||actions.dataset.lifelineEnhanced==='true')return;
+    const risk=actions.dataset.lifelineRisk==='critical'?'critical':'high';
+    const durationSeconds=RESPONSE_WINDOWS[risk];
     actions.dataset.lifelineEnhanced='true';
     flowActive=true;
-    secondsRemaining=120;
-    logEvent('member_response_window_started',{durationSeconds:120});
-    actions.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45;margin-bottom:8px"><strong>Would you like to call your emergency contact?</strong><br>You have <span id="lifelineCountdown">2:00</span> to choose. If you do not press the button, Aria's prototype flow will prepare the approved emergency-contact alert.</div><button class="contact" id="lifelineMemberCall">Call Emergency Contact</button><button class="emergency" id="lifelineCall911">Call 911</button>`;
+    activeRisk=risk;
+    secondsRemaining=durationSeconds;
+    logEvent('member_response_window_started',{risk,durationSeconds});
+    actions.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45;margin-bottom:8px"><strong>${riskLabel(risk)} Lifeline check-in</strong><br>Would you like to call your approved emergency contact? You have <span id="lifelineCountdown">${formatCountdown(durationSeconds)}</span> to choose. If you do not press the button, Aria's prototype flow will prepare the approved emergency-contact alert.</div><button class="contact" id="lifelineMemberCall">Call Emergency Contact</button><button class="emergency" id="lifelineCall911">Call 911</button>`;
     const countdown=actions.querySelector('#lifelineCountdown');
     actions.querySelector('#lifelineMemberCall').onclick=()=>{
+      const completedRisk=activeRisk;
+      const completedDuration=durationSeconds;
       stopTimer('member_pressed_call');
       actions.innerHTML='<div style="width:100%;font-size:12px;line-height:1.45"><strong>Call selected.</strong><br>Automatic emergency-contact notification is paused in this prototype. No call was placed.</div>';
-      window.openModal?.('<div class="eyebrow">CARE CIRCLE</div><h2 id="modalTitle">Call Emergency Contact</h2><p>Production would open the member\'s approved emergency-contact calling option. Because the member acted within the two-minute window, the automatic contact alert is not sent at this stage.</p><p><strong>Prototype:</strong> no call is placed.</p>');
+      window.openModal?.(`<div class="eyebrow">CARE CIRCLE</div><h2 id="modalTitle">Call Emergency Contact</h2><p>Production would open the member's approved emergency-contact calling option. Because the member acted within the ${windowLabel(completedDuration)} ${completedRisk==='critical'?'Critical':'High Risk'} response window, the automatic contact alert is not sent at this stage.</p><p><strong>Prototype:</strong> no call is placed.</p>`);
     };
     actions.querySelector('#lifelineCall911').onclick=()=>{
       stopTimer('member_selected_911');
@@ -135,7 +146,7 @@
     timerId=setInterval(()=>{
       secondsRemaining-=1;
       if(countdown)countdown.textContent=formatCountdown(Math.max(0,secondsRemaining));
-      if(secondsRemaining<=0)expireMemberWindow(actions);
+      if(secondsRemaining<=0)expireMemberWindow(actions,risk,durationSeconds);
     },1000);
   }
 
@@ -145,7 +156,7 @@
     });
   });
   const chatLog=document.getElementById('ariaBubbleLog');
-  if(chatLog)observer.observe(chatLog,{childList:true,subtree:true});
+  if(chatLog)observer.observe(chatLog,{childList:true,subtree:true,attributes:true,attributeFilter:['data-lifeline-risk']});
 
   renderPreferences();
 })();
