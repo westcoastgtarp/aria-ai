@@ -2,10 +2,28 @@
   const form=document.getElementById('applicationForm');
   const button=document.getElementById('applicationSubmit');
   const success=document.getElementById('applicationSuccess');
+  const desiredRole=document.getElementById('appDesiredRole');
   if(!form||!button)return;
+
+  function isLiveSupportRole(value=''){
+    return String(value).trim().toLowerCase()==='live support specialist';
+  }
+
+  function routeSpecialistApplicant(){
+    if(isLiveSupportRole(desiredRole?.value)){
+      window.location.href='/live-support-application.html';
+      return true;
+    }
+    return false;
+  }
+
+  desiredRole?.addEventListener('change',routeSpecialistApplicant);
+  desiredRole?.addEventListener('blur',routeSpecialistApplicant);
 
   form.addEventListener('submit',async event=>{
     event.preventDefault();
+    if(routeSpecialistApplicant())return;
+
     button.disabled=true;
     const original=button.textContent;
     button.textContent='Submitting…';
@@ -17,7 +35,7 @@
         city:document.getElementById('appCity').value.trim(),
         state:document.getElementById('appState').value.trim(),
         department:document.getElementById('appDepartment').value,
-        desiredRole:document.getElementById('appDesiredRole').value.trim(),
+        desiredRole:desiredRole.value.trim(),
         employmentType:document.getElementById('appEmploymentType').value,
         availability:document.getElementById('appAvailability').value.trim(),
         experienceSummary:document.getElementById('appExperience').value.trim(),
