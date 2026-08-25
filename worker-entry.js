@@ -11,6 +11,7 @@ import { handleAuditRoute } from './audit-api.js';
 import { handleMemberEntitlementsRoute } from './member-entitlements-api.js';
 import { handleCareCircleRoute } from './care-circle-api.js';
 import { handleMemberAssistantRoute } from './member-assistant-api.js';
+import { handleMemberMembershipOptionsRoute } from './member-membership-options-api.js';
 
 function withAriaFormSystem(response) {
   const contentType = response.headers.get('content-type') || '';
@@ -28,6 +29,9 @@ export default {
   async fetch(request, env, ctx) {
     const assistantResponse = await handleMemberAssistantRoute(request, env);
     if (assistantResponse) return assistantResponse;
+
+    const membershipOptionsResponse = await handleMemberMembershipOptionsRoute(request, env);
+    if (membershipOptionsResponse) return membershipOptionsResponse;
 
     const careCircleResponse = await handleCareCircleRoute(request, env);
     if (careCircleResponse) return careCircleResponse;
