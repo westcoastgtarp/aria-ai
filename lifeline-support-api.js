@@ -31,7 +31,7 @@ async function audit(env,member,id,risk,trigger){
     INSERT INTO audit_events
     (id,category,event_type,actor_user_id,subject_type,subject_id,related_ticket_id,details_json,occurred_at,recorded_at)
     VALUES (?, 'Lifeline Safety','lifeline_human_support_escalated',?,'member',?,?,?, ?, ?)
-  `).bind(`AUD-${crypto.randomUUID()}`,member.user_id,member.user_id,id,JSON.stringify({risk,trigger,channel:'chat_only'}),now,now).run();
+  `).bind(`AUD-${crypto.randomUUID()}`,member.user_id,member.user_id,id,JSON.stringify({risk,trigger,channel:'chat_only',queueCategory:'Member Communication'}),now,now).run();
 }
 async function escalate(request,env){
   const member=await currentMember(request,env);
@@ -44,22 +44,22 @@ async function escalate(request,env){
   const cutoff=new Date(Date.now()-30*60*1000).toISOString();
   const existing=await env.DB.prepare(`
     SELECT id,status,updated_at FROM tickets
-    WHERE created_by_user_id=? AND department='Operations' AND category='Customer Service'
-      AND title='Lifeline live support escalation' AND status!='Closed' AND updated_at>=?
+    WHERE created_by_user_id=? AND department='Operations' AND category='Member Communication'
+      AND title='Lifeline member communication escalation' AND status!='Closed' AND updated_at>=?
     ORDER BY updated_at DESC LIMIT 1
   `).bind(member.user_id,cutoff).first();
-  if(existing)return json({ok:true,queued:true,ticketId:existing.id,deduplicated:true});
+  if(existing)return json({ok:true,queued:true,ticketId:existing.id,deduplicated:true,category:'Member Communication'});
 
   const id=ticketId();
   const now=new Date().toISOString();
-  const details=`Automatic Lifeline chat escalation. Risk level: ${risk}. Trigger: ${trigger}. Chat-only trained-agent review requested. Do not contact third parties on the member's behalf.`;
+  const details=`Automatic Lifeline member-chat escalation. Risk level: ${risk}. Trigger: ${trigger}. Chat-only trained-agent review requested. Do not contact third parties on the member's behalf.`;
   await env.DB.prepare(`
     INSERT INTO tickets
     (id,department,category,title,description,priority,status,progress,created_by_user_id,assigned_to_user_id,created_at,updated_at)
-    VALUES (?,'Operations','Customer Service','Lifeline live support escalation',?,'Urgent','Open',0,?,NULL,?,?)
+    VALUES (?,'Operations','Member Communication','Lifeline member communication escalation',?,'Urgent','Open',0,?,NULL,?,?)
   `).bind(id,details,member.user_id,now,now).run();
   try{await audit(env,member,id,risk,trigger);}catch(error){console.error('Lifeline support audit failed',error);}
-  return json({ok:true,queued:true,ticketId:id,deduplicated:false},{status:201});
+  return json({ok:true,queued:true,ticketId:id,deduplicated:false,category:'Member Communication'},{status:201});
 }
 export async function handleLifelineSupportRoute(request,env){
   const url=new URL(request.url);
