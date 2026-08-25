@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Support Specialist Application · Aria AI</title>
+  <link rel="stylesheet" href="staff.css" />
+  <style>
+    body{background:#f5f7fb}.application-wrap{width:min(920px,calc(100% - 32px));margin:40px auto 70px}.application-card{background:#fff;border:1px solid #e5eaf1;border-radius:22px;padding:28px;box-shadow:0 18px 40px rgba(17,31,56,.08)}.application-head{margin-bottom:20px}.application-head h1{margin:6px 0 8px}.application-head p{color:#6b778a;line-height:1.6}.application-note,.certification-notice{padding:14px 16px;border-radius:13px;font-size:13px;line-height:1.55;margin-bottom:18px}.application-note{background:#f3f4ff;color:#555dcc}.certification-notice{background:#fff6e8;border:1px solid #f0d3a2;color:#6b4b12}.requirements{border:1px solid #e5eaf1;border-radius:16px;padding:18px;margin:18px 0 22px}.requirements h2{font-size:18px;margin:0 0 12px}.requirements ul{margin:0;padding-left:20px;color:#526070;line-height:1.65}.role-boundary{background:#f7f9fc;border-radius:14px;padding:15px;margin:18px 0;color:#526070;line-height:1.55}.confirm-grid{display:grid;gap:12px;margin:18px 0}.confirm-row{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid #e5eaf1;border-radius:12px;background:#fbfcfe}.confirm-row input{margin-top:3px}.success{padding:18px;border-radius:14px;background:#e9f7f3;color:#1e7d6e;font-weight:700;margin-bottom:18px}.hidden{display:none}.application-footer{text-align:center;color:#8a95a5;font-size:12px;margin-top:18px}@media(max-width:640px){.application-wrap{margin:18px auto 50px}.application-card{padding:20px}}
+  </style>
+</head>
+<body>
+  <main class="application-wrap">
+    <section class="application-card">
+      <div id="applicationSuccess" class="success hidden">Application received. Qualified applicants may be invited to the Aria Support Specialist Certification process.</div>
+      <div class="application-head">
+        <div class="eyebrow">ARIA AI · MEMBER COMMUNICATION</div>
+        <h1>Live Support Specialist</h1>
+        <p>This is a specialized, non-clinical, chat-only support position supporting Aria members when the Lifeline system identifies sustained or serious distress signals.</p>
+      </div>
+
+      <div class="certification-notice"><strong>You will only be accepted into this position if you pass your Support Specialist Certification Test.</strong><br />Submitting an application or completing an interview does not grant access to the Member Communication queue.</div>
+
+      <section class="requirements" aria-labelledby="requirementsTitle">
+        <h2 id="requirementsTitle">Minimum and preferred qualifications</h2>
+        <ul>
+          <li>At least 1 year of customer support experience.</li>
+          <li>Experience working in de-escalation environments or handling distressed, angry, frightened, or overwhelmed customers.</li>
+          <li>Professional emotional-support experience or closely related experience is strongly preferred.</li>
+          <li>Strong written communication skills for live, chat-only member support.</li>
+          <li>Ability to remain calm, empathetic, professional, and nonjudgmental during high-emotion conversations.</li>
+          <li>Ability to recognize when a conversation exceeds the role and follow Aria escalation procedures instead of improvising medical, mental-health, or emergency advice.</li>
+          <li>Training or experience in crisis communication, suicide/self-harm awareness, abuse/domestic-violence awareness, Mental Health First Aid, or similar de-escalation programs is preferred.</li>
+          <li>Ability to work scheduled 24/7 coverage, including nights, weekends, and holidays when assigned.</li>
+          <li>Ability to protect sensitive member information and follow Aria privacy, access, and confidentiality requirements.</li>
+          <li>Successful completion of Aria's Support Specialist Certification Test and supervised readiness review before independent queue access.</li>
+        </ul>
+      </section>
+
+      <div class="role-boundary"><strong>Role boundary:</strong> Live Support Specialists are not therapists, clinicians, emergency dispatchers, or medical advisers. The role provides calm human support, keeps the member engaged in chat, follows approved protocols, recognizes escalation cues, and recommends appropriate resources when required. The position does not diagnose, prescribe, change medication instructions, or promise emergency intervention.</div>
+
+      <div class="application-note">Please do not submit Social Security numbers, banking details, government ID numbers, medical information, or other sensitive personal information.</div>
+
+      <form id="liveSupportApplicationForm" class="form-grid">
+        <input id="appDepartment" type="hidden" value="Operations" />
+        <input id="appDesiredRole" type="hidden" value="Live Support Specialist" />
+        <label>Full name<input id="appFullName" required maxlength="120" /></label>
+        <label>Email<input id="appEmail" type="email" required maxlength="254" /></label>
+        <label>Phone number<input id="appPhone" maxlength="40" /></label>
+        <label>City<input id="appCity" maxlength="80" /></label>
+        <label>State<input id="appState" maxlength="80" /></label>
+        <label>Employment preference<select id="appEmploymentType" required><option value="">Select one</option><option>Full-time</option><option>Part-time</option><option>Flexible</option></select></label>
+        <label class="full">24/7 availability<input id="appAvailability" required maxlength="160" placeholder="Include nights, weekends, holidays, and any scheduling limitations" /></label>
+        <label class="full">Customer support experience<textarea id="supportExperience" required maxlength="1200" placeholder="Describe at least one year of customer support experience, including chat or high-emotion customer interactions where applicable."></textarea></label>
+        <label class="full">De-escalation experience<textarea id="deescalationExperience" required maxlength="1200" placeholder="Describe situations where you helped calm or stabilize a distressed, angry, frightened, or overwhelmed person."></textarea></label>
+        <label class="full">Emotional support experience<textarea id="emotionalSupportExperience" maxlength="1200" placeholder="Describe professional emotional-support, crisis-support, social-services, healthcare-adjacent, or similar experience. If none, explain relevant transferable experience."></textarea></label>
+        <label class="full">Relevant training or certifications<textarea id="supportTraining" maxlength="1000" placeholder="Examples: Mental Health First Aid, crisis communication, de-escalation, suicide/self-harm awareness, abuse awareness, or similar training."></textarea></label>
+        <label class="full">Written response scenario<textarea id="supportScenario" required maxlength="1600" placeholder="A member writes: ‘I’m overwhelmed, I can’t think straight, and everything keeps getting worse.’ Write the first chat response you would send as a Live Support Specialist. Do not diagnose or give medical advice."></textarea></label>
+        <label class="full">Why are you interested in becoming an Aria Live Support Specialist?<textarea id="appWhyAria" required maxlength="1200"></textarea></label>
+
+        <div class="full confirm-grid">
+          <label class="confirm-row"><input id="confirmYear" type="checkbox" required /><span>I confirm that I have at least one year of customer support experience.</span></label>
+          <label class="confirm-row"><input id="confirmRoleBoundary" type="checkbox" required /><span>I understand that this is a non-clinical support role and I may not diagnose, prescribe, provide therapy, act as emergency dispatch, or make promises of intervention.</span></label>
+          <label class="confirm-row"><input id="confirmCertification" type="checkbox" required /><span><strong>I understand that I will only be accepted into this position if I pass the Aria Support Specialist Certification Test.</strong></span></label>
+          <label class="confirm-row"><input id="confirmPrivacy" type="checkbox" required /><span>I understand that access to Member Communication is restricted and requires compliance with Aria privacy, confidentiality, and access-control rules.</span></label>
+        </div>
+
+        <div class="full modal-actions"><button id="applicationSubmit" class="primary" type="submit">Submit Live Support Application</button></div>
+      </form>
+    </section>
+    <div class="application-footer">Aria AI · Live Support Specialist Application</div>
+  </main>
+  <script src="live-support-application.js"></script>
+</body>
+</html>
