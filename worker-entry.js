@@ -13,7 +13,7 @@ import { handleCareCircleRoute } from './care-circle-api.js';
 import { handleMemberAssistantRoute } from './member-assistant-api.js';
 import { handleMemberMembershipOptionsRoute } from './member-membership-options-api.js';
 import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
-import { handleLifelineAlertRoute } from './lifeline-alert-api.js';
+import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 
 function withAriaFormSystem(response) {
   const contentType = response.headers.get('content-type') || '';
@@ -29,8 +29,8 @@ function withAriaFormSystem(response) {
 
 export default {
   async fetch(request, env, ctx) {
-    const lifelineAlertResponse = await handleLifelineAlertRoute(request, env);
-    if (lifelineAlertResponse) return lifelineAlertResponse;
+    const lifelineSupportResponse = await handleLifelineSupportRoute(request, env);
+    if (lifelineSupportResponse) return lifelineSupportResponse;
 
     const lifelineRiskResponse = await handleLifelineRiskRoute(request, env);
     if (lifelineRiskResponse) return lifelineRiskResponse;
