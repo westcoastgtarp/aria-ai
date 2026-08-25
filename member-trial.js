@@ -4,12 +4,18 @@
 
   let entitlementState=null;
 
-  function loadCareCircle(){
-    if(document.querySelector('script[data-care-circle-live]'))return;
+  function loadScript(src,key){
+    if(document.querySelector(`script[data-${key}]`))return;
     const script=document.createElement('script');
-    script.src='/care-circle-live.js?v=20260824-1';
-    script.dataset.careCircleLive='true';
+    script.src=src;
+    script.dataset[key]='true';
     document.body.appendChild(script);
+  }
+
+  function loadMemberExperience(){
+    loadScript('/care-circle-live.js?v=20260824-1','careCircleLive');
+    loadScript('/member-assistant-live.js?v=20260825-1','memberAssistantLive');
+    loadScript('/member-training.js?v=20260825-1','memberTraining');
   }
 
   function escapeHtml(value=''){
@@ -41,14 +47,14 @@
     if(!body||!backdrop)return;
     body.innerHTML=`
       <div class="eyebrow">ARIA ASSISTANT</div>
-      <h2 id="modalTitle">Your 30-day trial has ended</h2>
-      <p>Your medication tracking, reminders, and dose records stay available. Aria Assistant and the enhanced Lifeline conversation features are paused until Lifeline membership is active.</p>
-      <div class="notice info"><strong>Still available:</strong> you can contact people you approved in Care Circle directly. Emergency calling from your own device is never blocked by a membership status.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-        <button class="primary" type="button" id="trialOpenContacts">Contact approved contacts</button>
-        <a class="ghost-btn" href="tel:911" style="text-decoration:none;display:inline-flex;align-items:center">Call 911</a>
+      <h2 id="modalTitle">Aria Assistant is paused</h2>
+      <p>Your 30-day Assistant trial has ended. Medication tracking, reminders, and dose records stay available.</p>
+      <div class="notice info"><strong>Still available:</strong> you can contact people you approved in Care Circle directly. Emergency calling from your own device is never blocked by membership status.</div>
+      <div class="aria-form-actions">
+        <button class="primary" type="button" id="trialOpenContacts">Open Care Circle</button>
+        <a class="secondary" href="tel:911" style="text-decoration:none;display:inline-flex;align-items:center">Call 911</a>
       </div>
-      <p class="small muted" style="margin-top:14px">Your approved Care Circle list is saved to your Aria account and remains available after the Assistant trial ends.</p>`;
+      <p class="small muted">Membership options are shown inside the member dashboard after the Aria training experience. Aria does not automatically interrupt you with a purchase prompt.</p>`;
     backdrop.classList.remove('hidden');
     document.getElementById('trialOpenContacts')?.addEventListener('click',()=>{
       backdrop.classList.add('hidden');
@@ -71,15 +77,15 @@
     if(data.trial?.active){
       const days=Number(data.trial.daysRemaining)||0;
       const ending=formatDate(data.trial.endsAt);
-      banner.innerHTML=`<strong>Aria Assistant trial:</strong> ${escapeHtml(days)} day${days===1?'':'s'} remaining${ending?` • Ends ${escapeHtml(ending)}`:''}. Explore Assistant, medication support, Care Circle, and Lifeline features during your 30-day trial.`;
+      banner.innerHTML=`<strong>30-day Aria learning period:</strong> ${escapeHtml(days)} day${days===1?'':'s'} remaining${ending?` • Ends ${escapeHtml(ending)}`:''}. Use the guided training to learn medication tools, reminders, Care Circle, Aria Assistant, and Lifeline before deciding on membership.`;
       launcher.removeAttribute('data-trial-locked');
       launcher.setAttribute('aria-label','Open Aria Assistant — trial active');
       return;
     }
 
-    banner.innerHTML='<strong>Aria Free:</strong> your 30-day Aria Assistant trial has ended. Medication tracking and reminders remain available, and you can still contact approved Care Circle contacts directly.';
+    banner.innerHTML='<strong>Aria Free:</strong> medication tracking and reminders remain available, and you can still contact approved Care Circle contacts directly.';
     launcher.dataset.trialLocked='true';
-    launcher.setAttribute('aria-label','Aria Assistant trial ended — contact approved Care Circle contacts');
+    launcher.setAttribute('aria-label','Aria Assistant paused — approved Care Circle contacts remain available');
     const panel=document.getElementById('ariaBubblePanel');
     if(panel)panel.hidden=true;
   }
@@ -92,6 +98,8 @@
       applyState(data);
     }catch(error){
       console.error('Member entitlements unavailable',error);
+    }finally{
+      loadMemberExperience();
     }
   }
 
@@ -116,6 +124,5 @@
     showExpiredModal();
   },true);
 
-  loadCareCircle();
   loadEntitlements();
 })();
