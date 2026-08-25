@@ -24,6 +24,34 @@
   function riskLabel(risk){return risk==='critical'?'Critical':'High Risk';}
   function windowLabel(seconds){return seconds===120?'2-minute':'5-minute';}
 
+  async function getPrimaryContact(){
+    const response=await fetch('/api/member/care-circle',{credentials:'same-origin',cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok)throw new Error(data.error||'Unable to load approved contacts.');
+    return Array.isArray(data.contacts)&&data.contacts.length?data.contacts[0]:null;
+  }
+
+  async function callPrimaryContact(){
+    const contact=await getPrimaryContact();
+    if(!contact?.phone)throw new Error('No approved Care Circle contact is available.');
+    logEvent('member_selected_approved_contact_call',{contactId:contact.id,priority:contact.priority});
+    window.location.href=`tel:${contact.phone}`;
+  }
+
+  async function sendEscalationAlert(risk){
+    const current=prefs();
+    const payload={level:risk};
+    if(current.locationMode!=='never')payload.location={permitted:true,mode:current.locationMode};
+    const response=await fetch('/api/member/lifeline/alert',{
+      method:'POST',
+      credentials:'same-origin',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const data=await response.json().catch(()=>({}));
+    return {response,data};
+  }
+
   function renderPreferences(){
     const current=prefs();
     const consent=document.getElementById('careContactConsent');
@@ -50,7 +78,7 @@
 
     const current=prefs();
     if(!current.contactConsent){
-      window.openModal?.('<div class="eyebrow">CARE CIRCLE CONSENT</div><h2 id="modalTitle">Confirm your emergency contact is informed</h2><p>Before enabling Lifeline location sharing, confirm that the person you list as your emergency contact has agreed to be contacted by Aria during a serious distress event.</p><p><strong>No real message or location is sent in this prototype.</strong></p>');
+      window.openModal?.('<div class="eyebrow">CARE CIRCLE CONSENT</div><h2 id="modalTitle">Confirm your emergency contact is informed</h2><p>Before enabling Lifeline location sharing, confirm that the person you list as your emergency contact has agreed to be contacted by Aria during a serious distress event.</p>');
       return;
     }
 
@@ -63,7 +91,7 @@
       position=>{
         setPrefs({locationMode:mode});
         logEvent('location_permission_granted',{mode,latitude:position.coords.latitude,longitude:position.coords.longitude,accuracy:position.coords.accuracy});
-        window.openModal?.(`<div class="eyebrow">LIFELINE LOCATION</div><h2 id="modalTitle">Location support enabled</h2><p>During a qualifying Lifeline event, Aria may make your current location available to your approved emergency contact according to this preference.</p><p><strong>Prototype:</strong> no location is transmitted to another person.</p>`);
+        window.openModal?.(`<div class="eyebrow">LIFELINE LOCATION</div><h2 id="modalTitle">Location support enabled</h2><p>During a qualifying Lifeline event, Aria may make your current location available to your approved emergency contact according to this preference.</p>`);
       },
       ()=>{
         setPrefs({locationMode:'never'});
@@ -87,38 +115,40 @@
     window.location.href='tel:911';
   }
 
-  function showContactOptions(){
-    const log=document.getElementById('ariaBubbleLog');
-    if(!log)return;
-    const existing=log.querySelector('.lifeline-contact-options');
-    if(existing)existing.remove();
-    const wrap=document.createElement('div');
-    wrap.className='aria-bubble-actions lifeline-contact-options';
-    wrap.innerHTML='<div style="width:100%;font-size:12px;line-height:1.45;margin-bottom:8px"><strong>Emergency contact view — prototype</strong><br>Alert prepared. Location is included only if the member previously allowed it.</div><button class="contact" id="lifelineCheckIn">Send Check-In</button><button class="contact" id="lifelineViewLocation">View Location</button><button class="emergency" id="lifelineCallMember">Call Member</button>';
-    log.appendChild(wrap);
-    document.getElementById('lifelineCheckIn').onclick=()=>{
-      logEvent('emergency_contact_action_selected',{action:'send_check_in'});
-      window.openModal?.('<div class="eyebrow">CHECK-IN</div><h2 id="modalTitle">Calm check-in message</h2><p>Production would let the emergency contact send a calm check-in first. No message is sent in this prototype.</p>');
-    };
-    document.getElementById('lifelineViewLocation').onclick=()=>{
-      logEvent('emergency_contact_action_selected',{action:'view_location'});
-      const current=prefs();
-      window.openModal?.(`<div class="eyebrow">LOCATION</div><h2 id="modalTitle">Member location</h2><p>${current.locationMode==='never'?'The member has not enabled Lifeline location sharing.':'Production would display the member\'s permitted current Lifeline-event location here.'}</p><p><strong>Prototype:</strong> no location is shared externally.</p>`);
-    };
-    document.getElementById('lifelineCallMember').onclick=()=>{
-      logEvent('emergency_contact_action_selected',{action:'call_member'});
-      window.openModal?.('<div class="eyebrow">CALL MEMBER</div><h2 id="modalTitle">Call option</h2><p>The emergency contact could choose to call the member if appropriate. Aria presents check-in messaging first to avoid unnecessarily increasing anxiety.</p><p><strong>Prototype:</strong> no call is placed.</p>');
-    };
-    log.scrollTop=log.scrollHeight;
-  }
-
-  function expireMemberWindow(container,risk,durationSeconds){
+  async function expireMemberWindow(container,risk,durationSeconds){
     const current=prefs();
     const label=windowLabel(durationSeconds);
-    logEvent('emergency_contact_alert_prepared',{risk,locationPermitted:current.locationMode!=='never',durationSeconds});
+    logEvent('emergency_contact_alert_requested',{risk,locationPermitted:current.locationMode!=='never',durationSeconds});
     stopTimer('expired');
-    container.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45"><strong>${label} response window ended.</strong><br>Prototype emergency-contact alert prepared${current.locationMode!=='never'?' with permitted location support':''}. No real notification was sent.</div>`;
-    showContactOptions();
+    container.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45"><strong>${label} response window ended.</strong><br>Aria is attempting to alert your highest-priority approved Care Circle contact.</div>`;
+
+    try{
+      const {response,data}=await sendEscalationAlert(risk);
+      if(response.ok&&data.ok&&data.sent){
+        logEvent('emergency_contact_alert_sent',{risk,eventId:data.eventId||null});
+        container.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45"><strong>Approved contact alert sent.</strong><br>${data.contact?.name?`${data.contact.name} was selected from your Care Circle. `:''}If you are in immediate danger, call 911 from your device.</div><button class="emergency" id="lifelinePostAlert911">Call 911</button>`;
+        container.querySelector('#lifelinePostAlert911').onclick=directCall911;
+        return;
+      }
+
+      const contact=data.contact||null;
+      logEvent('emergency_contact_alert_not_sent',{risk,code:data.code||'unknown'});
+      container.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45"><strong>Automatic alert could not be sent.</strong><br>${data.error||'The outbound alert service is unavailable.'} You can still call your approved contact or 911 directly.</div><button class="contact" id="lifelineFallbackContact">Call approved contact</button><button class="emergency" id="lifelineFallback911">Call 911</button>`;
+      container.querySelector('#lifelineFallbackContact').onclick=async()=>{
+        try{
+          if(contact?.phone)window.location.href=`tel:${contact.phone}`;
+          else await callPrimaryContact();
+        }catch(error){window.openModal?.(`<div class="eyebrow">CARE CIRCLE</div><h2 id="modalTitle">Approved contact unavailable</h2><p>${error?.message||'No approved Care Circle contact is available.'}</p>`);}
+      };
+      container.querySelector('#lifelineFallback911').onclick=directCall911;
+    }catch(error){
+      logEvent('emergency_contact_alert_not_sent',{risk,code:'network_error'});
+      container.innerHTML='<div style="width:100%;font-size:12px;line-height:1.45"><strong>Automatic alert could not be sent.</strong><br>The alert service could not be reached. You can still call your approved contact or 911 directly.</div><button class="contact" id="lifelineFallbackContact">Call approved contact</button><button class="emergency" id="lifelineFallback911">Call 911</button>';
+      container.querySelector('#lifelineFallbackContact').onclick=async()=>{
+        try{await callPrimaryContact();}catch(err){window.openModal?.(`<div class="eyebrow">CARE CIRCLE</div><h2 id="modalTitle">Approved contact unavailable</h2><p>${err?.message||'No approved Care Circle contact is available.'}</p>`);}
+      };
+      container.querySelector('#lifelineFallback911').onclick=directCall911;
+    }
   }
 
   function activateMemberWindow(actions){
@@ -130,14 +160,17 @@
     activeRisk=risk;
     secondsRemaining=durationSeconds;
     logEvent('member_response_window_started',{risk,durationSeconds});
-    actions.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45;margin-bottom:8px"><strong>${riskLabel(risk)} Lifeline check-in</strong><br>Would you like to call your approved emergency contact? You have <span id="lifelineCountdown">${formatCountdown(durationSeconds)}</span> to choose. If you do not press the button, Aria's prototype flow will prepare the approved emergency-contact alert.</div><button class="contact" id="lifelineMemberCall">Call Emergency Contact</button><button class="emergency" id="lifelineCall911">Call 911</button>`;
+    actions.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45;margin-bottom:8px"><strong>${riskLabel(risk)} Lifeline check-in</strong><br>Would you like to call your approved emergency contact? You have <span id="lifelineCountdown">${formatCountdown(durationSeconds)}</span> to choose. If you do not act before the timer ends, Aria will attempt to alert your highest-priority approved Care Circle contact.</div><button class="contact" id="lifelineMemberCall">Call Emergency Contact</button><button class="emergency" id="lifelineCall911">Call 911</button>`;
     const countdown=actions.querySelector('#lifelineCountdown');
-    actions.querySelector('#lifelineMemberCall').onclick=()=>{
-      const completedRisk=activeRisk;
-      const completedDuration=durationSeconds;
+    actions.querySelector('#lifelineMemberCall').onclick=async()=>{
       stopTimer('member_pressed_call');
-      actions.innerHTML='<div style="width:100%;font-size:12px;line-height:1.45"><strong>Call selected.</strong><br>Automatic emergency-contact notification is paused in this prototype. No call was placed.</div>';
-      window.openModal?.(`<div class="eyebrow">CARE CIRCLE</div><h2 id="modalTitle">Call Emergency Contact</h2><p>Production would open the member's approved emergency-contact calling option. Because the member acted within the ${windowLabel(completedDuration)} ${completedRisk==='critical'?'Critical':'High Risk'} response window, the automatic contact alert is not sent at this stage.</p><p><strong>Prototype:</strong> no call is placed.</p>`);
+      try{
+        await callPrimaryContact();
+        actions.innerHTML='<div style="width:100%;font-size:12px;line-height:1.45"><strong>Approved contact call selected.</strong><br>Because you acted within the response window, the automatic Care Circle alert was not sent.</div>';
+      }catch(error){
+        actions.innerHTML=`<div style="width:100%;font-size:12px;line-height:1.45"><strong>Approved contact unavailable.</strong><br>${error?.message||'No approved Care Circle contact is available.'}</div><button class="emergency" id="lifelineNoContact911">Call 911</button>`;
+        actions.querySelector('#lifelineNoContact911').onclick=directCall911;
+      }
     };
     actions.querySelector('#lifelineCall911').onclick=()=>{
       stopTimer('member_selected_911');
