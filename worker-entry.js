@@ -14,6 +14,7 @@ import { handleMemberAssistantRoute } from './member-assistant-api.js';
 import { handleMemberMembershipOptionsRoute } from './member-membership-options-api.js';
 import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
+import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
 
 function withAriaFormSystem(response) {
   const contentType = response.headers.get('content-type') || '';
@@ -58,6 +59,9 @@ export default {
 
     const hiringResponse = await handleHiringOnboardingRoute(request, env);
     if (hiringResponse) return hiringResponse;
+
+    const liveSupportResponse = await handleLiveSupportAccessRoute(request, env);
+    if (liveSupportResponse) return liveSupportResponse;
 
     const staffTicketResponse = await handleStaffTicketRoute(request, env);
     if (staffTicketResponse) return staffTicketResponse;
