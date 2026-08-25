@@ -1,6 +1,8 @@
 (function(){
   let history=[];
   let sending=false;
+  let concernStreak=0;
+  let supportEscalated=false;
 
   function add(type,text){
     if(typeof window.addBubbleMessage==='function')window.addBubbleMessage(type,text);
@@ -30,14 +32,35 @@
     return String(data.answer||'').trim();
   }
 
-  function markSafetyRisk(risk){
-    const actions=document.querySelector('#ariaBubbleLog .aria-bubble-actions:last-of-type');
-    if(actions)actions.dataset.lifelineRisk=risk;
+  async function escalateToSupport(risk,trigger){
+    if(supportEscalated)return true;
+    try{
+      const response=await fetch('/api/member/lifeline/support-escalate',{
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({risk,trigger})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||'Support escalation could not be created.');
+      supportEscalated=true;
+      return true;
+    }catch(error){
+      console.error('Lifeline support escalation failed',error);
+      return false;
+    }
   }
 
   function clientFallbackRisk(text){
     if(typeof window.detectRisk==='function')return window.detectRisk(text);
     return 'normal';
+  }
+
+  function updateConcernStreak(level){
+    if(level==='concern')concernStreak+=1;
+    else if(level==='normal')concernStreak=0;
+    else concernStreak=Math.max(concernStreak,1);
+    return concernStreak;
   }
 
   async function send(event){
@@ -63,20 +86,23 @@
     }catch(error){
       console.error('Lifeline risk endpoint unavailable; using browser fallback',error);
       risk.level=clientFallbackRisk(`${history.map(h=>h.content).join(' ')} ${text}`);
-      risk.responseWindowSeconds=risk.level==='critical'?120:risk.level==='high'?300:0;
     }
 
     if(typeof window.applyRisk==='function')window.applyRisk(risk.level);
+    const streak=updateConcernStreak(risk.level);
+    const immediateHandoff=risk.level==='high'||risk.level==='critical';
+    const repeatedConcern=risk.level==='concern'&&streak>=3;
+
+    if((immediateHandoff||repeatedConcern)&&!supportEscalated){
+      const queued=await escalateToSupport(risk.level,repeatedConcern?'repeated_distress_signals':'high_severity_distress');
+      if(queued)add('aria','I’m escalating this chat for live support review so a trained Aria support agent can take a closer look.');
+    }
 
     if(risk.level==='high'||risk.level==='critical'){
       const reply=typeof window.ariaResponse==='function'
         ?window.ariaResponse(risk.level)
-        :'I’m concerned about what you’re describing. If you may be in immediate danger, use your device to contact local emergency services now and reach someone you trust if possible.';
+        :'I’m concerned about what you’re describing. If you may be in immediate danger, contact local emergency services using your device now.';
       add('aria',reply);
-      if(typeof window.addSafetyActions==='function'){
-        window.addSafetyActions();
-        markSafetyRisk(risk.level);
-      }
       history.push({role:'user',content:text},{role:'assistant',content:reply});
       history=history.slice(-12);
       sending=false;
