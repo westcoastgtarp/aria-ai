@@ -88,7 +88,6 @@
 
   const addButton=document.getElementById('addMedicationBtn');
   addButton?.addEventListener('click',event=>{
-    if(!liveEnabled)return;
     event.preventDefault();event.stopImmediatePropagation();
     openModal(`
       <div class="eyebrow">MEDICATION</div>
@@ -121,6 +120,13 @@
       const timeLocal=asNeeded?null:to24Hour(enteredTime);
       if(!name||!strengthText||!amountText){alert('Enter the medication name, strength, and amount to take.');return;}
       if(!asNeeded&&(!frequencyText||!timingText||!timeLocal)){alert('For a scheduled medication, enter how often, when, and a valid reminder time such as 8:00 AM.');return;}
+
+      if(!liveEnabled){
+        const detail=[strengthText,`Take ${[amountText,frequencyText,timingText].filter(Boolean).join(' ')}`,asNeeded?'as needed':''].filter(Boolean).join(' • ')+' • user-entered';
+        doses.push({id:`dose-${Date.now()}`,medication:name,detail,time:asNeeded?'As needed':enteredTime,checked:false});
+        saveDemo();renderDoses();renderReminders();closeModal();return;
+      }
+
       const save=document.getElementById('saveLiveMed');save.disabled=true;save.textContent='Saving…';
       try{
         await api('/api/member/medications',{method:'POST',body:JSON.stringify({
