@@ -68,6 +68,40 @@ export async function ensureOpenConversation(env,userId){
 export async function appendConversationMessage(env,{conversationId,userId,role,content,source,riskLevel=null}){
   const text=String(content||'').trim();
   if(!text)return null;
+
+  const ownedConversation=await env.DB.prepare(`
+    SELECT id,status
+    FROM member_conversations
+    WHERE id=? AND member_user_id=?
+    LIMIT 1
+  `).bind(conversationId,userId).first();
+  if(!ownedConversation)throw new Error('conversation_not_found');
+  if(ownedConversation.status!=='open')throw new Error('conversation_closed');
+
+  const latest=await env.DB.prepare(`
+    SELECT id,role,content,source,risk_level,created_at
+    FROM member_conversation_messages
+    WHERE conversation_id=? AND member_user_id=?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).bind(conversationId,userId).first();
+
+  if(latest&&latest.role===role&&latest.source===source&&latest.content===text){
+    const age=Date.now()-new Date(latest.created_at).getTime();
+    if(Number.isFinite(age)&&age>=0&&age<=5000){
+      return {
+        id:latest.id,
+        conversationId,
+        role:latest.role,
+        content:latest.content,
+        source:latest.source,
+        riskLevel:latest.risk_level||null,
+        createdAt:latest.created_at,
+        duplicate:true
+      };
+    }
+  }
+
   const id=crypto.randomUUID();
   const now=new Date().toISOString();
   await env.DB.batch([
@@ -81,7 +115,7 @@ export async function appendConversationMessage(env,{conversationId,userId,role,
       WHERE id=? AND member_user_id=?
     `).bind(now,conversationId,userId)
   ]);
-  return {id,conversationId,role,content:text,source,riskLevel:riskLevel||null,createdAt:now};
+  return {id,conversationId,role,content:text,source,riskLevel:riskLevel||null,createdAt:now,duplicate:false};
 }
 
 export async function loadConversationMessages(env,userId,conversationId=null,limit=30){
@@ -174,7 +208,12 @@ export async function handleMemberConversationsRoute(request,env){
   const member=await currentConversationMember(request,env);
   if(!member)return json({ok:false,error:'Member authentication required.'},{status:401});
 
-  if(request.method==='GET')return handleGet(request,env,member,url);
-  if(request.method==='POST')return handleAppend(request,env,member);
-  return json({ok:false,error:'Method not allowed.'},{status:405,headers:{allow:'GET, POST'}});
+  try{
+    if(request.method==='GET')return await handleGet(request,env,member,url);
+    if(request.method==='POST')return await handleAppend(request,env,member);
+    return json({ok:false,error:'Method not allowed.'},{status:405,headers:{allow:'GET, POST'}});
+  }catch(error){
+    console.error('Conversation route failed',error);
+    return json({ok:false,error:'Conversation storage is unavailable right now.'},{status:500});
+  }
 }
