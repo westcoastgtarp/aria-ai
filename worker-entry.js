@@ -11,6 +11,7 @@ import { handleAuditRoute } from './audit-api.js';
 import { handleMemberEntitlementsRoute } from './member-entitlements-api.js';
 import { handleCareCircleRoute } from './care-circle-api.js';
 import { handleMemberAssistantRoute } from './member-assistant-api.js';
+import { handleMemberConversationsRoute } from './member-conversations-api.js';
 import { handleMemberMembershipOptionsRoute } from './member-membership-options-api.js';
 import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
@@ -39,6 +40,9 @@ export default {
 
     const medicationsResponse = await handleMemberMedicationsRoute(request, env);
     if (medicationsResponse) return medicationsResponse;
+
+    const conversationsResponse = await handleMemberConversationsRoute(request, env);
+    if (conversationsResponse) return conversationsResponse;
 
     const assistantResponse = await handleMemberAssistantRoute(request, env);
     if (assistantResponse) return assistantResponse;
