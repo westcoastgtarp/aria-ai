@@ -1,4 +1,7 @@
 (function(){
+  if(window.__ariaAssistantLiveLoaded)return;
+  window.__ariaAssistantLiveLoaded=true;
+
   let history=[];
   let sending=false;
   let concernStreak=0;
