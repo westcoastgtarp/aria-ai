@@ -1,3 +1,10 @@
+import {
+  currentConversationMember,
+  ensureOpenConversation,
+  appendConversationMessage,
+  loadConversationMessages
+} from './member-conversations-api.js';
+
 const MODEL='@cf/meta/llama-3.1-8b-instruct-fast';
 
 function json(data,init={}){
@@ -10,40 +17,6 @@ function json(data,init={}){
       ...(init.headers||{})
     }
   });
-}
-
-function bytesToHex(bytes){
-  return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-async function sha256(value){
-  return bytesToHex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value))));
-}
-
-function parseCookies(request){
-  const raw=request.headers.get('cookie')||'';
-  return Object.fromEntries(raw.split(';').map(v=>v.trim()).filter(Boolean).map(v=>{
-    const index=v.indexOf('=');
-    return [v.slice(0,index),decodeURIComponent(v.slice(index+1))];
-  }));
-}
-
-async function currentMember(request,env){
-  if(!env.DB)return null;
-  const token=parseCookies(request).aria_session;
-  if(!token)return null;
-  const tokenHash=await sha256(token);
-  return env.DB.prepare(`
-    SELECT u.id AS user_id,u.email,u.display_name
-    FROM sessions s
-    JOIN users u ON u.id=s.user_id
-    WHERE s.token_hash=?
-      AND s.revoked_at IS NULL
-      AND s.expires_at>?
-      AND u.account_type='member'
-      AND u.status='active'
-    LIMIT 1
-  `).bind(tokenHash,new Date().toISOString()).first();
 }
 
 function trialActive(selectedAt){
@@ -65,12 +38,11 @@ async function hasAssistantAccess(env,userId){
   return paidActive||trialActive(selection.selected_at);
 }
 
-function cleanHistory(value){
-  if(!Array.isArray(value))return [];
-  return value.slice(-10).map(item=>({
-    role:item?.role==='assistant'?'assistant':'user',
-    content:String(item?.content||'').trim().slice(0,2000)
-  })).filter(item=>item.content);
+function aiHistory(messages){
+  return messages.slice(-10).map(item=>({
+    role:item.role==='assistant'?'assistant':'user',
+    content:String(item.content||'').trim().slice(0,2000)
+  })).filter(item=>item.content&&(item.role==='assistant'||item.role==='user'));
 }
 
 const SYSTEM_PROMPT=`You are Aria Assistant, the conversational member assistant inside Aria AI.
@@ -94,13 +66,13 @@ async function handleAssistant(request,env){
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
   if(!env.AI||typeof env.AI.run!=='function')return json({ok:false,error:'Aria Assistant is not available right now.'},{status:503});
 
-  const member=await currentMember(request,env);
+  const member=await currentConversationMember(request,env);
   if(!member)return json({ok:false,error:'Member authentication required.'},{status:401});
   if(!(await hasAssistantAccess(env,member.user_id))){
     return json({
       ok:false,
       code:'assistant_trial_ended',
-      error:'Your Aria Assistant access is not active. You can still use medication tools, reminders, approved Care Circle contacts, and emergency calling.'
+      error:'Your Aria Assistant access is not active. You can still use medication tools and reminders.'
     },{status:403});
   }
 
@@ -109,10 +81,24 @@ async function handleAssistant(request,env){
   const message=String(body?.message||'').trim();
   if(!message)return json({ok:false,error:'A message is required.'},{status:400});
   if(message.length>4000)return json({ok:false,error:'Please shorten your message and try again.'},{status:400});
+  const riskLevel=['normal','concern','high','critical'].includes(body?.riskLevel)?body.riskLevel:'normal';
+
+  const conversation=await ensureOpenConversation(env,member.user_id);
+  const existing=await loadConversationMessages(env,member.user_id,conversation.id,10);
+  const history=aiHistory(existing.messages||[]);
+
+  await appendConversationMessage(env,{
+    conversationId:conversation.id,
+    userId:member.user_id,
+    role:'member',
+    content:message,
+    source:'member',
+    riskLevel
+  });
 
   const messages=[
     {role:'system',content:SYSTEM_PROMPT},
-    ...cleanHistory(body?.history),
+    ...history,
     {role:'user',content:message}
   ];
 
@@ -125,7 +111,17 @@ async function handleAssistant(request,env){
     });
     const answer=String(result?.response||'').trim();
     if(!answer)throw new Error('empty_response');
-    return json({ok:true,answer,model:MODEL});
+
+    const saved=await appendConversationMessage(env,{
+      conversationId:conversation.id,
+      userId:member.user_id,
+      role:'assistant',
+      content:answer,
+      source:'assistant_model',
+      riskLevel
+    });
+
+    return json({ok:true,answer,model:MODEL,conversationId:conversation.id,messageId:saved?.id||null});
   }catch(error){
     console.error('Aria Assistant inference failed',error);
     return json({ok:false,error:'Aria Assistant could not answer that right now. Please try again.'},{status:502});
