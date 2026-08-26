@@ -18,16 +18,26 @@ import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
 
-function withAriaFormSystem(response) {
+function withAriaFormSystem(response,pathname) {
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('text/html') || typeof HTMLRewriter === 'undefined') return response;
-  return new HTMLRewriter()
+
+  const rewriter = new HTMLRewriter()
     .on('head', {
       element(element) {
         element.append('<link rel="stylesheet" href="/aria-form-system.css?v=20260824-1" />', { html: true });
       }
-    })
-    .transform(response);
+    });
+
+  if (pathname === '/' || pathname === '/index.html') {
+    rewriter.on('body', {
+      element(element) {
+        element.append('<script src="/member-assistant-live.js?v=20260826-4"></script>', { html: true });
+      }
+    });
+  }
+
+  return rewriter.transform(response);
 }
 
 export default {
@@ -87,6 +97,6 @@ export default {
     if (memberSignupResponse) return memberSignupResponse;
 
     const response = await baseWorker.fetch(request, env, ctx);
-    return withAriaFormSystem(response);
+    return withAriaFormSystem(response,new URL(request.url).pathname);
   }
 };
