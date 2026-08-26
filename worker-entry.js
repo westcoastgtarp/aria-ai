@@ -15,6 +15,7 @@ import { handleMemberMembershipOptionsRoute } from './member-membership-options-
 import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
+import { handleMemberMedicationsRoute } from './member-medications-api.js';
 
 function withAriaFormSystem(response) {
   const contentType = response.headers.get('content-type') || '';
@@ -35,6 +36,9 @@ export default {
 
     const lifelineRiskResponse = await handleLifelineRiskRoute(request, env);
     if (lifelineRiskResponse) return lifelineRiskResponse;
+
+    const medicationsResponse = await handleMemberMedicationsRoute(request, env);
+    if (medicationsResponse) return medicationsResponse;
 
     const assistantResponse = await handleMemberAssistantRoute(request, env);
     if (assistantResponse) return assistantResponse;
