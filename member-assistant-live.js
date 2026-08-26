@@ -8,6 +8,50 @@
     if(typeof window.addBubbleMessage==='function')window.addBubbleMessage(type,text);
   }
 
+  async function loadDurableHistory(){
+    try{
+      const response=await fetch('/api/member/conversations?limit=30',{credentials:'same-origin'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)return;
+      const messages=Array.isArray(data.messages)?data.messages:[];
+      history=messages
+        .filter(message=>message.role==='member'||message.role==='assistant')
+        .map(message=>({role:message.role==='member'?'user':'assistant',content:message.content}))
+        .slice(-12);
+      if(!messages.length)return;
+
+      const log=document.getElementById('ariaBubbleLog');
+      if(log)log.innerHTML='';
+      messages.forEach(message=>{
+        if(message.role==='member')add('user',message.content);
+        else if(message.role==='assistant'||message.role==='staff'||message.role==='system')add('aria',message.content);
+      });
+    }catch(error){
+      console.error('Conversation history load failed',error);
+    }
+  }
+
+  async function saveDeterministicMessage(role,content,riskLevel='normal'){
+    const response=await fetch('/api/member/conversations',{
+      method:'POST',
+      credentials:'same-origin',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({role,content,riskLevel})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok)throw new Error(data.error||'Conversation message could not be saved.');
+    return data;
+  }
+
+  async function saveDeterministicExchange(memberText,assistantText,riskLevel='normal'){
+    try{
+      await saveDeterministicMessage('member',memberText,riskLevel);
+      await saveDeterministicMessage('assistant',assistantText,riskLevel);
+    }catch(error){
+      console.error('Conversation exchange persistence failed',error);
+    }
+  }
+
   async function assessRisk(text){
     const response=await fetch('/api/member/lifeline/risk',{
       method:'POST',
@@ -25,7 +69,7 @@
       method:'POST',
       credentials:'same-origin',
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({message:text,history:history.slice(-10),riskLevel})
+      body:JSON.stringify({message:text,riskLevel})
     });
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.ok)throw new Error(data.error||'Aria Assistant is unavailable right now.');
@@ -103,6 +147,7 @@
         ?window.ariaResponse(risk.level)
         :'I’m concerned about what you’re describing. If you may be in immediate danger, contact local emergency services using your device now.';
       add('aria',reply);
+      await saveDeterministicExchange(text,reply,risk.level);
       history.push({role:'user',content:text},{role:'assistant',content:reply});
       history=history.slice(-12);
       sending=false;
@@ -118,6 +163,7 @@
           ?window.medicationStatusMessage(lookup.status)
           :'Which medication?';
         add('aria',reply);
+        await saveDeterministicExchange(text,reply,risk.level);
         history.push({role:'user',content:text},{role:'assistant',content:reply});
         history=history.slice(-12);
         sending=false;
@@ -151,4 +197,6 @@
   input?.addEventListener('keydown',event=>{
     if(event.key==='Enter')send(event);
   },true);
+
+  loadDurableHistory();
 })();
