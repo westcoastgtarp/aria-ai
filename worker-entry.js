@@ -17,26 +17,20 @@ import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
 
-function withAriaFormSystem(response,pathname) {
+function withAriaFormSystem(response) {
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('text/html') || typeof HTMLRewriter === 'undefined') return response;
-  let rewriter=new HTMLRewriter()
+  return new HTMLRewriter()
     .on('head', {
       element(element) {
         element.append('<link rel="stylesheet" href="/aria-form-system.css?v=20260824-1" />', { html: true });
       }
-    });
-  if(pathname==='/'||pathname==='/index.html'){
-    rewriter=rewriter.on('body',{
-      element(element){element.append('<script src="/member-medications-live.js?v=20260826-2"></script>',{html:true});}
-    });
-  }
-  return rewriter.transform(response);
+    })
+    .transform(response);
 }
 
 export default {
   async fetch(request, env, ctx) {
-    const url=new URL(request.url);
     const lifelineSupportResponse = await handleLifelineSupportRoute(request, env);
     if (lifelineSupportResponse) return lifelineSupportResponse;
 
@@ -89,6 +83,6 @@ export default {
     if (memberSignupResponse) return memberSignupResponse;
 
     const response = await baseWorker.fetch(request, env, ctx);
-    return withAriaFormSystem(response,url.pathname);
+    return withAriaFormSystem(response);
   }
 };
