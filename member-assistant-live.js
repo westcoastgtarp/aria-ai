@@ -8,6 +8,29 @@
     if(typeof window.addBubbleMessage==='function')window.addBubbleMessage(type,text);
   }
 
+  function escapeText(value=''){
+    return String(value).replace(/[&<>"']/g,ch=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+    }[ch]));
+  }
+
+  function storedTime(value){
+    const date=new Date(value);
+    if(Number.isNaN(date.getTime()))return '';
+    return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit'}).format(date);
+  }
+
+  function addStored(type,text,createdAt){
+    const log=document.getElementById('ariaBubbleLog');
+    if(!log){add(type,text);return;}
+    const div=document.createElement('div');
+    div.className=`aria-bubble-msg ${type}`;
+    const time=storedTime(createdAt);
+    div.innerHTML=`${escapeText(text).replace(/\n/g,'<br>')}${time?`<span class="aria-bubble-time">${escapeText(time)}</span>`:''}`;
+    log.appendChild(div);
+    log.scrollTop=log.scrollHeight;
+  }
+
   async function loadDurableHistory(){
     try{
       const response=await fetch('/api/member/conversations?limit=30',{credentials:'same-origin'});
@@ -23,8 +46,8 @@
       const log=document.getElementById('ariaBubbleLog');
       if(log)log.innerHTML='';
       messages.forEach(message=>{
-        if(message.role==='member')add('user',message.content);
-        else if(message.role==='assistant'||message.role==='staff'||message.role==='system')add('aria',message.content);
+        if(message.role==='member')addStored('user',message.content,message.createdAt);
+        else if(message.role==='assistant'||message.role==='staff'||message.role==='system')addStored('aria',message.content,message.createdAt);
       });
     }catch(error){
       console.error('Conversation history load failed',error);
@@ -49,6 +72,14 @@
       await saveDeterministicMessage('assistant',assistantText,riskLevel);
     }catch(error){
       console.error('Conversation exchange persistence failed',error);
+    }
+  }
+
+  async function saveAssistantNotice(text,riskLevel='normal'){
+    try{
+      await saveDeterministicMessage('assistant',text,riskLevel);
+    }catch(error){
+      console.error('Conversation notice persistence failed',error);
     }
   }
 
@@ -139,7 +170,11 @@
 
     if((immediateHandoff||repeatedConcern)&&!supportEscalated){
       const queued=await escalateToSupport(risk.level,repeatedConcern?'repeated_distress_signals':'high_severity_distress');
-      if(queued)add('aria','I’m escalating this chat for live support review so a trained Aria support agent can take a closer look.');
+      if(queued){
+        const notice='I’m escalating this chat for live support review so a trained Aria support agent can take a closer look.';
+        add('aria',notice);
+        await saveAssistantNotice(notice,risk.level);
+      }
     }
 
     if(risk.level==='high'||risk.level==='critical'){
@@ -178,7 +213,10 @@
       add('aria',answer);
       if(risk.level==='concern'&&typeof window.ariaResponse==='function'){
         const support=window.ariaResponse('concern');
-        if(support&&support!==answer)add('aria',support);
+        if(support&&support!==answer){
+          add('aria',support);
+          await saveAssistantNotice(support,risk.level);
+        }
       }
       history.push({role:'user',content:text},{role:'assistant',content:answer});
       history=history.slice(-12);
