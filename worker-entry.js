@@ -28,7 +28,7 @@ function withAriaFormSystem(response,pathname) {
     });
   if(pathname==='/'||pathname==='/index.html'){
     rewriter=rewriter.on('body',{
-      element(element){element.append('<script src="/member-medications-live.js?v=20260826-1"></script>',{html:true});}
+      element(element){element.append('<script src="/member-medications-live.js?v=20260826-2"></script>',{html:true});}
     });
   }
   return rewriter.transform(response);
