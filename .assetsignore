@@ -1,3 +1,8 @@
+.git/
+.wrangler/
+migrations/
+*-api.js
+worker-entry.js
 worker.js
 wrangler.jsonc
 backend-schema.sql
