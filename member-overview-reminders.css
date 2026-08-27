@@ -1,0 +1,16 @@
+.overview-reminders-panel{margin-top:20px}
+.overview-reminder-list{margin-top:14px;display:flex;flex-direction:column}
+.overview-reminder-row{display:grid;grid-template-columns:90px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 4px;border-bottom:1px solid #e5eaf1}
+.overview-reminder-row:last-child{border-bottom:0}
+.overview-reminder-row.complete{opacity:.72}
+.overview-reminder-time{font-size:13px;font-weight:750;color:#56647b}
+.overview-reminder-copy strong,.overview-reminder-copy span{display:block}
+.overview-reminder-copy strong{font-size:14px;color:#122033}
+.overview-reminder-copy span{margin-top:4px;color:#66758a;font-size:12px;line-height:1.45}
+.overview-reminder-empty{padding:22px 4px;color:#8493a9;font-size:13px}
+.overview-reminder-more{border:0;background:transparent;color:#5d65e8;font:inherit;font-size:12px;font-weight:750;text-align:left;padding:13px 4px 2px;cursor:pointer;width:max-content}
+.overview-reminder-more:hover{text-decoration:underline}
+@media(max-width:700px){
+  .overview-reminder-row{grid-template-columns:70px minmax(0,1fr);gap:10px}
+  .overview-reminder-row>.pill{grid-column:2;justify-self:start}
+}
