@@ -36,7 +36,11 @@
     container.innerHTML=liveMedications.map(med=>{
       const scheduleText=med.asNeeded?'As needed':med.schedules?.length?med.schedules.map(s=>escapeHtml(s.time)).join(', '):'No active reminder';
       return `<article class="med-card">
-        <div class="med-card-top"><div class="med-icon">✚</div><span class="pill">Your entry</span></div>
+        <div class="med-card-top">
+          <div class="med-icon">✚</div>
+          <span class="pill">Your entry</span>
+          <button type="button" class="outline" data-edit-medication="${escapeHtml(med.id)}">Edit</button>
+        </div>
         <h3>${escapeHtml(med.name)}</h3>
         <div class="med-meta">${escapeHtml(instructionText(med))}<br/>${scheduleText}</div>
         <div class="small muted" style="margin-top:10px">Entered and maintained by the account holder.</div>
@@ -132,11 +136,85 @@
     }
   }
 
+  function openMedicationEditor(med){
+    if(!med)return;
+    const schedule=med.schedules?.[0]||null;
+    openModal(`
+      <div class="eyebrow">MEDICATION</div>
+      <h2 id="modalTitle">Edit medication</h2>
+      <p>Update the information you entered. Aria will store your changes and will not infer medication instructions for you.</p>
+      <div class="form-grid">
+        <label>Medication name<input id="editMedName" maxlength="100" autocomplete="off"/></label>
+        <label>Strength / dose unit<input id="editMedStrength" maxlength="80" autocomplete="off"/></label>
+        <label>Amount to take<input id="editMedAmount" maxlength="80" autocomplete="off"/></label>
+        <label>Schedule type<select id="editMedType"><option value="scheduled">Scheduled</option><option value="needed">As needed</option></select></label>
+      </div>
+      <div class="form-grid" id="editScheduledMedicationFields">
+        <label>How often<input id="editMedFrequency" maxlength="80" autocomplete="off"/></label>
+        <label>When<input id="editMedTiming" maxlength="80" autocomplete="off"/></label>
+        <label>Reminder time<input id="editMedTime" placeholder="8:00 AM" maxlength="20" autocomplete="off"/></label>
+      </div>
+      <div class="modal-actions"><button class="primary" id="saveEditedMed">Save changes</button><button class="outline" id="cancelEditedMed">Cancel</button></div>`);
+
+    const name=document.getElementById('editMedName');
+    const strength=document.getElementById('editMedStrength');
+    const amount=document.getElementById('editMedAmount');
+    const type=document.getElementById('editMedType');
+    const frequency=document.getElementById('editMedFrequency');
+    const timing=document.getElementById('editMedTiming');
+    const time=document.getElementById('editMedTime');
+    const scheduledFields=document.getElementById('editScheduledMedicationFields');
+    name.value=med.name||'';
+    strength.value=med.strengthText||'';
+    amount.value=med.amountText||'';
+    frequency.value=med.frequencyText||'';
+    timing.value=med.timingText||'';
+    time.value=schedule?.time||'';
+    type.value=med.asNeeded?'needed':'scheduled';
+    scheduledFields.hidden=med.asNeeded;
+    type.onchange=()=>{scheduledFields.hidden=type.value==='needed';};
+    document.getElementById('cancelEditedMed').onclick=closeModal;
+    document.getElementById('saveEditedMed').onclick=async()=>{
+      const asNeeded=type.value==='needed';
+      const enteredTime=time.value.trim();
+      const timeLocal=asNeeded?null:to24Hour(enteredTime);
+      const payload={
+        name:name.value.trim(),
+        strengthText:strength.value.trim(),
+        amountText:amount.value.trim(),
+        frequencyText:asNeeded?'':frequency.value.trim(),
+        timingText:asNeeded?'':timing.value.trim(),
+        asNeeded,
+        timeLocal,
+        scheduleId:schedule?.id||null,
+        daysOfWeek:schedule?.daysOfWeek||[0,1,2,3,4,5,6],
+        timezone:schedule?.timezone||Intl.DateTimeFormat().resolvedOptions().timeZone||null
+      };
+      if(!payload.name||!payload.strengthText||!payload.amountText){alert('Enter the medication name, strength, and amount to take.');return;}
+      if(!asNeeded&&(!payload.frequencyText||!payload.timingText||!timeLocal)){alert('For a scheduled medication, enter how often, when, and a valid reminder time such as 8:00 AM.');return;}
+      const save=document.getElementById('saveEditedMed');save.disabled=true;save.textContent='Saving…';
+      try{
+        await api(`/api/member/medications/${encodeURIComponent(med.id)}`,{method:'PATCH',body:JSON.stringify(payload)});
+        closeModal();await load();
+      }catch(error){
+        console.error('Medication update failed',error);save.disabled=false;save.textContent='Save changes';alert(error.message||'Aria could not update that medication.');
+      }
+    };
+  }
+
   document.addEventListener('change',event=>{
     if(!liveEnabled||!event.target.matches('[data-dose-id]'))return;
     event.preventDefault();event.stopImmediatePropagation();
     const dose=doses.find(item=>item.id===event.target.dataset.doseId);
     if(dose?.scheduleId)persistDose(dose,event.target.checked);
+  },true);
+
+  document.addEventListener('click',event=>{
+    const button=event.target.closest?.('[data-edit-medication]');
+    if(!button||!liveEnabled)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const med=liveMedications.find(item=>item.id===button.dataset.editMedication);
+    openMedicationEditor(med);
   },true);
 
   const addButton=document.getElementById('addMedicationBtn');
