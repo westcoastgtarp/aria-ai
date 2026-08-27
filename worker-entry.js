@@ -17,6 +17,7 @@ import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
+import { handleMemberRemindersRoute } from './member-reminders-api.js';
 import { runMedicationReminderScheduler } from './medication-reminder-scheduler.js';
 
 function withAriaFormSystem(response,pathname) {
@@ -51,6 +52,9 @@ export default {
 
     const medicationsResponse = await handleMemberMedicationsRoute(request, env);
     if (medicationsResponse) return medicationsResponse;
+
+    const remindersResponse = await handleMemberRemindersRoute(request, env);
+    if (remindersResponse) return remindersResponse;
 
     const conversationsResponse = await handleMemberConversationsRoute(request, env);
     if (conversationsResponse) return conversationsResponse;
