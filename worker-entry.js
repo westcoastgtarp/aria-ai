@@ -37,7 +37,7 @@ function withAriaFormSystem(response,pathname) {
   if (pathname === '/' || pathname === '/index.html') {
     rewriter.on('body', {
       element(element) {
-        element.prepend('<script src="/member-medication-structured-form.js?v=20260826-1"></script>', { html: true });
+        element.prepend('<script src="/member-medication-structured-form.js?v=20260826-2"></script>', { html: true });
         element.append('<script src="/member-assistant-live.js?v=20260826-4"></script><script src="/member-medication-delete.js?v=20260826-1"></script>', { html: true });
       }
     });
