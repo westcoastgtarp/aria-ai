@@ -15,6 +15,7 @@
     ['application','application'],['applications','applications'],['other','Other']
   ];
   const knownUnits=new Set(units.filter(([value])=>value!=='other').map(([value])=>value));
+  const reminderLabels=['AM / Reminder 1','Afternoon / Reminder 2','Evening / Reminder 3','Night / Reminder 4'];
 
   function localDate(){
     const d=new Date();
@@ -28,19 +29,13 @@
     return `${(h%12)||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
   }
   function timeOptions(selected=''){
-    let html='<option value="">Select time</option>';
+    let html='<option value="">Leave blank</option>';
     for(let minute=0;minute<24*60;minute+=15){
       const h=Math.floor(minute/60);const m=minute%60;
       const value=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
       html+=`<option value="${value}" ${value===selected?'selected':''}>${displayTime(value)}</option>`;
     }
     return html;
-  }
-  function slotLabels(count){
-    if(count===1)return ['Reminder time'];
-    if(count===2)return ['AM time','Night time'];
-    if(count===3)return ['AM time','Afternoon time','Night time'];
-    return ['AM time','Midday time','Evening time','Night time'];
   }
   function unitOptions(selected=''){
     return units.map(([value,label])=>`<option value="${escapeHtml(value)}" ${value===selected?'selected':''}>${escapeHtml(label)}</option>`).join('');
@@ -65,12 +60,13 @@
     return (data.medications||[]).find(item=>item.id===id)||null;
   }
 
-  function renderTimes(count,selectedTimes=[]){
+  function renderTimes(selectedTimes=[]){
     const container=document.getElementById('structuredMedicationTimes');if(!container)return;
-    const labels=slotLabels(count);
-    container.innerHTML=labels.map((label,index)=>`
+    const values=[...selectedTimes].slice(0,4);
+    while(values.length<4)values.push('');
+    container.innerHTML=reminderLabels.map((label,index)=>`
       <label>${escapeHtml(label)}
-        <select class="structured-time" data-time-index="${index}">${timeOptions(selectedTimes[index]||'')}</select>
+        <select class="structured-time" data-time-index="${index}">${timeOptions(values[index]||'')}</select>
       </label>`).join('');
   }
 
@@ -118,7 +114,7 @@
 
       <div class="structured-time-heading" id="structuredTimeHeading">Reminder times</div>
       <div class="structured-time-grid" id="structuredMedicationTimes"></div>
-      <div class="small muted structured-note">Choose each time yourself. Aria will not infer medication timing.</div>
+      <div class="small muted structured-note">Up to four reminder times are available. Fill only the number you selected above and leave unused reminder fields blank. Aria will not infer medication timing.</div>
 
       <div class="modal-actions">
         <button class="primary" id="saveStructuredMedication">${med?'Save changes':'Add medication'}</button>
@@ -136,18 +132,10 @@
     function updateScheduleVisibility(){
       const needed=type.value==='needed';
       countWrap.hidden=needed;heading.hidden=needed;timesContainer.hidden=needed;
-      if(!needed){
-        const existing=[...timesContainer.querySelectorAll('.structured-time')].map(select=>select.value);
-        renderTimes(Number(count.value),existing.length?existing:currentTimes);
-      }
     }
     unit.onchange=()=>{otherWrap.hidden=unit.value!=='other';};
-    count.onchange=()=>{
-      const existing=[...document.querySelectorAll('.structured-time')].map(select=>select.value);
-      renderTimes(Number(count.value),existing);
-    };
     type.onchange=updateScheduleVisibility;
-    renderTimes(currentCount,currentTimes);
+    renderTimes(currentTimes);
     updateScheduleVisibility();
 
     document.getElementById('cancelStructuredMedication').onclick=()=>window.closeModal?.();
@@ -158,10 +146,14 @@
       const customDoseUnit=document.getElementById('structuredOtherUnit').value.trim();
       const asNeeded=type.value==='needed';
       const timesPerDay=asNeeded?0:Number(count.value);
-      const scheduleTimes=asNeeded?[]:[...document.querySelectorAll('.structured-time')].map(select=>select.value);
+      const allReminderTimes=asNeeded?[]:[...document.querySelectorAll('.structured-time')].map(select=>select.value);
+      const scheduleTimes=allReminderTimes.filter(Boolean);
       if(!name||!doseAmount){alert('Enter the medication name and dose amount.');return;}
       if(doseUnit==='other'&&!customDoseUnit){alert('Enter the Other dose unit or form.');return;}
-      if(!asNeeded&&scheduleTimes.some(time=>!time)){alert('Select a time for each scheduled dose.');return;}
+      if(!asNeeded&&scheduleTimes.length!==timesPerDay){
+        alert(`You selected ${timesPerDay} time${timesPerDay===1?'':'s'} per day. Fill exactly ${timesPerDay} reminder time${timesPerDay===1?'':'s'} and leave the others blank.`);
+        return;
+      }
 
       const save=document.getElementById('saveStructuredMedication');
       save.disabled=true;save.textContent='Saving…';
@@ -169,7 +161,7 @@
         await api(med?`/api/member/medications/${encodeURIComponent(med.id)}`:'/api/member/medications',{
           method:med?'PATCH':'POST',
           body:JSON.stringify({
-            name,doseAmount,doseUnit,customDoseUnit,asNeeded,timesPerDay,scheduleTimes,
+            name,doseAmount,doseUnit,customDoseUnit,asNeeded,timesPerDay,scheduleTimes:allReminderTimes,
             timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||null
           })
         });
