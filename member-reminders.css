@@ -1,0 +1,32 @@
+#reminders-page .section-heading{align-items:center}
+#reminders-page .section-heading>.primary{flex:0 0 auto}
+.reminder-toolbar{display:flex;align-items:end;gap:10px;margin:0 0 14px;flex-wrap:wrap}
+.reminder-date-label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#66758a}
+.reminder-date-label input{min-width:180px;border:1px solid #dfe5ed;border-radius:12px;background:#fff;padding:10px 12px;color:#122033;outline:none}
+.reminder-date-label input:focus{border-color:#9ca2ee;box-shadow:0 0 0 3px rgba(93,101,232,.08)}
+.reminder-day-step{font-size:22px;line-height:1;padding:9px 14px}
+.reminder-live-row{grid-template-columns:90px minmax(0,1fr) minmax(150px,auto);align-items:start}
+.reminder-row-copy strong,.reminder-row-copy span{display:block}
+.reminder-row-copy span{color:#66758a;font-size:12px;margin-top:4px;line-height:1.45}
+.reminder-row-copy .reminder-source{font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:#8a96a7;margin-top:7px}
+.reminder-row-end{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.reminder-row-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;max-width:310px}
+.reminder-mini{border:1px solid #dfe5ed;background:#fff;color:#56647b;border-radius:9px;padding:6px 8px;font-size:11px;font-weight:700;cursor:pointer}
+.reminder-mini:hover{border-color:#bfc7d5;background:#f8fafc}
+.reminder-mini.danger-text{color:#b53849}
+.reminder-empty{padding:46px 20px;text-align:center;color:#66758a}
+.reminder-empty h3{margin:10px 0 6px;color:#122033}
+.reminder-empty p{margin:0 auto;max-width:520px;line-height:1.55}
+.reminder-empty-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;margin:0 auto;background:#eef0fe;color:#5d65e8;font-weight:800}
+.reminder-loading{padding:34px 18px;text-align:center;color:#8493a9;font-size:13px}
+#memberReminderNotes{width:100%;resize:vertical;min-height:92px;border:1px solid #dfe5ed;border-radius:12px;padding:11px 12px;font:inherit;color:#122033;background:#fff;outline:none}
+#memberReminderNotes:focus{border-color:#9ca2ee;box-shadow:0 0 0 3px rgba(93,101,232,.08)}
+.form-span-2{grid-column:1/-1}
+@media(max-width:760px){
+  #reminders-page .section-heading{align-items:flex-start}
+  .reminder-live-row{grid-template-columns:72px 1fr}
+  .reminder-row-end{grid-column:1/-1;align-items:flex-start;padding-left:72px}
+  .reminder-row-actions{justify-content:flex-start;max-width:none}
+  .reminder-date-label{flex:1;min-width:170px}
+  .reminder-date-label input{width:100%;min-width:0}
+}
