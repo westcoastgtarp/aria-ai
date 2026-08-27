@@ -78,7 +78,9 @@ function parseStructuredBody(body){
   const timesPerDay=asNeeded?0:Number(body?.timesPerDay||1);
   const timezone=clean(body?.timezone,80)||null;
   const rawTimes=Array.isArray(body?.scheduleTimes)?body.scheduleTimes:[];
-  const scheduleTimes=rawTimes.slice(0,4).map(value=>clean(value,5));
+  const suppliedTimes=rawTimes.slice(0,4).map(value=>clean(value,5));
+  const invalidSuppliedTime=suppliedTimes.some(time=>time&&!validTime(time));
+  const scheduleTimes=suppliedTimes.filter(Boolean).sort();
 
   let doseUnit=requestedUnit;
   if(requestedUnit==='other')doseUnit=customUnit;
@@ -89,13 +91,11 @@ function parseStructuredBody(body){
   if(requestedUnit!=='other'&&!ALLOWED_UNITS.has(requestedUnit))return {error:'Choose a valid dose unit from the list.'};
   if(asNeeded)return {value:{name,doseAmount,doseUnit,asNeeded:true,timesPerDay:0,scheduleTimes:[],timezone}};
   if(!Number.isInteger(timesPerDay)||timesPerDay<1||timesPerDay>4)return {error:'Times per day must be between 1 and 4.'};
-  if(scheduleTimes.length!==timesPerDay||scheduleTimes.some(time=>!validTime(time))){
-    return {error:`Select ${timesPerDay} valid reminder time${timesPerDay===1?'':'s'}.`};
+  if(invalidSuppliedTime)return {error:'Choose valid reminder times or leave unused reminder fields blank.'};
+  if(scheduleTimes.length!==timesPerDay){
+    return {error:`You selected ${timesPerDay} time${timesPerDay===1?'':'s'} per day. Fill exactly ${timesPerDay} reminder time${timesPerDay===1?'':'s'} and leave unused reminder fields blank.`};
   }
   if(new Set(scheduleTimes).size!==scheduleTimes.length)return {error:'Each reminder time must be different.'};
-  for(let i=1;i<scheduleTimes.length;i++){
-    if(scheduleTimes[i]<=scheduleTimes[i-1])return {error:'Reminder times must be in chronological order through the day.'};
-  }
   return {value:{name,doseAmount,doseUnit,asNeeded:false,timesPerDay,scheduleTimes,timezone}};
 }
 
