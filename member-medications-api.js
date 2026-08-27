@@ -42,6 +42,11 @@ function instructionParts(row){
   const take=[amount,frequency,timing].filter(Boolean).join(' ');
   return {strengthText:strength,amountText:amount,frequencyText:frequency,timingText:timing,asNeeded,instructionText:[strength,take,asNeeded?'as needed':''].filter(Boolean).join(' — ')};
 }
+function normalizedDays(value,fallback='0,1,2,3,4,5,6'){
+  const raw=Array.isArray(value)?value:String(fallback||'').split(',');
+  const days=[...new Set(raw.map(Number).filter(v=>Number.isInteger(v)&&v>=0&&v<=6))].sort((a,b)=>a-b);
+  return days.length?days:[0,1,2,3,4,5,6];
+}
 async function audit(env,member,eventType,subjectType,subjectId,details={}){
   if(!env.DB)return;const now=new Date().toISOString();
   await env.DB.prepare(`INSERT INTO audit_events (id,category,event_type,actor_user_id,subject_type,subject_id,details_json,occurred_at,recorded_at) VALUES (?, 'Medication', ?, ?, ?, ?, ?, ?, ?)`)
@@ -105,7 +110,11 @@ async function createMedication(request,env,member){
 async function updateMedication(request,env,member,medicationId){
   const existing=await env.DB.prepare(`SELECT id,name,dose_text,notes,strength_text,amount_text,frequency_text,timing_text,as_needed FROM member_medications WHERE id=? AND member_user_id=? AND active=1 LIMIT 1`).bind(medicationId,member.user_id).first();
   if(!existing)return json({ok:false,error:'Medication not found.'},{status:404});
+  const scheduleRows=await env.DB.prepare(`SELECT id,time_local,days_of_week,timezone FROM medication_schedules WHERE medication_id=? AND member_user_id=? AND active=1 ORDER BY created_at ASC`).bind(medicationId,member.user_id).all();
+  const schedules=scheduleRows.results||[];
   let body={};try{body=await request.json();}catch{}
+  const requestedScheduleId=clean(body.scheduleId,160);
+  const primary=schedules.find(row=>row.id===requestedScheduleId)||schedules[0]||null;
   const name=body.name===undefined?existing.name:clean(body.name,100);
   const strengthText=body.strengthText===undefined?clean(existing.strength_text,80):clean(body.strengthText,80);
   const amountText=body.amountText===undefined?clean(existing.amount_text,80):clean(body.amountText,80);
@@ -113,13 +122,47 @@ async function updateMedication(request,env,member,medicationId){
   const timingText=body.timingText===undefined?clean(existing.timing_text,80):clean(body.timingText,80);
   const asNeeded=body.asNeeded===undefined?Boolean(existing.as_needed):body.asNeeded===true;
   const notes=body.notes===undefined?(existing.notes||''):clean(body.notes,500);
+  const timeLocal=asNeeded?'':clean(body.timeLocal===undefined?(primary?.time_local||''):body.timeLocal,5);
+  const timezone=clean(body.timezone===undefined?(primary?.timezone||''):body.timezone,80)||null;
+  const days=normalizedDays(body.daysOfWeek,primary?.days_of_week||'0,1,2,3,4,5,6');
   if(!name)return json({ok:false,error:'Medication name is required.'},{status:400});
-  const doseText=(strengthText||amountText)?[strengthText,amountText].filter(Boolean).join(' • '):existing.dose_text;
+  if(!strengthText)return json({ok:false,error:'Medication strength is required.'},{status:400});
+  if(!amountText)return json({ok:false,error:'Amount to take is required.'},{status:400});
+  if(!asNeeded&&!frequencyText)return json({ok:false,error:'Frequency is required for a scheduled medication.'},{status:400});
+  if(!asNeeded&&!timingText)return json({ok:false,error:'Timing is required for a scheduled medication.'},{status:400});
+  if(!asNeeded&&!validTime(timeLocal))return json({ok:false,error:'Scheduled medications need a valid reminder time.'},{status:400});
+
+  const doseText=[strengthText,amountText].filter(Boolean).join(' • ');
   const now=new Date().toISOString();
-  await env.DB.prepare(`UPDATE member_medications SET name=?,dose_text=?,notes=?,strength_text=?,amount_text=?,frequency_text=?,timing_text=?,as_needed=?,updated_at=? WHERE id=? AND member_user_id=?`)
-    .bind(name,doseText,notes||null,strengthText||null,amountText||null,frequencyText||null,timingText||null,asNeeded?1:0,now,medicationId,member.user_id).run();
-  try{await audit(env,member,'member_medication_updated','medication',medicationId);}catch(error){console.error('Medication audit failed',error);}
-  return json({ok:true});
+  const statements=[env.DB.prepare(`UPDATE member_medications SET name=?,dose_text=?,notes=?,strength_text=?,amount_text=?,frequency_text=?,timing_text=?,as_needed=?,updated_at=? WHERE id=? AND member_user_id=?`).bind(name,doseText,notes||null,strengthText,amountText,frequencyText||null,timingText||null,asNeeded?1:0,now,medicationId,member.user_id)];
+  let activeScheduleId=primary?.id||null;
+  let scheduleChanged=false;
+
+  if(asNeeded){
+    if(schedules.length){
+      scheduleChanged=true;
+      statements.push(env.DB.prepare(`UPDATE medication_schedules SET active=0,updated_at=? WHERE medication_id=? AND member_user_id=? AND active=1`).bind(now,medicationId,member.user_id));
+      statements.push(env.DB.prepare(`UPDATE medication_reminder_events SET status='expired',updated_at=? WHERE medication_id=? AND member_user_id=? AND status='due'`).bind(now,medicationId,member.user_id));
+    }
+    activeScheduleId=null;
+  }else{
+    const currentDays=primary?normalizedDays(null,primary.days_of_week).join(','):'';
+    const desiredDays=days.join(',');
+    const changed=!primary||primary.time_local!==timeLocal||(primary.timezone||null)!==timezone||currentDays!==desiredDays;
+    if(changed){
+      scheduleChanged=true;
+      if(primary){
+        statements.push(env.DB.prepare(`UPDATE medication_schedules SET active=0,updated_at=? WHERE id=? AND member_user_id=?`).bind(now,primary.id,member.user_id));
+        statements.push(env.DB.prepare(`UPDATE medication_reminder_events SET status='expired',updated_at=? WHERE schedule_id=? AND member_user_id=? AND status='due'`).bind(now,primary.id,member.user_id));
+      }
+      activeScheduleId=`SCH-${crypto.randomUUID()}`;
+      statements.push(env.DB.prepare(`INSERT INTO medication_schedules (id,member_user_id,medication_id,time_local,days_of_week,timezone,active,created_at,updated_at) VALUES (?,?,?,?,?,?,1,?,?)`).bind(activeScheduleId,member.user_id,medicationId,timeLocal,desiredDays,timezone,now,now));
+    }
+  }
+
+  await env.DB.batch(statements);
+  try{await audit(env,member,'member_medication_updated','medication',medicationId,{asNeeded,scheduleChanged});}catch(error){console.error('Medication audit failed',error);}
+  return json({ok:true,medication:{id:medicationId,name,strengthText,amountText,frequencyText,timingText,asNeeded,doseText,notes},schedule:activeScheduleId?{id:activeScheduleId,timeLocal,time:toDisplayTime(timeLocal),daysOfWeek:days,timezone}:null});
 }
 async function deactivateMedication(env,member,medicationId){
   const existing=await env.DB.prepare(`SELECT id FROM member_medications WHERE id=? AND member_user_id=? AND active=1 LIMIT 1`).bind(medicationId,member.user_id).first();
@@ -127,7 +170,8 @@ async function deactivateMedication(env,member,medicationId){
   const now=new Date().toISOString();
   await env.DB.batch([
     env.DB.prepare(`UPDATE member_medications SET active=0,updated_at=? WHERE id=? AND member_user_id=?`).bind(now,medicationId,member.user_id),
-    env.DB.prepare(`UPDATE medication_schedules SET active=0,updated_at=? WHERE medication_id=? AND member_user_id=?`).bind(now,medicationId,member.user_id)
+    env.DB.prepare(`UPDATE medication_schedules SET active=0,updated_at=? WHERE medication_id=? AND member_user_id=?`).bind(now,medicationId,member.user_id),
+    env.DB.prepare(`UPDATE medication_reminder_events SET status='expired',updated_at=? WHERE medication_id=? AND member_user_id=? AND status='due'`).bind(now,medicationId,member.user_id)
   ]);
   try{await audit(env,member,'member_medication_deactivated','medication',medicationId);}catch(error){console.error('Medication audit failed',error);}
   return json({ok:true});
@@ -137,8 +181,7 @@ async function addSchedule(request,env,member,medicationId){
   if(!medication)return json({ok:false,error:'Medication not found.'},{status:404});
   let body={};try{body=await request.json();}catch{}
   const timeLocal=clean(body.timeLocal||body.time,5);if(!validTime(timeLocal))return json({ok:false,error:'Reminder time must use 24-hour HH:MM format.'},{status:400});
-  const supplied=Array.isArray(body.daysOfWeek)?body.daysOfWeek.map(Number).filter(v=>Number.isInteger(v)&&v>=0&&v<=6):[0,1,2,3,4,5,6];
-  const days=[...new Set(supplied)].sort((a,b)=>a-b);if(!days.length)return json({ok:false,error:'At least one day is required.'},{status:400});
+  const days=normalizedDays(body.daysOfWeek);
   const id=`SCH-${crypto.randomUUID()}`;const now=new Date().toISOString();
   await env.DB.prepare(`INSERT INTO medication_schedules (id,member_user_id,medication_id,time_local,days_of_week,timezone,active,created_at,updated_at) VALUES (?,?,?,?,?,?,1,?,?)`).bind(id,member.user_id,medicationId,timeLocal,days.join(','),clean(body.timezone,80)||null,now,now).run();
   try{await audit(env,member,'member_medication_schedule_created','medication_schedule',id,{medicationId});}catch(error){console.error('Medication audit failed',error);}
@@ -147,7 +190,11 @@ async function addSchedule(request,env,member,medicationId){
 async function removeSchedule(env,member,scheduleId){
   const schedule=await env.DB.prepare(`SELECT id FROM medication_schedules WHERE id=? AND member_user_id=? AND active=1 LIMIT 1`).bind(scheduleId,member.user_id).first();
   if(!schedule)return json({ok:false,error:'Reminder not found.'},{status:404});
-  const now=new Date().toISOString();await env.DB.prepare(`UPDATE medication_schedules SET active=0,updated_at=? WHERE id=? AND member_user_id=?`).bind(now,scheduleId,member.user_id).run();
+  const now=new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE medication_schedules SET active=0,updated_at=? WHERE id=? AND member_user_id=?`).bind(now,scheduleId,member.user_id),
+    env.DB.prepare(`UPDATE medication_reminder_events SET status='expired',updated_at=? WHERE schedule_id=? AND member_user_id=? AND status='due'`).bind(now,scheduleId,member.user_id)
+  ]);
   try{await audit(env,member,'member_medication_schedule_deactivated','medication_schedule',scheduleId);}catch(error){console.error('Medication audit failed',error);}
   return json({ok:true});
 }
