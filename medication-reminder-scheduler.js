@@ -31,11 +31,44 @@ function scheduleApplies(daysOfWeek,weekday){
     .includes(weekday);
 }
 
+async function expireStaleDueEvents(env,now){
+  const zones=await env.DB.prepare(`
+    SELECT DISTINCT timezone
+    FROM medication_reminder_events
+    WHERE status='due'
+  `).all();
+
+  let expired=0;
+  const updatedAt=now.toISOString();
+
+  for(const row of zones.results||[]){
+    const storedTimezone=String(row.timezone||'UTC');
+    const timezone=normalizedTimeZone(storedTimezone);
+    const local=localParts(now,timezone);
+    const result=await env.DB.prepare(`
+      UPDATE medication_reminder_events
+      SET status='expired',updated_at=?
+      WHERE status='due'
+        AND timezone=?
+        AND scheduled_date<?
+    `).bind(updatedAt,storedTimezone,local.date).run();
+    expired+=Number(result?.meta?.changes||0);
+  }
+
+  return expired;
+}
+
 export async function runMedicationReminderScheduler(env,scheduledAt=new Date()){
-  if(!env?.DB)return {ok:false,error:'DB binding unavailable',generated:0,checked:0};
+  if(!env?.DB)return {ok:false,error:'DB binding unavailable',generated:0,expired:0,checked:0};
 
   const now=scheduledAt instanceof Date?scheduledAt:new Date(scheduledAt);
-  if(Number.isNaN(now.getTime()))return {ok:false,error:'Invalid scheduler timestamp',generated:0,checked:0};
+  if(Number.isNaN(now.getTime()))return {ok:false,error:'Invalid scheduler timestamp',generated:0,expired:0,checked:0};
+
+  // A medication reminder stays Due for the full local calendar day. Once that
+  // reminder's local date has passed without a recorded dose, preserve the event
+  // but close it as expired. The member UI presents this as "Not recorded" so
+  // Aria never implies that the medication was skipped or taken.
+  const expired=await expireStaleDueEvents(env,now);
 
   const rows=await env.DB.prepare(`
     SELECT s.id AS schedule_id,s.member_user_id,s.medication_id,s.time_local,s.days_of_week,s.timezone
@@ -87,5 +120,5 @@ export async function runMedicationReminderScheduler(env,scheduledAt=new Date())
     if(Number(result?.meta?.changes||0)===1)generated+=1;
   }
 
-  return {ok:true,generated,checked,ranAt:generatedAt};
+  return {ok:true,generated,expired,checked,ranAt:generatedAt};
 }
