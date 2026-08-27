@@ -3,6 +3,9 @@
   "name": "aria-ai",
   "main": "worker-entry.js",
   "compatibility_date": "2026-08-20",
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
