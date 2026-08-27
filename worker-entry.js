@@ -17,6 +17,7 @@ import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
+import { runMedicationReminderScheduler } from './medication-reminder-scheduler.js';
 
 function withAriaFormSystem(response,pathname) {
   const contentType = response.headers.get('content-type') || '';
@@ -98,5 +99,9 @@ export default {
 
     const response = await baseWorker.fetch(request, env, ctx);
     return withAriaFormSystem(response,new URL(request.url).pathname);
+  },
+
+  async scheduled(controller,env,ctx) {
+    ctx.waitUntil(runMedicationReminderScheduler(env,new Date(controller.scheduledTime)));
   }
 };
