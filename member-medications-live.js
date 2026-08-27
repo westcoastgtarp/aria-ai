@@ -1,7 +1,9 @@
 (()=>{
   let liveEnabled=false;
   let liveMedications=[];
+  let liveReminderEvents=[];
   const baseRenderDoses=renderDoses;
+  const baseRenderReminders=renderReminders;
 
   function localDate(){
     const d=new Date();
@@ -41,9 +43,37 @@
       </article>`;
     }).join('');
   }
+  function reminderForDose(dose){
+    return liveReminderEvents.find(event=>event.scheduleId===dose.scheduleId&&event.scheduledDate===(dose.scheduledDate||localDate()))||null;
+  }
   renderDoses=function(){
     baseRenderDoses();
     if(liveEnabled)renderLiveMedicationCards();
+  };
+  renderReminders=function(){
+    if(!liveEnabled){baseRenderReminders();return;}
+    const timeline=document.getElementById('reminderTimeline');if(!timeline)return;
+    timeline.innerHTML=doses
+      .slice()
+      .sort((a,b)=>doseMinutes(a.time)-doseMinutes(b.time))
+      .map(d=>{
+        const reminder=reminderForDose(d);
+        const state=d.checked?'recorded':reminder?.status==='dismissed'?'dismissed':reminder?'due':'upcoming';
+        const label=state==='recorded'?'Recorded':state==='due'?'Due':state==='dismissed'?'Dismissed':'Upcoming';
+        const detail=state==='recorded'
+          ?`Recorded by user at ${escapeHtml(d.recorded||'just now')}`
+          :state==='due'
+            ?'Reminder is due now'
+            :state==='dismissed'
+              ?'Reminder dismissed by user'
+              :'Scheduled reminder';
+        return `<div class="timeline-row ${state==='recorded'?'complete':''}">
+          <div class="timeline-time">${escapeHtml(d.time)}</div>
+          <div><strong>${escapeHtml(d.medication)}</strong><span>${detail}</span></div>
+          <div class="pill ${state==='recorded'?'success':''}">${label}</div>
+        </div>`;
+      }).join('');
+    renderDashboardSummary();
   };
 
   async function api(url,options={}){
@@ -52,16 +82,38 @@
     if(!response.ok){const error=new Error(data.error||`Request failed (${response.status})`);error.status=response.status;throw error;}
     return data;
   }
+  async function loadReminderEvents(render=true){
+    try{
+      const data=await api(`/api/member/reminder-events?date=${encodeURIComponent(localDate())}`,{method:'GET',headers:{}});
+      liveReminderEvents=Array.isArray(data.events)?data.events:[];
+      if(render)renderReminders();
+    }catch(error){
+      if(error.status!==401)console.error('Reminder event load failed',error);
+    }
+  }
   async function load(){
     try{
       const data=await api(`/api/member/medications?date=${encodeURIComponent(localDate())}`,{method:'GET',headers:{}});
       liveEnabled=true;
       liveMedications=Array.isArray(data.medications)?data.medications:[];
       doses=Array.isArray(data.doses)?data.doses:[];
+      await loadReminderEvents(false);
       const reset=document.getElementById('demoReset');if(reset)reset.hidden=true;
       renderDoses();renderReminders();renderDashboardSummary();
     }catch(error){
       if(error.status!==401)console.error('Medication persistence load failed',error);
+    }
+  }
+  async function syncReminderStatus(dose,checked){
+    const reminder=reminderForDose(dose);if(!reminder)return;
+    try{
+      const result=await api(`/api/member/reminder-events/${encodeURIComponent(reminder.id)}`,{
+        method:'PUT',body:JSON.stringify({status:checked?'acknowledged':'due'})
+      });
+      reminder.status=result.status;
+      if(checked)reminder.acknowledgedAt=result.updatedAt||new Date().toISOString();
+    }catch(error){
+      console.error('Reminder status sync failed',error);
     }
   }
   async function persistDose(dose,checked){
@@ -73,6 +125,7 @@
       dose.checked=Boolean(result.recorded);
       dose.recordedAt=result.recordedAt||null;
       dose.recorded=result.recordedAt?new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date(result.recordedAt)):null;
+      await syncReminderStatus(dose,dose.checked);
       renderDoses();renderReminders();
     }catch(error){
       console.error('Dose record persistence failed',error);await load();alert(error.message||'Aria could not save that dose record. Please try again.');
@@ -141,4 +194,5 @@
   },true);
 
   load();
+  setInterval(()=>{if(liveEnabled)loadReminderEvents();},60000);
 })();
