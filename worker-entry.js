@@ -16,6 +16,7 @@ import { handleMemberMembershipOptionsRoute } from './member-membership-options-
 import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
+import { handleStructuredMemberMedicationRoute } from './member-medications-structured-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
 import { handleMemberRemindersRoute } from './member-reminders-api.js';
 import { runMedicationReminderScheduler } from './medication-reminder-scheduler.js';
@@ -29,12 +30,14 @@ function withAriaFormSystem(response,pathname) {
       element(element) {
         element.append('<link rel="stylesheet" href="/aria-form-system.css?v=20260824-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/medication-card-cleanup.css?v=20260826-1" />', { html: true });
+        element.append('<link rel="stylesheet" href="/medication-structured-form.css?v=20260826-1" />', { html: true });
       }
     });
 
   if (pathname === '/' || pathname === '/index.html') {
     rewriter.on('body', {
       element(element) {
+        element.prepend('<script src="/member-medication-structured-form.js?v=20260826-1"></script>', { html: true });
         element.append('<script src="/member-assistant-live.js?v=20260826-4"></script><script src="/member-medication-delete.js?v=20260826-1"></script>', { html: true });
       }
     });
@@ -50,6 +53,9 @@ export default {
 
     const lifelineRiskResponse = await handleLifelineRiskRoute(request, env);
     if (lifelineRiskResponse) return lifelineRiskResponse;
+
+    const structuredMedicationResponse = await handleStructuredMemberMedicationRoute(request, env);
+    if (structuredMedicationResponse) return structuredMedicationResponse;
 
     const medicationsResponse = await handleMemberMedicationsRoute(request, env);
     if (medicationsResponse) return medicationsResponse;
