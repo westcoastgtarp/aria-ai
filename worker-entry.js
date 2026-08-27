@@ -28,6 +28,7 @@ function withAriaFormSystem(response,pathname) {
     .on('head', {
       element(element) {
         element.append('<link rel="stylesheet" href="/aria-form-system.css?v=20260824-1" />', { html: true });
+        element.append('<link rel="stylesheet" href="/medication-card-cleanup.css?v=20260826-1" />', { html: true });
       }
     });
 
