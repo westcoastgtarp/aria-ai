@@ -131,7 +131,7 @@ export async function loadConversationMessages(env,userId,conversationId=null,li
     conversation=await env.DB.prepare(`
       SELECT id,status,started_at,last_message_at,closed_at
       FROM member_conversations
-      WHERE member_user_id=?
+      WHERE member_user_id=? AND status='open'
       ORDER BY last_message_at DESC
       LIMIT 1
     `).bind(userId).first();
@@ -170,6 +170,44 @@ export async function loadConversationMessages(env,userId,conversationId=null,li
   };
 }
 
+async function auditConversationClose(env,member,conversationIds){
+  if(!conversationIds.length)return;
+  const now=new Date().toISOString();
+  await env.DB.prepare(`
+    INSERT INTO audit_events
+    (id,category,event_type,actor_user_id,subject_type,subject_id,details_json,occurred_at,recorded_at)
+    VALUES (?, 'Member Communication','member_conversation_closed_on_logout',?,'member',?,?,?,?)
+  `).bind(
+    `AUD-${crypto.randomUUID()}`,
+    member.user_id,
+    member.user_id,
+    JSON.stringify({conversationIds,count:conversationIds.length,reason:'member_logout'}),
+    now,
+    now
+  ).run();
+}
+
+async function closeOpenConversations(env,member){
+  const open=await env.DB.prepare(`
+    SELECT id
+    FROM member_conversations
+    WHERE member_user_id=? AND status='open'
+    ORDER BY last_message_at DESC
+  `).bind(member.user_id).all();
+  const ids=(open.results||[]).map(row=>row.id).filter(Boolean);
+  if(!ids.length)return json({ok:true,closed:true,conversationIds:[],count:0});
+
+  const now=new Date().toISOString();
+  await env.DB.prepare(`
+    UPDATE member_conversations
+    SET status='closed',closed_at=?
+    WHERE member_user_id=? AND status='open'
+  `).bind(now,member.user_id).run();
+
+  try{await auditConversationClose(env,member,ids);}catch(error){console.error('Conversation close audit failed',error);}
+  return json({ok:true,closed:true,conversationIds:ids,count:ids.length,closedAt:now});
+}
+
 async function handleGet(request,env,member,url){
   const data=await loadConversationMessages(
     env,
@@ -202,15 +240,16 @@ async function handleAppend(request,env,member){
 
 export async function handleMemberConversationsRoute(request,env){
   const url=new URL(request.url);
-  if(url.pathname!=='/api/member/conversations')return null;
+  if(!url.pathname.startsWith('/api/member/conversations'))return null;
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
 
   const member=await currentConversationMember(request,env);
   if(!member)return json({ok:false,error:'Member authentication required.'},{status:401});
 
   try{
-    if(request.method==='GET')return await handleGet(request,env,member,url);
-    if(request.method==='POST')return await handleAppend(request,env,member);
+    if(url.pathname==='/api/member/conversations/close'&&request.method==='POST')return await closeOpenConversations(env,member);
+    if(url.pathname==='/api/member/conversations'&&request.method==='GET')return await handleGet(request,env,member,url);
+    if(url.pathname==='/api/member/conversations'&&request.method==='POST')return await handleAppend(request,env,member);
     return json({ok:false,error:'Method not allowed.'},{status:405,headers:{allow:'GET, POST'}});
   }catch(error){
     console.error('Conversation route failed',error);
