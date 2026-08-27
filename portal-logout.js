@@ -30,6 +30,20 @@
       if(button.disabled)return;
       button.disabled=true;
       button.textContent='Signing out…';
+
+      if(!staffTarget){
+        try{
+          await fetch('/api/member/conversations/close',{
+            method:'POST',
+            credentials:'same-origin',
+            cache:'no-store',
+            headers:{'content-type':'application/json'}
+          });
+        }catch(error){
+          console.error('Member conversation close on logout failed',error);
+        }
+      }
+
       try{
         await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
       }catch{}
