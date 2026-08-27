@@ -31,6 +31,51 @@ function scheduleApplies(daysOfWeek,weekday){
     .includes(weekday);
 }
 
+async function repairPrematureExpiredEvents(env,now){
+  const zones=await env.DB.prepare(`
+    SELECT DISTINCT timezone
+    FROM medication_reminder_events
+    WHERE status='expired'
+  `).all();
+
+  let repaired=0;
+  const updatedAt=now.toISOString();
+
+  for(const row of zones.results||[]){
+    const storedTimezone=String(row.timezone||'UTC');
+    const timezone=normalizedTimeZone(storedTimezone);
+    const local=localParts(now,timezone);
+    const result=await env.DB.prepare(`
+      UPDATE medication_reminder_events AS e
+      SET status='due',updated_at=?
+      WHERE e.status='expired'
+        AND e.timezone=?
+        AND e.scheduled_date=?
+        AND EXISTS (
+          SELECT 1
+          FROM medication_schedules s
+          JOIN member_medications m
+            ON m.id=s.medication_id
+           AND m.member_user_id=s.member_user_id
+          WHERE s.id=e.schedule_id
+            AND s.member_user_id=e.member_user_id
+            AND s.active=1
+            AND m.active=1
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM medication_dose_records r
+          WHERE r.member_user_id=e.member_user_id
+            AND r.schedule_id=e.schedule_id
+            AND r.scheduled_date=e.scheduled_date
+        )
+    `).bind(updatedAt,storedTimezone,local.date).run();
+    repaired+=Number(result?.meta?.changes||0);
+  }
+
+  return repaired;
+}
+
 async function expireStaleDueEvents(env,now){
   const zones=await env.DB.prepare(`
     SELECT DISTINCT timezone
@@ -59,10 +104,15 @@ async function expireStaleDueEvents(env,now){
 }
 
 export async function runMedicationReminderScheduler(env,scheduledAt=new Date()){
-  if(!env?.DB)return {ok:false,error:'DB binding unavailable',generated:0,expired:0,checked:0};
+  if(!env?.DB)return {ok:false,error:'DB binding unavailable',generated:0,repaired:0,expired:0,checked:0};
 
   const now=scheduledAt instanceof Date?scheduledAt:new Date(scheduledAt);
-  if(Number.isNaN(now.getTime()))return {ok:false,error:'Invalid scheduler timestamp',generated:0,expired:0,checked:0};
+  if(Number.isNaN(now.getTime()))return {ok:false,error:'Invalid scheduler timestamp',generated:0,repaired:0,expired:0,checked:0};
+
+  // Repair reminders that older scheduler behavior may have expired before the
+  // member's local calendar day actually ended. Only active medication schedules
+  // with no recorded dose are eligible, so intentionally retired schedules stay closed.
+  const repaired=await repairPrematureExpiredEvents(env,now);
 
   // A medication reminder stays Due for the full local calendar day. Once that
   // reminder's local date has passed without a recorded dose, preserve the event
@@ -120,5 +170,5 @@ export async function runMedicationReminderScheduler(env,scheduledAt=new Date())
     if(Number(result?.meta?.changes||0)===1)generated+=1;
   }
 
-  return {ok:true,generated,expired,checked,ranAt:generatedAt};
+  return {ok:true,generated,repaired,expired,checked,ranAt:generatedAt};
 }
