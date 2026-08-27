@@ -2,6 +2,15 @@
   if(window.__ariaStructuredMedicationForm)return;
   window.__ariaStructuredMedicationForm=true;
 
+  const returnPage=sessionStorage.getItem('aria-return-page');
+  if(returnPage==='medications'){
+    window.addEventListener('DOMContentLoaded',()=>{
+      sessionStorage.removeItem('aria-return-page');
+      if(typeof window.showPage==='function')window.showPage('medications');
+      else document.querySelector('[data-page="medications"]')?.click();
+    },{once:true});
+  }
+
   const units=[
     ['mcg','mcg'],['mg','mg'],['g','g'],['mL','mL'],['L','L'],['fl oz','fl oz'],['oz','oz'],
     ['tsp','tsp'],['tbsp','tbsp'],['IU','IU'],['unit','unit'],['units','units'],
@@ -166,6 +175,7 @@
           })
         });
         window.closeModal?.();
+        sessionStorage.setItem('aria-return-page','medications');
         location.reload();
       }catch(error){
         console.error('Structured medication save failed',error);
