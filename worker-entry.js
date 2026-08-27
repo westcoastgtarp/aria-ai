@@ -32,6 +32,7 @@ function withAriaFormSystem(response,pathname) {
         element.append('<link rel="stylesheet" href="/medication-card-cleanup.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/medication-structured-form.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-reminders.css?v=20260826-1" />', { html: true });
+        element.append('<link rel="stylesheet" href="/member-overview-reminders.css?v=20260826-1" />', { html: true });
       }
     });
 
@@ -39,7 +40,7 @@ function withAriaFormSystem(response,pathname) {
     rewriter.on('body', {
       element(element) {
         element.prepend('<script src="/member-medication-structured-form.js?v=20260826-2"></script>', { html: true });
-        element.append('<script src="/member-assistant-live.js?v=20260826-4"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260826-1"></script>', { html: true });
+        element.append('<script src="/member-assistant-live.js?v=20260826-4"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260826-1"></script><script src="/member-overview-reminders.js?v=20260826-1"></script>', { html: true });
       }
     });
   }
