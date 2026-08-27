@@ -76,16 +76,32 @@
     const eventFor=(dose)=>events.find(event=>event.scheduleId===dose.scheduleId&&event.scheduledDate===selectedDate)||null;
     return (medicationsData?.doses||[]).map(dose=>{
       const event=eventFor(dose);
-      const state=dose.checked?'recorded':event?.status==='dismissed'?'dismissed':event?.status==='due'?'due':'upcoming';
+      const state=dose.checked
+        ?'recorded'
+        :event?.status==='dismissed'
+          ?'dismissed'
+          :event?.status==='expired'
+            ?'not-recorded'
+            :event?.status==='due'
+              ?'due'
+              :'upcoming';
       return {
         type:'medication',
         id:dose.id,
         timeLocal:dose.timeLocal||'',
         time:dose.time||displayTime(dose.timeLocal),
         title:dose.medication,
-        detail:state==='recorded'?`Recorded by user${dose.recorded?` at ${dose.recorded}`:''}`:state==='due'?'Medication reminder is due':state==='dismissed'?'Medication reminder dismissed':'Medication reminder',
+        detail:state==='recorded'
+          ?`Recorded by user${dose.recorded?` at ${dose.recorded}`:''}`
+          :state==='due'
+            ?'Medication reminder is due'
+            :state==='dismissed'
+              ?'Medication reminder dismissed'
+              :state==='not-recorded'
+                ?'No dose confirmation was recorded for this scheduled time'
+                :'Medication reminder',
         state,
-        label:state==='recorded'?'Recorded':state==='due'?'Due':state==='dismissed'?'Dismissed':'Upcoming'
+        label:state==='recorded'?'Recorded':state==='due'?'Due':state==='dismissed'?'Dismissed':state==='not-recorded'?'Not recorded':'Upcoming'
       };
     });
   }
