@@ -40,21 +40,21 @@
     const style=document.createElement('style');
     style.id='ariaSupportChoiceStyles';
     style.textContent=`
-      .aria-support-choice{margin:12px 10px 16px;padding:14px;border:1px solid rgba(108,99,232,.18);border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8f7ff 100%);box-shadow:0 8px 24px rgba(54,45,140,.08)}
-      .aria-support-choice-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:10px;color:#25253a}
-      .aria-support-choice-actions{display:grid;gap:10px}
-      .aria-support-choice button{appearance:none;-webkit-appearance:none;width:100%;border:1px solid rgba(108,99,232,.2);border-radius:14px;padding:11px 13px;cursor:pointer;font:inherit;text-align:left;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease}
-      .aria-support-choice button[data-choice="aria"]{background:#fff;color:#2b2b3d}
-      .aria-support-choice button[data-choice="support"]{background:linear-gradient(135deg,#6b63e8,#7f65e9);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(107,99,232,.22)}
-      .aria-support-choice button:hover{transform:translateY(-1px)}
-      .aria-support-choice button[data-choice="aria"]:hover{border-color:#8d84ef;background:#fbfaff;box-shadow:0 5px 14px rgba(68,59,150,.08)}
-      .aria-support-choice button[data-choice="support"]:hover{box-shadow:0 8px 20px rgba(107,99,232,.28)}
-      .aria-support-choice button:focus-visible{outline:3px solid rgba(107,99,232,.22);outline-offset:2px}
-      .aria-support-choice button strong{display:block;font-size:13px;font-weight:700;line-height:1.25;margin-bottom:3px}
-      .aria-support-choice button span{display:block;font-size:12px;line-height:1.4}
-      .aria-support-choice button[data-choice="aria"] span{color:#73738a}
-      .aria-support-choice button[data-choice="support"] span{color:rgba(255,255,255,.88)}
-      .aria-support-choice button[disabled]{opacity:.58;cursor:default;transform:none;box-shadow:none}
+      #ariaBubbleLog .aria-support-choice{margin:12px 10px 16px!important;padding:14px!important;border:1px solid rgba(108,99,232,.18)!important;border-radius:18px!important;background:linear-gradient(180deg,#ffffff 0%,#f8f7ff 100%)!important;box-shadow:0 8px 24px rgba(54,45,140,.08)!important}
+      #ariaBubbleLog .aria-support-choice-title{font-size:14px!important;font-weight:700!important;line-height:1.4!important;margin:0 0 10px!important;color:#25253a!important}
+      #ariaBubbleLog .aria-support-choice-actions{display:grid!important;gap:10px!important}
+      #ariaBubbleLog button.aria-support-choice-button{appearance:none!important;-webkit-appearance:none!important;width:100%!important;min-height:0!important;height:auto!important;margin:0!important;border-radius:14px!important;padding:11px 13px!important;cursor:pointer!important;font:inherit!important;text-align:left!important;line-height:1.3!important;text-transform:none!important;letter-spacing:normal!important;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease!important}
+      #ariaBubbleLog button.aria-support-choice-button.aria-support-choice-continue{background:#fff!important;background-image:none!important;border:1px solid rgba(108,99,232,.24)!important;color:#2b2b3d!important;box-shadow:0 3px 10px rgba(54,45,140,.05)!important}
+      #ariaBubbleLog button.aria-support-choice-button.aria-support-choice-live{background:linear-gradient(135deg,#655ee8,#8066eb)!important;border:1px solid transparent!important;color:#fff!important;box-shadow:0 6px 16px rgba(107,99,232,.24)!important}
+      #ariaBubbleLog button.aria-support-choice-button:hover{transform:translateY(-1px)!important}
+      #ariaBubbleLog button.aria-support-choice-button.aria-support-choice-continue:hover{border-color:#8d84ef!important;background:#fbfaff!important;box-shadow:0 5px 14px rgba(68,59,150,.1)!important}
+      #ariaBubbleLog button.aria-support-choice-button.aria-support-choice-live:hover{box-shadow:0 8px 20px rgba(107,99,232,.31)!important}
+      #ariaBubbleLog button.aria-support-choice-button:focus-visible{outline:3px solid rgba(107,99,232,.22)!important;outline-offset:2px!important}
+      #ariaBubbleLog button.aria-support-choice-button strong{display:block!important;font-size:13px!important;font-weight:700!important;line-height:1.25!important;margin:0 0 3px!important;color:inherit!important}
+      #ariaBubbleLog button.aria-support-choice-button span{display:block!important;font-size:12px!important;font-weight:400!important;line-height:1.4!important;margin:0!important;color:inherit!important}
+      #ariaBubbleLog button.aria-support-choice-button.aria-support-choice-continue span{color:#73738a!important}
+      #ariaBubbleLog button.aria-support-choice-button.aria-support-choice-live span{color:rgba(255,255,255,.9)!important}
+      #ariaBubbleLog button.aria-support-choice-button[disabled]{opacity:.58!important;cursor:default!important;transform:none!important;box-shadow:none!important}
     `;
     document.head.appendChild(style);
   }
@@ -157,11 +157,11 @@
     card.innerHTML=`
       <div class="aria-support-choice-title">Would you like to keep talking with Aria or speak with someone?</div>
       <div class="aria-support-choice-actions">
-        <button type="button" data-choice="aria">
+        <button type="button" class="aria-support-choice-button aria-support-choice-continue" data-choice="aria">
           <strong>Keep chatting with Aria</strong>
           <span>Stay here and keep talking with Aria.</span>
         </button>
-        <button type="button" data-choice="support">
+        <button type="button" class="aria-support-choice-button aria-support-choice-live" data-choice="support">
           <strong>Speak with someone now</strong>
           <span>You don’t have to handle this conversation alone.</span>
         </button>
