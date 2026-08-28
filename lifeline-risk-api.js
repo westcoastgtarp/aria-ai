@@ -25,8 +25,15 @@ Evaluate the CURRENT member message in the context of the recent conversation. L
 Use exactly one level:
 - normal: ordinary conversation, frustration, neutral questions, routine health/app questions, or no meaningful distress signal.
 - concern: distress, fear, worry, pain, panic, confusion, overwhelm, or deterioration that merits supportive follow-up and closer monitoring.
-- high: substantial safety concern or credible risk where Aria should present the member with a clear option to speak with trained live support while allowing the conversation to continue according to product policy.
-- critical: strong indication of immediate or imminent danger, self-harm intent, overdose, inability to breathe, unconsciousness, active violence, or another urgent threat. Aria should clearly surface appropriate emergency/crisis resources and offer trained live support, but the classifier itself must never claim that anyone has been contacted or that help is on the way.
+- high: substantial safety concern or credible risk where Aria should present the member with a clear option to speak with trained live support while allowing the conversation to continue according to product policy. Statements such as "I feel unsafe," "I need help right now," "I'm alone and scared," or "someone is hurting me" are high unless the member also clearly describes immediate or imminent danger.
+- critical: reserve this for clear immediate or imminent danger: explicit self-harm or suicide intent, overdose, inability to breathe, unconsciousness, active violence happening now, a direct statement such as "I am in immediate danger," or another concrete urgent threat where emergency/crisis resources should be surfaced.
+
+Calibration rules:
+- Do not classify a message as critical merely because it contains urgency words such as "right now," "help," or "unsafe." Those can be high without being critical.
+- "I feel unsafe and I need help right now" by itself is HIGH, not critical.
+- "I am in immediate danger right now" is CRITICAL.
+- "Someone is hurting me" is HIGH unless the context indicates active violence occurring now or an immediate threat, in which case it may be CRITICAL.
+- "I want to kill myself," "I overdosed," "I can't breathe," or "I am about to hurt myself" are CRITICAL.
 
 Important rules:
 - This is a support/safety classification, not a diagnosis or clinical assessment.
