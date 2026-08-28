@@ -10,7 +10,7 @@
 
   function showAriaHeader(){
     const {title,subtitle}=headerNodes();
-    if(title)title.textContent='Aria';
+    if(title)title.textContent='Aria AI';
     if(subtitle)subtitle.textContent='Your health companion';
   }
 
