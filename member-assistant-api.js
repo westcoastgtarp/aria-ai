@@ -4,8 +4,7 @@ import {
   appendConversationMessage,
   loadConversationMessages
 } from './member-conversations-api.js';
-
-const MODEL='@cf/meta/llama-3.1-8b-instruct-fast';
+import { runAriaConversationModel } from './aria-ai-provider.js';
 
 function json(data,init={}){
   return new Response(JSON.stringify(data),{
@@ -64,7 +63,6 @@ Aria Lifeline is a separate safety-monitoring/escalation layer. You are the answ
 
 async function handleAssistant(request,env){
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
-  if(!env.AI||typeof env.AI.run!=='function')return json({ok:false,error:'Aria Assistant is not available right now.'},{status:503});
 
   const member=await currentConversationMember(request,env);
   if(!member)return json({ok:false,error:'Member authentication required.'},{status:401});
@@ -103,13 +101,8 @@ async function handleAssistant(request,env){
   ];
 
   try{
-    const result=await env.AI.run(MODEL,{
-      messages,
-      max_tokens:500,
-      temperature:0.45,
-      top_p:0.9
-    });
-    const answer=String(result?.response||'').trim();
+    const inference=await runAriaConversationModel(env,{messages,maxTokens:500,temperature:0.45,topP:0.9});
+    const answer=String(inference?.result?.response||'').trim();
     if(!answer)throw new Error('empty_response');
 
     const saved=await appendConversationMessage(env,{
@@ -121,7 +114,7 @@ async function handleAssistant(request,env){
       riskLevel
     });
 
-    return json({ok:true,answer,model:MODEL,conversationId:conversation.id,messageId:saved?.id||null});
+    return json({ok:true,answer,model:inference.model,provider:inference.provider,conversationId:conversation.id,messageId:saved?.id||null});
   }catch(error){
     console.error('Aria Assistant inference failed',error);
     return json({ok:false,error:'Aria Assistant could not answer that right now. Please try again.'},{status:502});
