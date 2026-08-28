@@ -1,0 +1,49 @@
+(()=>{
+  if(window.__ariaLiveSupportHeaderLoaded)return;
+  window.__ariaLiveSupportHeaderLoaded=true;
+
+  function headerNodes(){
+    const title=document.querySelector('.aria-bubble-title strong');
+    const subtitle=document.querySelector('.aria-bubble-title span');
+    return {title,subtitle};
+  }
+
+  function showAriaHeader(){
+    const {title,subtitle}=headerNodes();
+    if(title)title.textContent='Aria AI';
+    if(subtitle)subtitle.textContent='Your health companion';
+  }
+
+  function showStaffHeader(firstName){
+    const safe=String(firstName||'').trim();
+    if(!safe){showAriaHeader();return;}
+    const {title,subtitle}=headerNodes();
+    if(title)title.textContent=`${safe} • Aria Support`;
+    if(subtitle)subtitle.textContent='Here with you now';
+  }
+
+  async function refreshHeader(){
+    try{
+      const response=await fetch('/api/member/lifeline/support-status',{
+        credentials:'same-origin',
+        headers:{accept:'application/json'}
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)return;
+      if(data.assigned&&data.displayName)showStaffHeader(data.displayName);
+      else showAriaHeader();
+    }catch(error){
+      console.error('Live support header status failed',error);
+    }
+  }
+
+  function boot(){
+    showAriaHeader();
+    refreshHeader();
+    setInterval(refreshHeader,10000);
+    document.getElementById('ariaChatLauncher')?.addEventListener('click',()=>setTimeout(refreshHeader,0));
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+  else boot();
+})();
