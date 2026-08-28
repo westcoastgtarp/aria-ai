@@ -12,6 +12,7 @@ function cleanHistory(value){if(!Array.isArray(value))return [];return value.sli
 function fallbackRisk(text){const t=String(text||'').toLowerCase();const critical=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone'];const high=['feel unsafe','need help now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];const concern=['scared','worried','dizzy','pain','don’t feel right','dont feel right','bad reaction','side effect','distressed','panic'];if(critical.some(k=>t.includes(k)))return 'critical';if(high.some(k=>t.includes(k)))return 'high';if(concern.some(k=>t.includes(k)))return 'concern';return 'normal';}
 function normalizeLevel(value){const level=String(value||'').trim().toLowerCase().replace(/[_-]+/g,' ');if(level==='critical')return 'critical';if(level==='high'||level==='high risk')return 'high';if(level==='concern')return 'concern';return 'normal';}
 function extractJson(text){const raw=String(text||'').trim();try{return JSON.parse(raw);}catch{}const match=raw.match(/\{[\s\S]*\}/);if(!match)return null;try{return JSON.parse(match[0]);}catch{return null;}}
+function safeErrorCode(error){return String(error?.code||error?.name||'AI_CLASSIFICATION_FAILED').slice(0,80);}
 async function recordSafetyAudit(env,member,classification){if(!env.DB||classification.level==='normal')return;const now=new Date().toISOString();await env.DB.prepare(`INSERT INTO audit_events (id,category,event_type,actor_user_id,subject_type,subject_id,details_json,occurred_at,recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(`AUD-${crypto.randomUUID()}`,'Lifeline Safety','lifeline_risk_classified',member.user_id,'member',member.user_id,JSON.stringify({level:classification.level,confidence:classification.confidence,source:classification.source}),now,now).run();}
 
 const RISK_PROMPT=`You are Aria Lifeline Risk Monitor. Your only job is to classify safety and support signals in a member conversation.
@@ -35,7 +36,7 @@ Important rules:
 - Return JSON only with this schema: {"level":"normal|concern|high|critical","confidence":0.0,"reason":"brief non-diagnostic rationale"}.
 - Never include private chain-of-thought. The reason must be a short summary suitable for an audit record.`;
 
-async function classifyWithAI(env,message,history){const transcript=history.map(item=>`${item.role==='assistant'?'ARIA':'MEMBER'}: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent conversation:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw new Error('invalid_risk_response');const level=normalizeLevel(parsed.level);return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
+async function classifyWithAI(env,message,history){const transcript=history.map(item=>`${item.role==='assistant'?'ARIA':'MEMBER'}: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent conversation:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw Object.assign(new Error('invalid_risk_response'),{code:'AI_INVALID_CLASSIFICATION'});const level=normalizeLevel(parsed.level);return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
 
 async function handleAssess(request,env){
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
@@ -44,15 +45,15 @@ async function handleAssess(request,env){
   let body=null;try{body=await request.json();}catch{}
   const message=String(body?.message||'').trim();if(!message)return json({ok:false,error:'A message is required.'},{status:400});if(message.length>4000)return json({ok:false,error:'Please shorten your message and try again.'},{status:400});
   const history=cleanHistory(body?.history);let classification;
-  try{classification=await classifyWithAI(env,message,history);}catch(error){console.error('Lifeline AI risk classification failed; using fallback',error);}
+  try{classification=await classifyWithAI(env,message,history);}catch(error){console.error('Lifeline AI risk classification failed; using fallback',{code:safeErrorCode(error)});}
   if(!classification){const level=fallbackRisk(`${history.map(h=>h.content).join(' ')} ${message}`);classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};}
 
   let persistence={persisted:false,incidentId:null,reason:'normal'};
   if(classification.level!=='normal'){
     try{persistence=await recordLifelineSignal(env,{memberUserId:member.user_id,riskLevel:classification.level,confidence:classification.confidence,source:classification.source,reason:classification.reason});}
-    catch(error){console.error('Lifeline incident persistence failed',error);persistence={persisted:false,incidentId:null,reason:'write_failed'};}
+    catch(error){console.error('Lifeline incident persistence failed',{code:safeErrorCode(error)});persistence={persisted:false,incidentId:null,reason:'write_failed'};}
   }
-  try{await recordSafetyAudit(env,member,classification);}catch(error){console.error('Lifeline audit write failed',error);}
+  try{await recordSafetyAudit(env,member,classification);}catch(error){console.error('Lifeline audit write failed',{code:safeErrorCode(error)});}
 
   const publicClassification={
     level:classification.level,
