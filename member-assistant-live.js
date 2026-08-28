@@ -14,7 +14,7 @@
 
   function escapeText(value=''){
     return String(value).replace(/[&<>"']/g,ch=>({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'
     }[ch]));
   }
 
@@ -205,6 +205,29 @@
     return concernStreak;
   }
 
+  function isPersonalConcernMessage(text){
+    const t=String(text||'').toLowerCase();
+    const signals=[
+      'i’m overwhelmed','i\'m overwhelmed','im overwhelmed','i am overwhelmed',
+      'really overwhelmed','still really overwhelmed','feeling really overwhelmed','feeling overwhelmed',
+      'i’m scared','i\'m scared','im scared','i am scared','getting more scared',
+      'can’t calm down','cant calm down','cannot calm down',
+      'i’m panicking','i\'m panicking','im panicking','i am panicking',
+      'i feel panicked','i feel anxious','really anxious','i don’t know what to do','i dont know what to do'
+    ];
+    return signals.some(signal=>t.includes(signal));
+  }
+
+  function durableRecentConcernCount(currentText){
+    const memberMessages=history
+      .filter(item=>item.role==='user')
+      .map(item=>item.content);
+    return [...memberMessages,currentText]
+      .slice(-3)
+      .filter(isPersonalConcernMessage)
+      .length;
+  }
+
   async function send(event){
     event?.preventDefault();
     event?.stopImmediatePropagation();
@@ -232,8 +255,9 @@
 
     if(typeof window.applyRisk==='function')window.applyRisk(risk.level);
     const streak=updateConcernStreak(risk.level);
+    const durableConcernCount=durableRecentConcernCount(text);
     const immediateOffer=risk.level==='high'||risk.level==='critical';
-    const repeatedConcern=risk.level==='concern'&&streak>=3;
+    const repeatedConcern=(risk.level==='concern'&&streak>=3)||durableConcernCount>=3;
     const shouldOfferSupport=immediateOffer||repeatedConcern;
     const supportTrigger=repeatedConcern?'repeated_distress_signals':'high_severity_distress';
 
