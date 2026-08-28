@@ -1,5 +1,6 @@
 import { recordLifelineSignal } from './lifeline-persistence.js';
 import { runAriaSafetyModel } from './aria-ai-provider.js';
+import { consumeAiRateLimit } from './ai-rate-limit.js';
 
 function json(data,init={}){return new Response(JSON.stringify(data),{...init,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff',...(init.headers||{})}});}
 function bytesToHex(bytes){return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');}
@@ -45,7 +46,12 @@ async function handleAssess(request,env){
   let body=null;try{body=await request.json();}catch{}
   const message=String(body?.message||'').trim();if(!message)return json({ok:false,error:'A message is required.'},{status:400});if(message.length>4000)return json({ok:false,error:'Please shorten your message and try again.'},{status:400});
   const history=cleanHistory(body?.history);let classification;
-  try{classification=await classifyWithAI(env,message,history);}catch(error){console.error('Lifeline AI risk classification failed; using fallback',{code:safeErrorCode(error)});}
+
+  const rate=await consumeAiRateLimit(env,{userId:member.user_id,scope:'lifeline-risk',limit:40});
+  if(rate.allowed){
+    try{classification=await classifyWithAI(env,message,history);}catch(error){console.error('Lifeline AI risk classification failed; using fallback',{code:safeErrorCode(error)});}
+  }
+
   if(!classification){const level=fallbackRisk(`${history.map(h=>h.content).join(' ')} ${message}`);classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};}
 
   let persistence={persisted:false,incidentId:null,reason:'normal'};
