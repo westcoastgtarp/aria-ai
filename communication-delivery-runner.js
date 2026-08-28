@@ -43,6 +43,44 @@ async function deliveryDestination(env,row){
   return null;
 }
 
+async function medicationReminderDeliveryState(env,row,now){
+  if(row.source_type!=='medication_reminder')return {action:'send'};
+
+  const event=await env.DB.prepare(`
+    SELECT e.status,e.snoozed_until,r.id AS dose_record_id
+    FROM medication_reminder_events e
+    LEFT JOIN medication_dose_records r
+      ON r.member_user_id=e.member_user_id
+      AND r.schedule_id=e.schedule_id
+      AND r.scheduled_date=e.scheduled_date
+    WHERE e.id=? AND e.member_user_id=?
+    LIMIT 1
+  `).bind(row.source_id,row.recipient_id).first();
+
+  if(!event)return {action:'cancel',reason:'source_unavailable'};
+  if(event.dose_record_id)return {action:'cancel',reason:'dose_recorded'};
+  if(event.status!=='due')return {action:'cancel',reason:`reminder_${clean(event.status)||'inactive'}`};
+
+  const snoozedUntil=clean(event.snoozed_until);
+  if(snoozedUntil){
+    const snoozedMs=Date.parse(snoozedUntil);
+    if(Number.isFinite(snoozedMs)&&snoozedMs>now.getTime()){
+      return {action:'wait',reason:'reminder_snoozed'};
+    }
+  }
+
+  return {action:'send'};
+}
+
+async function cancelDelivery(env,id,reason){
+  const now=new Date().toISOString();
+  await env.DB.prepare(`
+    UPDATE communication_deliveries
+    SET status='cancelled',next_attempt_at=NULL,last_error_code=NULL,last_error_message=?,updated_at=?
+    WHERE id=? AND status IN ('pending','retrying')
+  `).bind(clean(reason)||'Delivery no longer applicable',now,id).run();
+}
+
 function emailConfigured(env){
   return Boolean(env?.EMAIL&&clean(env.ARIA_EMAIL_FROM));
 }
@@ -106,7 +144,16 @@ function channelReady(env,channel){
   return false;
 }
 
-async function sendDelivery(env,row){
+async function sendDelivery(env,row,now){
+  const sourceState=await medicationReminderDeliveryState(env,row,now);
+  if(sourceState.action==='cancel'){
+    await cancelDelivery(env,row.id,sourceState.reason);
+    return {cancelled:true,reason:sourceState.reason};
+  }
+  if(sourceState.action==='wait'){
+    return {skipped:true,reason:sourceState.reason};
+  }
+
   const destination=await deliveryDestination(env,row);
   if(!destination?.address){
     return {skipped:true,reason:'destination_unavailable'};
@@ -136,19 +183,23 @@ async function sendDelivery(env,row){
 }
 
 export async function runCommunicationDeliveries(env,now=new Date()){
-  if(!env?.DB)return {ok:false,error:'DB binding unavailable',checked:0,sent:0,failed:0,skipped:0};
+  if(!env?.DB)return {ok:false,error:'DB binding unavailable',checked:0,sent:0,failed:0,skipped:0,cancelled:0};
 
-  const rows=await listRetryableCommunicationDeliveries(env,now,100);
+  const runAt=now instanceof Date?now:new Date(now);
+  const safeNow=Number.isNaN(runAt.getTime())?new Date():runAt;
+  const rows=await listRetryableCommunicationDeliveries(env,safeNow,100);
   let sent=0;
   let failed=0;
   let skipped=0;
+  let cancelled=0;
   const skippedReasons={};
 
   for(const row of rows){
     try{
-      const result=await sendDelivery(env,row);
+      const result=await sendDelivery(env,row,safeNow);
       if(result.sent)sent+=1;
       else if(result.failed)failed+=1;
+      else if(result.cancelled)cancelled+=1;
       else if(result.skipped){
         skipped+=1;
         skippedReasons[result.reason]=(skippedReasons[result.reason]||0)+1;
@@ -163,5 +214,5 @@ export async function runCommunicationDeliveries(env,now=new Date()){
     }
   }
 
-  return {ok:true,checked:rows.length,sent,failed,skipped,skippedReasons,ranAt:new Date().toISOString()};
+  return {ok:true,checked:rows.length,sent,failed,skipped,cancelled,skippedReasons,ranAt:new Date().toISOString()};
 }
