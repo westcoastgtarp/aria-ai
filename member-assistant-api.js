@@ -5,6 +5,7 @@ import {
   loadConversationMessages
 } from './member-conversations-api.js';
 import { runAriaConversationModel } from './aria-ai-provider.js';
+import { consumeAiRateLimit } from './ai-rate-limit.js';
 
 function json(data,init={}){
   return new Response(JSON.stringify(data),{
@@ -86,6 +87,18 @@ async function handleAssistant(request,env){
   if(!message)return json({ok:false,error:'A message is required.'},{status:400});
   if(message.length>4000)return json({ok:false,error:'Please shorten your message and try again.'},{status:400});
   const riskLevel=['normal','concern','high','critical'].includes(body?.riskLevel)?body.riskLevel:'normal';
+
+  const rate=await consumeAiRateLimit(env,{userId:member.user_id,scope:'assistant',limit:20});
+  if(!rate.allowed){
+    return json({
+      ok:false,
+      code:'assistant_rate_limited',
+      error:'You’re sending messages very quickly. Please wait a moment and try again.'
+    },{
+      status:429,
+      headers:{'retry-after':String(rate.retryAfterSeconds)}
+    });
+  }
 
   const conversation=await ensureOpenConversation(env,member.user_id);
   const existing=await loadConversationMessages(env,member.user_id,conversation.id,10);
