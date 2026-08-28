@@ -17,6 +17,10 @@
     const [h,m]=String(value||'').split(':').map(Number);if(!Number.isFinite(h)||!Number.isFinite(m))return value||'';
     return `${(h%12)||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
   }
+  function displayDateTime(value){
+    const d=new Date(value);if(Number.isNaN(d.getTime()))return '';
+    return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(d);
+  }
   function minutes(value){
     const [h,m]=String(value||'').split(':').map(Number);return Number.isFinite(h)&&Number.isFinite(m)?(h*60)+m:Number.MAX_SAFE_INTEGER;
   }
@@ -76,18 +80,23 @@
     const eventFor=(dose)=>events.find(event=>event.scheduleId===dose.scheduleId&&event.scheduledDate===selectedDate)||null;
     return (medicationsData?.doses||[]).map(dose=>{
       const event=eventFor(dose);
+      const snoozed=Boolean(event?.status==='due'&&event?.snoozed&&event?.snoozedUntil&&Date.parse(event.snoozedUntil)>Date.now());
       const state=dose.checked
         ?'recorded'
         :event?.status==='dismissed'
           ?'dismissed'
           :event?.status==='expired'
             ?'not-recorded'
-            :event?.status==='due'
-              ?'due'
-              :'upcoming';
+            :snoozed
+              ?'snoozed'
+              :event?.status==='due'
+                ?'due'
+                :'upcoming';
       return {
         type:'medication',
         id:dose.id,
+        eventId:event?.id||null,
+        snoozedUntil:event?.snoozedUntil||null,
         timeLocal:dose.timeLocal||'',
         time:dose.time||displayTime(dose.timeLocal),
         title:dose.medication,
@@ -95,13 +104,15 @@
           ?`Recorded by user${dose.recorded?` at ${dose.recorded}`:''}`
           :state==='due'
             ?'Medication reminder is due'
-            :state==='dismissed'
-              ?'Medication reminder dismissed'
-              :state==='not-recorded'
-                ?'No dose confirmation was recorded for this scheduled time'
-                :'Medication reminder',
+            :state==='snoozed'
+              ?`Snoozed until ${displayDateTime(event.snoozedUntil)}`
+              :state==='dismissed'
+                ?'Medication reminder dismissed'
+                :state==='not-recorded'
+                  ?'No dose confirmation was recorded for this scheduled time'
+                  :'Medication reminder',
         state,
-        label:state==='recorded'?'Recorded':state==='due'?'Due':state==='dismissed'?'Dismissed':state==='not-recorded'?'Not recorded':'Upcoming'
+        label:state==='recorded'?'Recorded':state==='due'?'Due':state==='snoozed'?'Snoozed':state==='dismissed'?'Dismissed':state==='not-recorded'?'Not recorded':'Upcoming'
       };
     });
   }
@@ -136,6 +147,12 @@
           <button type="button" class="reminder-mini" data-reminder-edit="${escapeHtml(item.id)}">Edit</button>
           <button type="button" class="reminder-mini danger-text" data-reminder-delete="${escapeHtml(item.id)}">Delete</button>
         </div>`:'';
+      const medicationActions=item.type==='medication'&&item.state==='due'&&item.eventId?`
+        <div class="reminder-row-actions medication-snooze-actions" aria-label="Snooze medication reminder">
+          <button type="button" class="reminder-mini" data-medication-snooze="${escapeHtml(item.eventId)}" data-snooze-minutes="10">10 min</button>
+          <button type="button" class="reminder-mini" data-medication-snooze="${escapeHtml(item.eventId)}" data-snooze-minutes="30">30 min</button>
+          <button type="button" class="reminder-mini" data-medication-snooze="${escapeHtml(item.eventId)}" data-snooze-minutes="60">1 hour</button>
+        </div>`:'';
       return `<div class="timeline-row reminder-live-row ${success?'complete':''}">
         <div class="timeline-time">${escapeHtml(item.time)}</div>
         <div class="reminder-row-copy">
@@ -143,7 +160,7 @@
           <span>${escapeHtml(item.detail||'Reminder')}</span>
           ${item.type==='custom'?'<span class="reminder-source">Personal reminder</span>':'<span class="reminder-source">Medication schedule</span>'}
         </div>
-        <div class="reminder-row-end"><div class="pill ${success?'success':''}">${escapeHtml(item.label)}</div>${customActions}</div>
+        <div class="reminder-row-end"><div class="pill ${success?'success':''}">${escapeHtml(item.label)}</div>${customActions}${medicationActions}</div>
       </div>`;
     }).join('');
   }
@@ -219,6 +236,17 @@
     try{await api(`/api/member/reminders/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify({status})});await refreshTimeline();}
     catch(error){console.error('Reminder status update failed',error);alert(error.message||'Aria could not update that reminder.');}
   }
+  async function snoozeMedicationReminder(id,snoozeMinutes,button){
+    if(button){button.disabled=true;button.textContent='Snoozing…';}
+    try{
+      await api(`/api/member/reminder-events/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify({snoozeMinutes})});
+      await refreshTimeline();
+    }catch(error){
+      console.error('Medication reminder snooze failed',error);
+      if(button){button.disabled=false;button.textContent=snoozeMinutes===60?'1 hour':`${snoozeMinutes} min`;}
+      alert(error.message||'Aria could not snooze that medication reminder.');
+    }
+  }
   async function deleteReminder(id){
     const reminder=customReminders.find(item=>item.id===id);if(!reminder)return;
     if(!confirm(`Delete “${reminder.title}”?`))return;
@@ -238,9 +266,11 @@
     const complete=event.target.closest?.('[data-reminder-complete]');
     const dismiss=event.target.closest?.('[data-reminder-dismiss]');
     const del=event.target.closest?.('[data-reminder-delete]');
+    const snooze=event.target.closest?.('[data-medication-snooze]');
     if(edit){const reminder=customReminders.find(item=>item.id===edit.dataset.reminderEdit);if(reminder)openReminderForm(reminder);return;}
     if(complete){updateStatus(complete.dataset.reminderComplete,'completed');return;}
     if(dismiss){updateStatus(dismiss.dataset.reminderDismiss,'dismissed');return;}
+    if(snooze){snoozeMedicationReminder(snooze.dataset.medicationSnooze,Number(snooze.dataset.snoozeMinutes),snooze);return;}
     if(del)deleteReminder(del.dataset.reminderDelete);
   });
 
