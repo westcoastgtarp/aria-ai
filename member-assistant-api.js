@@ -116,7 +116,7 @@ async function handleAssistant(request,env){
       riskLevel
     });
 
-    return json({ok:true,answer,model:inference.model,provider:inference.provider,conversationId:conversation.id,messageId:saved?.id||null});
+    return json({ok:true,answer,conversationId:conversation.id,messageId:saved?.id||null});
   }catch(error){
     console.error('Aria Assistant inference failed',error);
     return json({ok:false,error:'Aria Assistant could not answer that right now. Please try again.'},{status:502});
