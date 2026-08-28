@@ -1,3 +1,5 @@
+import { queueMedicationReminderDeliveries } from './medication-reminder-delivery-queue.js';
+
 function normalizedTimeZone(value){
   const candidate=String(value||'').trim()||'UTC';
   try{
@@ -145,6 +147,9 @@ export async function runMedicationReminderScheduler(env,scheduledAt=new Date())
   let generated=0;
   let checked=0;
   let failed=0;
+  let emailQueued=0;
+  let smsQueued=0;
+  let deliveryQueueFailed=0;
 
   for(const row of rows.results||[]){
     checked+=1;
@@ -178,6 +183,34 @@ export async function runMedicationReminderScheduler(env,scheduledAt=new Date())
       ).run();
 
       if(Number(result?.meta?.changes||0)===1)generated+=1;
+
+      // Queue delivery for both newly-created and already-existing Due events.
+      // This makes cron retries safe and also backfills a Due reminder that existed
+      // before the delivery layer was deployed.
+      const event=await env.DB.prepare(`
+        SELECT id,status
+        FROM medication_reminder_events
+        WHERE member_user_id=? AND schedule_id=? AND scheduled_date=?
+        LIMIT 1
+      `).bind(row.member_user_id,row.schedule_id,local.date).first();
+
+      if(event?.id&&event.status==='due'){
+        try{
+          const queued=await queueMedicationReminderDeliveries(env,{
+            eventId:event.id,
+            memberUserId:row.member_user_id
+          });
+          if(queued.email)emailQueued+=1;
+          if(queued.sms)smsQueued+=1;
+        }catch(error){
+          deliveryQueueFailed+=1;
+          console.error('Medication reminder delivery queue failed',{
+            eventId:event.id,
+            memberUserId:row.member_user_id,
+            error
+          });
+        }
+      }
     }catch(error){
       failed+=1;
       console.error('Medication reminder generation failed',{
@@ -198,6 +231,9 @@ export async function runMedicationReminderScheduler(env,scheduledAt=new Date())
     expired,
     checked,
     failed,
+    emailQueued,
+    smsQueued,
+    deliveryQueueFailed,
     maintenanceErrors,
     ranAt:generatedAt
   };
