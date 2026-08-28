@@ -10,8 +10,9 @@ function parseCookies(request){const raw=request.headers.get('cookie')||'';retur
 async function currentMember(request,env){if(!env.DB)return null;const token=parseCookies(request).aria_session;if(!token)return null;const tokenHash=await sha256(token);return env.DB.prepare(`SELECT u.id AS user_id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>? AND u.account_type='member' AND u.status='active' LIMIT 1`).bind(tokenHash,new Date().toISOString()).first();}
 function trialActive(selectedAt){const start=new Date(selectedAt);return !Number.isNaN(start.getTime())&&Date.now()<start.getTime()+(30*24*60*60*1000);}
 async function hasLifelineAccess(env,userId){const selection=await env.DB.prepare(`SELECT plan_code,status,selected_at FROM member_plan_selections WHERE user_id=? ORDER BY selected_at DESC LIMIT 1`).bind(userId).first();if(!selection)return false;return (String(selection.plan_code||'').startsWith('lifeline_')&&selection.status==='active')||trialActive(selection.selected_at);}
-function cleanHistory(value){if(!Array.isArray(value))return [];return value.slice(-12).map(item=>({role:item?.role==='assistant'?'assistant':'user',content:String(item?.content||'').trim().slice(0,2000)})).filter(item=>item.content);}
-function fallbackRisk(text){const t=String(text||'').toLowerCase();const critical=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone'];const high=['feel unsafe','need help now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];const concern=['scared','worried','dizzy','pain','don’t feel right','dont feel right','bad reaction','side effect','distressed','panic'];if(critical.some(k=>t.includes(k)))return 'critical';if(high.some(k=>t.includes(k)))return 'high';if(concern.some(k=>t.includes(k)))return 'concern';return 'normal';}
+function cleanHistory(value){if(!Array.isArray(value))return [];return value.slice(-12).filter(item=>item?.role!=='assistant').map(item=>({role:'user',content:String(item?.content||'').trim().slice(0,2000)})).filter(item=>item.content);}
+function fallbackRisk(text){const t=String(text||'').toLowerCase();const critical=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily'];const high=['feel unsafe','need help now','need help right now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];const concern=['scared','worried','dizzy','pain','don’t feel right','dont feel right','bad reaction','side effect','distressed','panic'];if(critical.some(k=>t.includes(k)))return 'critical';if(high.some(k=>t.includes(k)))return 'high';if(concern.some(k=>t.includes(k)))return 'concern';return 'normal';}
+function hasExplicitCriticalSignal(text){const t=String(text||'').toLowerCase();const signals=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];return signals.some(k=>t.includes(k));}
 function normalizeLevel(value){const level=String(value||'').trim().toLowerCase().replace(/[_-]+/g,' ');if(level==='critical')return 'critical';if(level==='high'||level==='high risk')return 'high';if(level==='concern')return 'concern';return 'normal';}
 function extractJson(text){const raw=String(text||'').trim();try{return JSON.parse(raw);}catch{}const match=raw.match(/\{[\s\S]*\}/);if(!match)return null;try{return JSON.parse(match[0]);}catch{return null;}}
 function safeErrorCode(error){return String(error?.code||error?.name||'AI_CLASSIFICATION_FAILED').slice(0,80);}
@@ -20,33 +21,26 @@ async function recordSafetyAudit(env,member,classification){if(!env.DB||classifi
 
 const RISK_PROMPT=`You are Aria Lifeline Risk Monitor. Your only job is to classify safety and support signals in a member conversation.
 
-Evaluate the CURRENT member message in the context of the recent conversation. Look for emotional distress, panic, fear, overwhelm, self-harm or suicide risk, threats or violence, abuse, inability to stay safe, severe or rapidly worsening symptoms, overdose, breathing difficulty, loss of consciousness, or other language suggesting the person may benefit from urgent human support.
+Evaluate the CURRENT member message in the context of recent MEMBER messages. Aria's own prior replies are not evidence and must never raise the risk level. Look for emotional distress, panic, fear, overwhelm, self-harm or suicide risk, threats or violence, abuse, inability to stay safe, severe or rapidly worsening symptoms, overdose, breathing difficulty, loss of consciousness, or other language suggesting the person may benefit from urgent human support.
 
 Use exactly one level:
 - normal: ordinary conversation, frustration, neutral questions, routine health/app questions, or no meaningful distress signal.
 - concern: distress, fear, worry, pain, panic, confusion, overwhelm, or deterioration that merits supportive follow-up and closer monitoring.
-- high: substantial safety concern or credible risk where Aria should present the member with a clear option to speak with trained live support while allowing the conversation to continue according to product policy. Statements such as "I feel unsafe," "I need help right now," "I'm alone and scared," or "someone is hurting me" are high unless the member also clearly describes immediate or imminent danger.
-- critical: reserve this for clear immediate or imminent danger: explicit self-harm or suicide intent, overdose, inability to breathe, unconsciousness, active violence happening now, a direct statement such as "I am in immediate danger," or another concrete urgent threat where emergency/crisis resources should be surfaced.
-
-Calibration rules:
-- Do not classify a message as critical merely because it contains urgency words such as "right now," "help," or "unsafe." Those can be high without being critical.
-- "I feel unsafe and I need help right now" by itself is HIGH, not critical.
-- "I am in immediate danger right now" is CRITICAL.
-- "Someone is hurting me" is HIGH unless the context indicates active violence occurring now or an immediate threat, in which case it may be CRITICAL.
-- "I want to kill myself," "I overdosed," "I can't breathe," or "I am about to hurt myself" are CRITICAL.
+- high: substantial safety concern or credible risk where Aria should present the member with a clear option to speak with trained live support. Statements such as "I feel unsafe" or "I need help right now" are high unless the member also gives an explicit indication of immediate or imminent danger.
+- critical: reserve this for explicit or strongly evidenced immediate/imminent danger, such as active self-harm intent, overdose, inability to breathe, unconsciousness, active violence, a weapon threat, severe uncontrolled bleeding, or a direct statement that the member is in immediate danger.
 
 Important rules:
 - This is a support/safety classification, not a diagnosis or clinical assessment.
-- Consider conversation context and multiple signals, not isolated keywords. Quoting a phrase, asking a general question about suicide, or mentioning pain medication is not automatically distress.
-- Repeated concern-level distress across several messages matters and may justify offering live support even if no single message is high or critical.
+- Consider context and multiple MEMBER signals, not isolated keywords.
+- Quoting a phrase, asking a general question about suicide, or mentioning pain medication is not automatically distress.
+- Repeated concern-level distress across several member messages matters and may justify offering live support even if no single message is high or critical.
 - Do not diagnose.
 - Do not downgrade explicit immediate-danger statements because the member sounds calm.
 - Do not contact, claim to contact, or imply contact with emergency services, outside responders, care contacts, or staff.
-- The output only recommends the next support posture. A separate Aria workflow controls what the member is shown and whether a live-support handoff occurs.
 - Return JSON only with this schema: {"level":"normal|concern|high|critical","confidence":0.0,"reason":"brief non-diagnostic rationale"}.
 - Never include private chain-of-thought. The reason must be a short summary suitable for an audit record.`;
 
-async function classifyWithAI(env,message,history){const transcript=history.map(item=>`${item.role==='assistant'?'ARIA':'MEMBER'}: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent conversation:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw Object.assign(new Error('invalid_risk_response'),{code:'AI_INVALID_CLASSIFICATION'});const level=normalizeLevel(parsed.level);return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
+async function classifyWithAI(env,message,history){const memberHistory=history.filter(item=>item.role==='user');const transcript=memberHistory.map(item=>`MEMBER: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent MEMBER messages:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw Object.assign(new Error('invalid_risk_response'),{code:'AI_INVALID_CLASSIFICATION'});let level=normalizeLevel(parsed.level);const memberEvidence=`${memberHistory.map(h=>h.content).join(' ')} ${message}`;if(level==='critical'&&!hasExplicitCriticalSignal(memberEvidence))level='high';return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
 
 async function handleAssess(request,env){
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
@@ -64,7 +58,7 @@ async function handleAssess(request,env){
     await auditAi(env,member.user_id,'ai_lifeline_classifier_rate_limited',{count:rate.count,limit:rate.limit,fallback:'local_conservative_classifier'});
   }
 
-  if(!classification){const level=fallbackRisk(`${history.map(h=>h.content).join(' ')} ${message}`);classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};if(fallbackReason)classification.fallbackReason=fallbackReason;}
+  if(!classification){const memberEvidence=`${history.map(h=>h.content).join(' ')} ${message}`;const level=fallbackRisk(memberEvidence);classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};if(fallbackReason)classification.fallbackReason=fallbackReason;}
 
   let persistence={persisted:false,incidentId:null,reason:'normal'};
   if(classification.level!=='normal'){
