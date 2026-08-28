@@ -45,8 +45,8 @@ async function listReminderEvents(request,env,member){
   const date=validDate(url.searchParams.get('date'))?url.searchParams.get('date'):localDate();
   const rows=await env.DB.prepare(`
     SELECT e.id,e.schedule_id,e.medication_id,e.scheduled_date,e.scheduled_time_local,e.timezone,e.status,
-           e.generated_at,e.acknowledged_at,e.dismissed_at,m.name AS medication_name,
-           r.id AS dose_record_id,r.recorded_at
+           e.generated_at,e.acknowledged_at,e.dismissed_at,e.snoozed_until,e.snoozed_at,e.snooze_count,
+           m.name AS medication_name,r.id AS dose_record_id,r.recorded_at
     FROM medication_reminder_events e
     JOIN member_medications m ON m.id=e.medication_id AND m.member_user_id=e.member_user_id
     LEFT JOIN medication_dose_records r
@@ -56,32 +56,69 @@ async function listReminderEvents(request,env,member){
     WHERE e.member_user_id=? AND e.scheduled_date=?
     ORDER BY e.scheduled_time_local ASC
   `).bind(member.user_id,date).all();
-  const events=(rows.results||[]).map(row=>({
-    id:row.id,
-    scheduleId:row.schedule_id,
-    medicationId:row.medication_id,
-    medication:row.medication_name,
-    scheduledDate:row.scheduled_date,
-    timeLocal:row.scheduled_time_local,
-    time:toDisplayTime(row.scheduled_time_local),
-    timezone:row.timezone,
-    status:row.dose_record_id?'acknowledged':row.status,
-    generatedAt:row.generated_at,
-    acknowledgedAt:row.recorded_at||row.acknowledged_at||null,
-    dismissedAt:row.dismissed_at||null
-  }));
+  const nowMs=Date.now();
+  const events=(rows.results||[]).map(row=>{
+    const authoritativeStatus=row.dose_record_id?'acknowledged':row.status;
+    const snoozedUntil=row.snoozed_until||null;
+    const snoozed=authoritativeStatus==='due'&&snoozedUntil&&Date.parse(snoozedUntil)>nowMs;
+    return {
+      id:row.id,
+      scheduleId:row.schedule_id,
+      medicationId:row.medication_id,
+      medication:row.medication_name,
+      scheduledDate:row.scheduled_date,
+      timeLocal:row.scheduled_time_local,
+      time:toDisplayTime(row.scheduled_time_local),
+      timezone:row.timezone,
+      status:authoritativeStatus,
+      snoozed:Boolean(snoozed),
+      snoozedUntil,
+      snoozedAt:row.snoozed_at||null,
+      snoozeCount:Number(row.snooze_count||0),
+      generatedAt:row.generated_at,
+      acknowledgedAt:row.recorded_at||row.acknowledged_at||null,
+      dismissedAt:row.dismissed_at||null
+    };
+  });
   return json({ok:true,date,events});
 }
 async function updateReminderEvent(request,env,member,id){
-  const existing=await env.DB.prepare(`SELECT id,status FROM medication_reminder_events WHERE id=? AND member_user_id=? LIMIT 1`).bind(id,member.user_id).first();
+  const existing=await env.DB.prepare(`
+    SELECT e.id,e.status,e.snooze_count,r.id AS dose_record_id
+    FROM medication_reminder_events e
+    LEFT JOIN medication_dose_records r
+      ON r.member_user_id=e.member_user_id
+      AND r.schedule_id=e.schedule_id
+      AND r.scheduled_date=e.scheduled_date
+    WHERE e.id=? AND e.member_user_id=? LIMIT 1
+  `).bind(id,member.user_id).first();
   if(!existing)return json({ok:false,error:'Reminder event not found.'},{status:404});
   let body={};try{body=await request.json();}catch{}
+
+  if(body.snoozeMinutes!==undefined){
+    const snoozeMinutes=Number(body.snoozeMinutes);
+    if(![10,30,60].includes(snoozeMinutes))return json({ok:false,error:'Snooze must be 10, 30, or 60 minutes.'},{status:400});
+    if(existing.dose_record_id)return json({ok:false,error:'A recorded dose cannot be snoozed.'},{status:409});
+    if(existing.status!=='due')return json({ok:false,error:'Only a due medication reminder can be snoozed.'},{status:409});
+    const now=new Date();
+    const snoozedUntil=new Date(now.getTime()+(snoozeMinutes*60000)).toISOString();
+    const updatedAt=now.toISOString();
+    const snoozeCount=Number(existing.snooze_count||0)+1;
+    await env.DB.prepare(`
+      UPDATE medication_reminder_events
+      SET snoozed_until=?,snoozed_at=?,snooze_count=?,updated_at=?
+      WHERE id=? AND member_user_id=?
+    `).bind(snoozedUntil,updatedAt,snoozeCount,updatedAt,id,member.user_id).run();
+    try{await auditMedicationReminder(env,member,'member_medication_reminder_snoozed',id,{snoozeMinutes,snoozedUntil,snoozeCount});}catch(error){console.error('Reminder snooze audit failed',error);}
+    return json({ok:true,id,status:'due',snoozed:true,snoozedUntil,snoozeCount,updatedAt});
+  }
+
   const status=String(body.status||'').trim().toLowerCase();
   if(!['due','acknowledged','dismissed'].includes(status))return json({ok:false,error:'Reminder status must be due, acknowledged, or dismissed.'},{status:400});
   const now=new Date().toISOString();
   await env.DB.prepare(`
     UPDATE medication_reminder_events
-    SET status=?,acknowledged_at=?,dismissed_at=?,updated_at=?
+    SET status=?,acknowledged_at=?,dismissed_at=?,snoozed_until=NULL,snoozed_at=NULL,updated_at=?
     WHERE id=? AND member_user_id=?
   `).bind(status,status==='acknowledged'?now:null,status==='dismissed'?now:null,now,id,member.user_id).run();
   try{await auditMedicationReminder(env,member,`member_medication_reminder_${status}`,id);}catch(error){console.error('Reminder audit failed',error);}
