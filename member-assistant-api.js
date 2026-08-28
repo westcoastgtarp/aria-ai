@@ -46,6 +46,13 @@ function aiHistory(messages,{memberOnly=false}={}){
   })).filter(item=>item.content&&(item.role==='assistant'||item.role==='user')&&(!memberOnly||item.role==='user'));
 }
 
+function isContextualEducationalQuestion(text){
+  const t=String(text||'').trim().toLowerCase();
+  const framing=['i was reading','reading about','an article','news article','in the news','what does','what is','definition of','for a paper','for an assignment','for homework','in context'];
+  const personal=['i overdosed','i took too much','i can’t breathe','i cant breathe','i want to die','i want to kill myself','i am suicidal','i’m suicidal','im suicidal','i feel unsafe','i need help right now','this is happening to me'];
+  return framing.some(k=>t.includes(k))&&!personal.some(k=>t.includes(k));
+}
+
 function safeErrorCode(error){
   return String(error?.code||error?.name||'AI_INFERENCE_FAILED').slice(0,80);
 }
@@ -65,7 +72,8 @@ Important boundaries:
 - If a question is about a member's own medication record, do not guess. Aria's dedicated medication-record function is the authority for recorded/not-recorded status.
 - You may give general health education, but clearly distinguish general information from personalized medical advice and encourage a qualified clinician or pharmacist when personalized guidance is needed.
 - Emotional distress by itself is not automatically an emergency. If a member says they are overwhelmed, scared, panicked, anxious, distressed, or afraid without indicating immediate danger, respond supportively, stay present, and ask what is happening. Do not jump straight to emergency services or crisis-resource language.
-- Treat quoted phrases, article excerpts, fictional dialogue, academic examples, idioms, and definition questions as contextual language, not as statements about the member, unless the member separately says the words describe their own current state. Answer the question they actually asked instead of addressing the quoted speaker as though it were the member.
+- Treat quoted phrases, article excerpts, news questions, fictional dialogue, academic examples, idioms, and definition questions as contextual language, not as statements about the member, unless the member separately says the words describe their own current state. Answer the question they actually asked.
+- For general educational questions about overdose, suicide, self-harm, or other serious topics, explain the concept directly without assuming a current emergency. Do not add emergency/crisis instructions unless the question asks what to do in an actual emergency or the member separately indicates that the situation is happening now.
 - When a member asks about a friend, family member, partner, coworker, or another person who made a concerning statement, do not treat that statement as the member's own safety disclosure. Give practical general guidance for supporting the other person. If the reported person appears to be in immediate danger, it is appropriate to advise contacting local emergency services or crisis support for that other person. Do not imply the member themselves is in crisis unless they separately say so.
 - If another person previously made a concerning statement and later says they were joking or exaggerating, do not treat that clarification as proof that there is no concern. Acknowledge it without being alarmist, suggest a calm check-in, and explain that concerning statements can still be taken seriously while respecting what the person says now.
 - If you mention U.S. crisis support, use the current 988 Suicide & Crisis Lifeline wording: call or text 988. You may also mention Crisis Text Line by saying text HOME to 741741. Never use the old 1-800-273-TALK number or label it as the current National Suicide Prevention Lifeline.
@@ -81,7 +89,7 @@ function riskPosturePrompt(riskLevel){
   if(riskLevel==='critical')return `The separate Lifeline safety layer marked this turn CRITICAL. Respond calmly and directly. Because this level represents immediate or imminent danger, include concise emergency guidance. Tell the member to use their device to call 911 or their local emergency number if they are in immediate danger. If they are in the United States and need crisis support, say they can call or text 988. You may also say they can text HOME to 741741 for Crisis Text Line. Do not use the old 1-800-273-TALK wording. Do not imply Aria contacted any service or that help is on the way. Keep the response supportive and concise.`;
   if(riskLevel==='high')return `The separate Lifeline safety layer marked this turn HIGH, not critical. Respond supportively and take the member seriously, but do not provide 911, 988, Crisis Text Line, crisis-hotline, emergency-service, or emergency-number instructions unless the member explicitly asks for those resources. The member-facing interface will separately offer the option to speak with trained live support. Do not claim that anyone has been contacted. Do not mention the internal risk label. Ask one brief grounding or clarifying question and stay present.`;
   if(riskLevel==='concern')return `The separate Lifeline safety layer marked this turn CONCERN. Stay supportive and present. Do not provide emergency or crisis-resource language by default. Do not mention the internal risk label or claim anyone has been contacted. Encourage the member to keep talking and ask a simple clarifying question.`;
-  return `The separate Lifeline safety layer marked this turn NORMAL. Respond naturally to the member's actual question or conversation. If the member is asking about another person's safety, answer that third-person question directly; you may suggest appropriate outside help for that other person if their reported situation warrants it. Do not treat the member as personally at risk unless they separately indicate that. If U.S. crisis support is relevant for the other person, use call or text 988, never 1-800-273-TALK.`;
+  return `The separate Lifeline safety layer marked this turn NORMAL. Respond naturally to the member's actual question or conversation. For educational/news/definition questions, answer only the current question and do not carry unrelated prior safety topics into the reply. If the member is asking about another person's safety, answer that third-person question directly; you may suggest appropriate outside help for that other person if their reported situation warrants it. Do not treat the member as personally at risk unless they separately indicate that. If U.S. crisis support is relevant for the other person, use call or text 988, never 1-800-273-TALK.`;
 }
 
 async function handleAssistant(request,env){
@@ -119,8 +127,9 @@ async function handleAssistant(request,env){
 
   const conversation=await ensureOpenConversation(env,member.user_id);
   const existing=await loadConversationMessages(env,member.user_id,conversation.id,10);
+  const contextualEducation=riskLevel==='normal'&&isContextualEducationalQuestion(message);
   const memberOnlyHistory=riskLevel==='high'||riskLevel==='critical';
-  const history=aiHistory(existing.messages||[],{memberOnly:memberOnlyHistory});
+  const history=contextualEducation?[]:aiHistory(existing.messages||[],{memberOnly:memberOnlyHistory});
 
   await appendConversationMessage(env,{
     conversationId:conversation.id,
