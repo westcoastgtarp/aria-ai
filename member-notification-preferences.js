@@ -25,7 +25,7 @@
         <div>
           <div class="eyebrow">NOTIFICATIONS</div>
           <h3>How should Aria remind you?</h3>
-          <p>Email and text notifications are included. Aria keeps reminder messages private by default.</p>
+          <p>Email reminders are available now. Aria keeps reminder messages private by default.</p>
         </div>
         <span class="member-notification-save-state" id="memberNotificationSaveState"></span>
       </div>
@@ -34,16 +34,7 @@
           <span><strong>Email notifications</strong><small id="memberNotificationEmailAddress">Uses the email on your Aria account</small></span>
           <input type="checkbox" id="memberNotificationEmailEnabled" checked aria-label="Email notifications" />
         </label>
-        <label class="member-notification-toggle">
-          <span><strong>Text notifications</strong><small>Send reminder alerts to the mobile number you enter below</small></span>
-          <input type="checkbox" id="memberNotificationSmsEnabled" checked aria-label="Text notifications" />
-        </label>
       </div>
-      <label class="member-notification-phone" for="memberNotificationMobileNumber">
-        <span><strong>Mobile number for text alerts</strong></span>
-        <input id="memberNotificationMobileNumber" type="tel" autocomplete="tel" inputmode="tel" placeholder="(555) 123-4567" />
-        <small>Type the mobile number where you want Aria text alerts sent. You can change it anytime.</small>
-      </label>
       <label class="member-notification-privacy">
         <input type="checkbox" id="memberNotificationPrivateContent" checked />
         <span><strong>Keep notification details private</strong><small>Messages say you have an Aria reminder and ask you to sign in instead of showing medication details.</small></span>
@@ -61,9 +52,7 @@
     try{
       const data=await api('/api/member/notification-preferences',{method:'GET',headers:{}});
       document.getElementById('memberNotificationEmailEnabled').checked=Boolean(data.emailEnabled);
-      document.getElementById('memberNotificationSmsEnabled').checked=Boolean(data.smsEnabled);
       document.getElementById('memberNotificationPrivateContent').checked=Boolean(data.privateContent);
-      document.getElementById('memberNotificationMobileNumber').value=data.mobileNumber||'';
       document.getElementById('memberNotificationEmailAddress').textContent=data.email?`Uses your account email: ${data.email}`:'Uses the email on your Aria account';
       state.textContent='';
     }catch(error){
@@ -77,19 +66,12 @@
     const state=document.getElementById('memberNotificationSaveState');
     const payload={
       emailEnabled:document.getElementById('memberNotificationEmailEnabled').checked,
-      smsEnabled:document.getElementById('memberNotificationSmsEnabled').checked,
-      mobileNumber:document.getElementById('memberNotificationMobileNumber').value.trim(),
+      smsEnabled:false,
       privateContent:document.getElementById('memberNotificationPrivateContent').checked
     };
-    if(payload.smsEnabled&&!payload.mobileNumber){
-      state.textContent='Enter your mobile number for text alerts';
-      document.getElementById('memberNotificationMobileNumber').focus();
-      return;
-    }
     button.disabled=true;button.textContent='Saving…';state.textContent='';
     try{
-      const data=await api('/api/member/notification-preferences',{method:'PATCH',body:JSON.stringify(payload)});
-      document.getElementById('memberNotificationMobileNumber').value=data.mobileNumber||'';
+      await api('/api/member/notification-preferences',{method:'PATCH',body:JSON.stringify(payload)});
       state.textContent='Saved';
     }catch(error){
       console.error('Notification preferences save failed',error);state.textContent=escapeHtml(error.message||'Could not save settings');
