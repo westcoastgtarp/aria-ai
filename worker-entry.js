@@ -21,6 +21,7 @@ import { handleMemberMedicationsRoute } from './member-medications-api.js';
 import { handleMemberRemindersRoute } from './member-reminders-api.js';
 import { handleMemberNotificationPreferencesRoute } from './member-notification-preferences-api.js';
 import { runMedicationReminderScheduler } from './medication-reminder-scheduler.js';
+import { runCommunicationDeliveries } from './communication-delivery-runner.js';
 
 function withAriaFormSystem(response,pathname) {
   const contentType = response.headers.get('content-type') || '';
@@ -120,6 +121,10 @@ export default {
   },
 
   async scheduled(controller,env,ctx) {
-    ctx.waitUntil(runMedicationReminderScheduler(env,new Date(controller.scheduledTime)));
+    const scheduledAt=new Date(controller.scheduledTime);
+    ctx.waitUntil((async()=>{
+      await runMedicationReminderScheduler(env,scheduledAt);
+      await runCommunicationDeliveries(env,scheduledAt);
+    })());
   }
 };
