@@ -29,18 +29,18 @@
       </div>
       <div class="member-notification-options">
         <label class="member-notification-toggle">
-          <span><strong>Email</strong><small id="memberNotificationEmailAddress">Your account email</small></span>
-          <input type="checkbox" id="memberNotificationEmailEnabled" checked />
+          <span><strong>Email notifications</strong><small id="memberNotificationEmailAddress">Uses the email on your Aria account</small></span>
+          <input type="checkbox" id="memberNotificationEmailEnabled" checked aria-label="Email notifications" />
         </label>
         <label class="member-notification-toggle">
-          <span><strong>Text message</strong><small>Send reminder alerts to your mobile number</small></span>
-          <input type="checkbox" id="memberNotificationSmsEnabled" checked />
+          <span><strong>Text notifications</strong><small>Send reminder alerts to the mobile number you enter below</small></span>
+          <input type="checkbox" id="memberNotificationSmsEnabled" checked aria-label="Text notifications" />
         </label>
       </div>
       <label class="member-notification-phone" for="memberNotificationMobileNumber">
-        <span>Mobile number</span>
+        <span><strong>Mobile number for text alerts</strong></span>
         <input id="memberNotificationMobileNumber" type="tel" autocomplete="tel" inputmode="tel" placeholder="(555) 123-4567" />
-        <small>Used only for Aria text notifications. You can change it anytime.</small>
+        <small>Type the mobile number where you want Aria text alerts sent. You can change it anytime.</small>
       </label>
       <label class="member-notification-privacy">
         <input type="checkbox" id="memberNotificationPrivateContent" checked />
@@ -62,7 +62,7 @@
       document.getElementById('memberNotificationSmsEnabled').checked=Boolean(data.smsEnabled);
       document.getElementById('memberNotificationPrivateContent').checked=Boolean(data.privateContent);
       document.getElementById('memberNotificationMobileNumber').value=data.mobileNumber||'';
-      document.getElementById('memberNotificationEmailAddress').textContent=data.email?`Send to ${data.email}`:'Your account email';
+      document.getElementById('memberNotificationEmailAddress').textContent=data.email?`Uses your account email: ${data.email}`:'Uses the email on your Aria account';
       state.textContent='';
     }catch(error){
       console.error('Notification preferences load failed',error);
@@ -80,7 +80,7 @@
       privateContent:document.getElementById('memberNotificationPrivateContent').checked
     };
     if(payload.smsEnabled&&!payload.mobileNumber){
-      state.textContent='Add a mobile number for text alerts';
+      state.textContent='Enter your mobile number for text alerts';
       document.getElementById('memberNotificationMobileNumber').focus();
       return;
     }
@@ -90,8 +90,7 @@
       document.getElementById('memberNotificationMobileNumber').value=data.mobileNumber||'';
       state.textContent='Saved';
     }catch(error){
-      console.error('Notification preferences save failed',error);
-      state.textContent=escapeHtml(error.message||'Could not save settings');
+      console.error('Notification preferences save failed',error);state.textContent=escapeHtml(error.message||'Could not save settings');
     }finally{
       button.disabled=false;button.textContent='Save notification settings';
     }
