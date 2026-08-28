@@ -44,6 +44,10 @@ function aiHistory(messages){
   })).filter(item=>item.content&&(item.role==='assistant'||item.role==='user'));
 }
 
+function safeErrorCode(error){
+  return String(error?.code||error?.name||'AI_INFERENCE_FAILED').slice(0,80);
+}
+
 const SYSTEM_PROMPT=`You are Aria Assistant, the conversational member assistant inside Aria AI.
 
 Your job is to answer members' everyday questions clearly, naturally, calmly, and helpfully. You can answer broad general-knowledge questions, explain Aria features, help a member navigate the app, discuss routines and organization, provide companionship and supportive conversation, and provide general educational information.
@@ -105,7 +109,11 @@ async function handleAssistant(request,env){
   try{
     const inference=await runAriaConversationModel(env,{messages,maxTokens:500,temperature:0.45,topP:0.9});
     const answer=String(inference?.result?.response||'').trim();
-    if(!answer)throw new Error('empty_response');
+    if(!answer){
+      const error=new Error('empty_response');
+      error.code='AI_EMPTY_RESPONSE';
+      throw error;
+    }
 
     const saved=await appendConversationMessage(env,{
       conversationId:conversation.id,
@@ -118,8 +126,12 @@ async function handleAssistant(request,env){
 
     return json({ok:true,answer,conversationId:conversation.id,messageId:saved?.id||null});
   }catch(error){
-    console.error('Aria Assistant inference failed',error);
-    return json({ok:false,error:'Aria Assistant could not answer that right now. Please try again.'},{status:502});
+    const code=safeErrorCode(error);
+    console.error('Aria Assistant inference failed',{code});
+    if(code==='AI_PROVIDER_TIMEOUT'||code==='TimeoutError'){
+      return json({ok:false,code:'assistant_timeout',error:'Aria is taking longer than expected right now. Please try again.'},{status:504});
+    }
+    return json({ok:false,code:'assistant_unavailable',error:'Aria Assistant could not answer that right now. Please try again.'},{status:502});
   }
 }
 
