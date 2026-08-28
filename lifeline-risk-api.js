@@ -22,6 +22,15 @@ function isClearlyQuotedOrEducational(text){
   const hasPersonalOutsideQuote=personalSignals.some(k=>stripped.includes(k));
   return hasFraming&&hasQuote&&!hasPersonalOutsideQuote;
 }
+function isClearlyThirdPartyReport(text){
+  const raw=String(text||'').trim();
+  const t=raw.toLowerCase();
+  const thirdParty=['my friend','a friend','my boyfriend','my girlfriend','my partner','my husband','my wife','my brother','my sister','my mom','my mother','my dad','my father','my child','my son','my daughter','my coworker','my co-worker','someone i know','they said','he said','she said'];
+  if(!thirdParty.some(k=>t.includes(k)))return false;
+  const personalSignals=['i want to die','i want to kill myself','i am suicidal','i’m suicidal','im suicidal','i feel unsafe','i need help right now','i am in immediate danger','i’m in immediate danger','im in immediate danger','i might hurt myself','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];
+  const withoutQuoted=raw.replace(/["“”'][^"“”']{1,200}["“”']/g,' ').toLowerCase();
+  return !personalSignals.some(k=>withoutQuoted.includes(k));
+}
 function fallbackRisk(text){const t=String(text||'').toLowerCase();const critical=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily'];const high=['feel unsafe','need help now','need help right now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];const concern=['scared','worried','dizzy','pain','don’t feel right','dont feel right','bad reaction','side effect','distressed','panic'];if(critical.some(k=>t.includes(k)))return 'critical';if(high.some(k=>t.includes(k)))return 'high';if(concern.some(k=>t.includes(k)))return 'concern';return 'normal';}
 function hasExplicitCriticalSignal(text){const t=String(text||'').toLowerCase();const signals=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];return signals.some(k=>t.includes(k));}
 function normalizeLevel(value){const level=String(value||'').trim().toLowerCase().replace(/[_-]+/g,' ');if(level==='critical')return 'critical';if(level==='high'||level==='high risk')return 'high';if(level==='concern')return 'concern';return 'normal';}
@@ -32,29 +41,32 @@ async function recordSafetyAudit(env,member,classification){if(!env.DB||classifi
 
 const RISK_PROMPT=`You are Aria Lifeline Risk Monitor. Your only job is to classify safety and support signals in a member conversation.
 
-Evaluate the CURRENT member message in the context of recent MEMBER messages. Aria's own prior replies are not evidence and must never raise the risk level. Look for emotional distress, panic, fear, overwhelm, self-harm or suicide risk, threats or violence, abuse, inability to stay safe, severe or rapidly worsening symptoms, overdose, breathing difficulty, loss of consciousness, or other language suggesting the person may benefit from urgent human support.
+Evaluate the CURRENT member message in the context of recent MEMBER messages. Aria's own prior replies are not evidence and must never raise the risk level. The level describes the MEMBER'S own current safety/support state, not the state of another person they are asking about.
 
 Use exactly one level:
-- normal: ordinary conversation, frustration, neutral questions, routine health/app questions, quoted material, academic/definition questions, or no meaningful distress signal.
-- concern: distress, fear, worry, pain, panic, confusion, overwhelm, or deterioration that merits supportive follow-up and closer monitoring.
-- high: substantial safety concern or credible risk where Aria should present the member with a clear option to speak with trained live support. Statements such as "I feel unsafe" or "I need help right now" are high unless the member also gives an explicit indication of immediate or imminent danger.
-- critical: reserve this for explicit or strongly evidenced immediate/imminent danger, such as active self-harm intent, overdose, inability to breathe, unconsciousness, active violence, a weapon threat, severe uncontrolled bleeding, or a direct statement that the member is in immediate danger.
+- normal: ordinary conversation, frustration, neutral questions, routine health/app questions, quoted material, academic/definition questions, third-person reports about a friend/family member/other person, or no meaningful distress signal from the member.
+- concern: distress, fear, worry, pain, panic, confusion, overwhelm, or deterioration expressed by the member that merits supportive follow-up and closer monitoring.
+- high: substantial safety concern or credible risk expressed by the member where Aria should present the member with a clear option to speak with trained live support. Statements such as "I feel unsafe" or "I need help right now" are high unless the member also gives an explicit indication of immediate or imminent danger.
+- critical: reserve this for explicit or strongly evidenced immediate/imminent danger to the member, such as active self-harm intent, overdose, inability to breathe, unconsciousness, active violence, a weapon threat, severe uncontrolled bleeding, or a direct statement that the member is in immediate danger.
 
 Important rules:
 - This is a support/safety classification, not a diagnosis or clinical assessment.
 - Consider context and multiple MEMBER signals, not isolated keywords.
 - Quoted phrases, article excerpts, fictional dialogue, academic questions, definition questions, or questions about what words mean are NOT personal safety disclosures unless the member separately indicates the words describe their own current state.
+- Third-person reports are not personal safety disclosures. Example: My friend said "I want to die" yesterday, but they told me today they were exaggerating. What should I do? => normal for the member.
+- A third-person report can still warrant advice about helping that other person; that advice belongs in the conversational response, not in the member's risk level.
 - Example: I was reading an article that said "I want to die." What does that phrase mean in context? => normal.
 - Example: This homework is killing me lol => normal.
 - Repeated concern-level distress across several member messages matters and may justify offering live support even if no single message is high or critical.
 - Do not diagnose.
-- Do not downgrade explicit immediate-danger statements because the member sounds calm.
+- Do not downgrade explicit immediate-danger statements about the member because the member sounds calm.
 - Do not contact, claim to contact, or imply contact with emergency services, outside responders, care contacts, or staff.
 - Return JSON only with this schema: {"level":"normal|concern|high|critical","confidence":0.0,"reason":"brief non-diagnostic rationale"}.
 - Never include private chain-of-thought. The reason must be a short summary suitable for an audit record.`;
 
 async function classifyWithAI(env,message,history){
   if(isClearlyQuotedOrEducational(message))return {level:'normal',confidence:0.98,reason:'Quoted or educational context without a personal safety disclosure.',responseWindowSeconds:0,source:'context-guard',provider:null,model:null};
+  if(isClearlyThirdPartyReport(message))return {level:'normal',confidence:0.98,reason:'Third-person report without a personal safety disclosure from the member.',responseWindowSeconds:0,source:'context-guard',provider:null,model:null};
   const memberHistory=history.filter(item=>item.role==='user');const transcript=memberHistory.map(item=>`MEMBER: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent MEMBER messages:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw Object.assign(new Error('invalid_risk_response'),{code:'AI_INVALID_CLASSIFICATION'});let level=normalizeLevel(parsed.level);const memberEvidence=`${memberHistory.map(h=>h.content).join(' ')} ${message}`;if(level==='critical'&&!hasExplicitCriticalSignal(memberEvidence))level='high';return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
 
 async function handleAssess(request,env){
@@ -73,7 +85,7 @@ async function handleAssess(request,env){
     await auditAi(env,member.user_id,'ai_lifeline_classifier_rate_limited',{count:rate.count,limit:rate.limit,fallback:'local_conservative_classifier'});
   }
 
-  if(!classification){const memberEvidence=isClearlyQuotedOrEducational(message)?'':`${history.map(h=>h.content).join(' ')} ${message}`;const level=memberEvidence?fallbackRisk(memberEvidence):'normal';classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};if(fallbackReason)classification.fallbackReason=fallbackReason;}
+  if(!classification){const contextual=isClearlyQuotedOrEducational(message)||isClearlyThirdPartyReport(message);const memberEvidence=contextual?'':`${history.map(h=>h.content).join(' ')} ${message}`;const level=memberEvidence?fallbackRisk(memberEvidence):'normal';classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};if(fallbackReason)classification.fallbackReason=fallbackReason;}
 
   let persistence={persisted:false,incidentId:null,reason:'normal'};
   if(classification.level!=='normal'){
