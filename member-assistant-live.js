@@ -40,14 +40,21 @@
     const style=document.createElement('style');
     style.id='ariaSupportChoiceStyles';
     style.textContent=`
-      .aria-support-choice{margin:10px 2px 14px;padding:12px;border:1px solid #dde2ee;border-radius:14px;background:#fff;box-shadow:0 3px 12px rgba(34,45,80,.06)}
-      .aria-support-choice-title{font-weight:700;margin-bottom:8px;color:#202638}
-      .aria-support-choice-actions{display:grid;gap:8px}
-      .aria-support-choice button{width:100%;text-align:left;border:1px solid #d7dceb;background:#fff;border-radius:12px;padding:10px 12px;cursor:pointer;color:#202638}
-      .aria-support-choice button:hover{border-color:#6a63e8;background:#f8f7ff}
-      .aria-support-choice button strong{display:block;font-size:13px;margin-bottom:2px}
-      .aria-support-choice button span{display:block;font-size:12px;color:#687087;line-height:1.35}
-      .aria-support-choice button[disabled]{opacity:.6;cursor:default}
+      .aria-support-choice{margin:12px 10px 16px;padding:14px;border:1px solid rgba(108,99,232,.18);border-radius:18px;background:linear-gradient(180deg,#ffffff 0%,#f8f7ff 100%);box-shadow:0 8px 24px rgba(54,45,140,.08)}
+      .aria-support-choice-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:10px;color:#25253a}
+      .aria-support-choice-actions{display:grid;gap:10px}
+      .aria-support-choice button{appearance:none;-webkit-appearance:none;width:100%;border:1px solid rgba(108,99,232,.2);border-radius:14px;padding:11px 13px;cursor:pointer;font:inherit;text-align:left;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease}
+      .aria-support-choice button[data-choice="aria"]{background:#fff;color:#2b2b3d}
+      .aria-support-choice button[data-choice="support"]{background:linear-gradient(135deg,#6b63e8,#7f65e9);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(107,99,232,.22)}
+      .aria-support-choice button:hover{transform:translateY(-1px)}
+      .aria-support-choice button[data-choice="aria"]:hover{border-color:#8d84ef;background:#fbfaff;box-shadow:0 5px 14px rgba(68,59,150,.08)}
+      .aria-support-choice button[data-choice="support"]:hover{box-shadow:0 8px 20px rgba(107,99,232,.28)}
+      .aria-support-choice button:focus-visible{outline:3px solid rgba(107,99,232,.22);outline-offset:2px}
+      .aria-support-choice button strong{display:block;font-size:13px;font-weight:700;line-height:1.25;margin-bottom:3px}
+      .aria-support-choice button span{display:block;font-size:12px;line-height:1.4}
+      .aria-support-choice button[data-choice="aria"] span{color:#73738a}
+      .aria-support-choice button[data-choice="support"] span{color:rgba(255,255,255,.88)}
+      .aria-support-choice button[disabled]{opacity:.58;cursor:default;transform:none;box-shadow:none}
     `;
     document.head.appendChild(style);
   }
