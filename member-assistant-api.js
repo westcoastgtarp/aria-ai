@@ -39,11 +39,11 @@ async function hasAssistantAccess(env,userId){
   return paidActive||trialActive(selection.selected_at);
 }
 
-function aiHistory(messages){
+function aiHistory(messages,{memberOnly=false}={}){
   return messages.slice(-10).map(item=>({
     role:item.role==='assistant'?'assistant':'user',
     content:String(item.content||'').trim().slice(0,2000)
-  })).filter(item=>item.content&&(item.role==='assistant'||item.role==='user'));
+  })).filter(item=>item.content&&(item.role==='assistant'||item.role==='user')&&(!memberOnly||item.role==='user'));
 }
 
 function safeErrorCode(error){
@@ -75,7 +75,7 @@ Aria Lifeline is a separate safety-monitoring and live-support-offer layer. You 
 
 function riskPosturePrompt(riskLevel){
   if(riskLevel==='critical')return `The separate Lifeline safety layer marked this turn CRITICAL. Respond calmly and directly. Because this level represents immediate or imminent danger, include concise emergency guidance. Tell the member to use their device to call 911 or their local emergency number if they are in immediate danger. If they are in the United States and need crisis support, say they can call or text 988. You may also say they can text HOME to 741741 for Crisis Text Line. Do not use the old 1-800-273-TALK wording. Do not imply Aria contacted any service or that help is on the way. Keep the response supportive and concise.`;
-  if(riskLevel==='high')return `The separate Lifeline safety layer marked this turn HIGH, not critical. Respond supportively and take the member seriously, but do not automatically provide 911, 988, crisis-hotline, or emergency-service instructions. The member-facing interface will separately offer the option to speak with trained live support. Do not claim that anyone has been contacted. Do not mention the internal risk label. Ask a brief grounding or clarifying question and stay present.`;
+  if(riskLevel==='high')return `The separate Lifeline safety layer marked this turn HIGH, not critical. Respond supportively and take the member seriously, but do not provide 911, 988, Crisis Text Line, crisis-hotline, emergency-service, or emergency-number instructions unless the member explicitly asks for those resources. The member-facing interface will separately offer the option to speak with trained live support. Do not claim that anyone has been contacted. Do not mention the internal risk label. Ask one brief grounding or clarifying question and stay present.`;
   if(riskLevel==='concern')return `The separate Lifeline safety layer marked this turn CONCERN. Stay supportive and present. Do not provide emergency or crisis-resource language by default. Do not mention the internal risk label or claim anyone has been contacted. Encourage the member to keep talking and ask a simple clarifying question.`;
   return `The separate Lifeline safety layer marked this turn NORMAL. Respond naturally to the member's actual question or conversation. Do not introduce emergency, crisis, or live-support language unless the member explicitly asks for those resources.`;
 }
@@ -115,7 +115,10 @@ async function handleAssistant(request,env){
 
   const conversation=await ensureOpenConversation(env,member.user_id);
   const existing=await loadConversationMessages(env,member.user_id,conversation.id,10);
-  const history=aiHistory(existing.messages||[]);
+  // For elevated safety turns, prior Aria replies are deliberately excluded so
+  // old emergency/resource wording cannot contaminate the current response.
+  const memberOnlyHistory=riskLevel==='high'||riskLevel==='critical';
+  const history=aiHistory(existing.messages||[],{memberOnly:memberOnlyHistory});
 
   await appendConversationMessage(env,{
     conversationId:conversation.id,
