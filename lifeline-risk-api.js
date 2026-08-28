@@ -31,7 +31,19 @@ function isClearlyThirdPartyReport(text){
   const withoutQuoted=raw.replace(/["“”'][^"“”']{1,200}["“”']/g,' ').toLowerCase();
   return !personalSignals.some(k=>withoutQuoted.includes(k));
 }
-function fallbackRisk(text){const t=String(text||'').toLowerCase();const critical=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily'];const high=['feel unsafe','need help now','need help right now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];const concern=['scared','worried','dizzy','pain','don’t feel right','dont feel right','bad reaction','side effect','distressed','panic'];if(critical.some(k=>t.includes(k)))return 'critical';if(high.some(k=>t.includes(k)))return 'high';if(concern.some(k=>t.includes(k)))return 'concern';return 'normal';}
+function hasPersonalConcernSignal(text){
+  const t=String(text||'').toLowerCase();
+  const signals=[
+    'i’m overwhelmed','i\'m overwhelmed','im overwhelmed','i am overwhelmed',
+    'really overwhelmed','still overwhelmed','feeling overwhelmed',
+    'i’m scared','i\'m scared','im scared','i am scared','getting more scared',
+    'can’t calm down','cant calm down','cannot calm down',
+    'i’m panicking','i\'m panicking','im panicking','i am panicking',
+    'i feel panicked','i feel anxious','really anxious','i don’t know what to do','i dont know what to do'
+  ];
+  return signals.some(k=>t.includes(k));
+}
+function fallbackRisk(text){const t=String(text||'').toLowerCase();const critical=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily'];const high=['feel unsafe','need help now','need help right now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];const concern=['scared','worried','dizzy','pain','don’t feel right','dont feel right','bad reaction','side effect','distressed','panic','overwhelmed','can’t calm down','cant calm down','anxious'];if(critical.some(k=>t.includes(k)))return 'critical';if(high.some(k=>t.includes(k)))return 'high';if(concern.some(k=>t.includes(k)))return 'concern';return 'normal';}
 function hasExplicitCriticalSignal(text){const t=String(text||'').toLowerCase();const signals=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];return signals.some(k=>t.includes(k));}
 function normalizeLevel(value){const level=String(value||'').trim().toLowerCase().replace(/[_-]+/g,' ');if(level==='critical')return 'critical';if(level==='high'||level==='high risk')return 'high';if(level==='concern')return 'concern';return 'normal';}
 function extractJson(text){const raw=String(text||'').trim();try{return JSON.parse(raw);}catch{}const match=raw.match(/\{[\s\S]*\}/);if(!match)return null;try{return JSON.parse(match[0]);}catch{return null;}}
@@ -45,7 +57,7 @@ Evaluate the CURRENT member message in the context of recent MEMBER messages. Ar
 
 Use exactly one level:
 - normal: ordinary conversation, frustration, neutral questions, routine health/app questions, quoted material, news/article questions, academic/definition questions, third-person reports about another person, or no meaningful distress signal from the member.
-- concern: distress, fear, worry, pain, panic, confusion, overwhelm, or deterioration expressed by the member that merits supportive follow-up and closer monitoring.
+- concern: distress, fear, worry, pain, panic, confusion, overwhelm, anxiety, inability to calm down, or deterioration expressed by the member that merits supportive follow-up and closer monitoring.
 - high: substantial safety concern or credible risk expressed by the member where Aria should present the member with a clear option to speak with trained live support. Statements such as "I feel unsafe" or "I need help right now" are high unless the member also gives an explicit indication of immediate or imminent danger.
 - critical: reserve this for explicit or strongly evidenced immediate/imminent danger to the member, such as active self-harm intent, an actual overdose, inability to breathe, unconsciousness, active violence, a weapon threat, severe uncontrolled bleeding, or a direct statement that the member is in immediate danger.
 
@@ -58,6 +70,7 @@ Important rules:
 - A third-person report can still warrant advice about helping that other person; that advice belongs in the conversational response, not in the member's risk level.
 - Example: I was reading an article that said "I want to die." What does that phrase mean in context? => normal.
 - Example: This homework is killing me lol => normal.
+- Personal statements such as "I'm feeling really overwhelmed today," "I'm still really overwhelmed and I don't know what to do," and "I can't seem to calm down and I'm getting more scared" are concern-level signals unless stronger evidence supports high or critical.
 - Repeated concern-level distress across several member messages matters and may justify offering live support even if no single message is high or critical.
 - Do not diagnose.
 - Do not downgrade explicit immediate-danger statements about the member because the member sounds calm.
@@ -68,7 +81,7 @@ Important rules:
 async function classifyWithAI(env,message,history){
   if(isClearlyQuotedOrEducational(message))return {level:'normal',confidence:0.98,reason:'Quoted, news, or educational context without a personal safety disclosure.',responseWindowSeconds:0,source:'context-guard',provider:null,model:null};
   if(isClearlyThirdPartyReport(message))return {level:'normal',confidence:0.98,reason:'Third-person report without a personal safety disclosure from the member.',responseWindowSeconds:0,source:'context-guard',provider:null,model:null};
-  const memberHistory=history.filter(item=>item.role==='user');const transcript=memberHistory.map(item=>`MEMBER: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent MEMBER messages:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw Object.assign(new Error('invalid_risk_response'),{code:'AI_INVALID_CLASSIFICATION'});let level=normalizeLevel(parsed.level);const memberEvidence=`${memberHistory.map(h=>h.content).join(' ')} ${message}`;if(level==='critical'&&!hasExplicitCriticalSignal(memberEvidence))level='high';return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
+  const memberHistory=history.filter(item=>item.role==='user');const transcript=memberHistory.map(item=>`MEMBER: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent MEMBER messages:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw Object.assign(new Error('invalid_risk_response'),{code:'AI_INVALID_CLASSIFICATION'});let level=normalizeLevel(parsed.level);const memberEvidence=`${memberHistory.map(h=>h.content).join(' ')} ${message}`;if(level==='critical'&&!hasExplicitCriticalSignal(memberEvidence))level='high';if(level==='normal'&&hasPersonalConcernSignal(message))level='concern';return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
 
 async function handleAssess(request,env){
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
