@@ -36,6 +36,7 @@ function withAriaFormSystem(response,pathname) {
         element.append('<link rel="stylesheet" href="/member-reminders.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-overview-reminders.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-notification-preferences.css?v=20260827-1" />', { html: true });
+        element.append('<link rel="stylesheet" href="/member-assistant-support-choice.css?v=20260827-1" />', { html: true });
       }
     });
 
