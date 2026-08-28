@@ -1,0 +1,94 @@
+.aria-support-choice{
+  margin:12px 10px 16px !important;
+  padding:14px !important;
+  border:1px solid rgba(108,99,232,.18) !important;
+  border-radius:18px !important;
+  background:linear-gradient(180deg,#ffffff 0%,#f8f7ff 100%) !important;
+  box-shadow:0 8px 24px rgba(54,45,140,.08) !important;
+}
+
+.aria-support-choice-title{
+  margin:0 0 10px !important;
+  color:#25253a !important;
+  font-size:14px !important;
+  font-weight:700 !important;
+  line-height:1.4 !important;
+}
+
+.aria-support-choice-actions{
+  display:grid !important;
+  gap:10px !important;
+}
+
+.aria-support-choice .aria-support-choice-button{
+  appearance:none !important;
+  -webkit-appearance:none !important;
+  display:block !important;
+  width:100% !important;
+  min-height:0 !important;
+  margin:0 !important;
+  padding:11px 13px !important;
+  border:1px solid rgba(108,99,232,.2) !important;
+  border-radius:14px !important;
+  background:#fff !important;
+  color:#2b2b3d !important;
+  box-shadow:none !important;
+  font:inherit !important;
+  text-align:left !important;
+  cursor:pointer !important;
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease !important;
+}
+
+.aria-support-choice .aria-support-choice-button--support{
+  border-color:transparent !important;
+  background:linear-gradient(135deg,#6b63e8,#7f65e9) !important;
+  color:#fff !important;
+  box-shadow:0 6px 16px rgba(107,99,232,.22) !important;
+}
+
+.aria-support-choice .aria-support-choice-button:hover{
+  transform:translateY(-1px) !important;
+  border-color:#8d84ef !important;
+  background:#fbfaff !important;
+  box-shadow:0 5px 14px rgba(68,59,150,.08) !important;
+}
+
+.aria-support-choice .aria-support-choice-button--support:hover{
+  border-color:transparent !important;
+  background:linear-gradient(135deg,#6b63e8,#7f65e9) !important;
+  box-shadow:0 8px 20px rgba(107,99,232,.28) !important;
+}
+
+.aria-support-choice .aria-support-choice-button:focus-visible{
+  outline:3px solid rgba(107,99,232,.22) !important;
+  outline-offset:2px !important;
+}
+
+.aria-support-choice .aria-support-choice-button strong{
+  display:block !important;
+  margin:0 0 3px !important;
+  color:inherit !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  line-height:1.25 !important;
+}
+
+.aria-support-choice .aria-support-choice-button span{
+  display:block !important;
+  margin:0 !important;
+  color:#73738a !important;
+  font-size:12px !important;
+  font-weight:400 !important;
+  line-height:1.4 !important;
+}
+
+.aria-support-choice .aria-support-choice-button--support span{
+  color:rgba(255,255,255,.9) !important;
+}
+
+.aria-support-choice .aria-support-choice-button[disabled]{
+  opacity:.58 !important;
+  cursor:default !important;
+  transform:none !important;
+  box-shadow:none !important;
+}
