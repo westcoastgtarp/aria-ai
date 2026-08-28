@@ -79,7 +79,6 @@
 .aria-bubble-avatar { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:linear-gradient(135deg,#6269e5,#835fdc); color:#fff; font-weight:800; }
 .aria-bubble-title strong,.aria-bubble-title span { display:block; }
 .aria-bubble-title strong { font-size:16px; }
-.aria-bubble-title strong::after { content:" AI"; }
 .aria-bubble-title span { color:#7a8797; font-size:12px; margin-top:2px; }
 .aria-chat-close { border:0; background:transparent; color:#738095; font-size:22px; padding:6px; cursor:pointer; }
 .aria-bubble-log { flex:1; overflow:auto; padding:19px; background:#f8fafc; display:flex; flex-direction:column; gap:11px; }
