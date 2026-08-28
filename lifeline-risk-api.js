@@ -7,7 +7,7 @@ function json(data,init={}){return new Response(JSON.stringify(data),{...init,he
 function bytesToHex(bytes){return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');}
 async function sha256(value){return bytesToHex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value))));}
 function parseCookies(request){const raw=request.headers.get('cookie')||'';return Object.fromEntries(raw.split(';').map(v=>v.trim()).filter(Boolean).map(v=>{const i=v.indexOf('=');return [v.slice(0,i),decodeURIComponent(v.slice(i+1))];}));}
-async function currentMember(request,env){if(!env.DB)return null;const token=parseCookies(request).aria_session;if(!token)return null;const tokenHash=await sha256(token);return env.DB.prepare(`SELECT u.id AS user_id,u.email,u.display_name FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>? AND u.account_type='member' AND u.status='active' LIMIT 1`).bind(tokenHash,new Date().toISOString()).first();}
+async function currentMember(request,env){if(!env.DB)return null;const token=parseCookies(request).aria_session;if(!token)return null;const tokenHash=await sha256(token);return env.DB.prepare(`SELECT u.id AS user_id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.revoked_at IS NULL AND s.expires_at>? AND u.account_type='member' AND u.status='active' LIMIT 1`).bind(tokenHash,new Date().toISOString()).first();}
 function trialActive(selectedAt){const start=new Date(selectedAt);return !Number.isNaN(start.getTime())&&Date.now()<start.getTime()+(30*24*60*60*1000);}
 async function hasLifelineAccess(env,userId){const selection=await env.DB.prepare(`SELECT plan_code,status,selected_at FROM member_plan_selections WHERE user_id=? ORDER BY selected_at DESC LIMIT 1`).bind(userId).first();if(!selection)return false;return (String(selection.plan_code||'').startsWith('lifeline_')&&selection.status==='active')||trialActive(selection.selected_at);}
 function cleanHistory(value){if(!Array.isArray(value))return [];return value.slice(-12).map(item=>({role:item?.role==='assistant'?'assistant':'user',content:String(item?.content||'').trim().slice(0,2000)})).filter(item=>item.content);}
@@ -66,16 +66,10 @@ async function handleAssess(request,env){
   }
   try{await recordSafetyAudit(env,member,classification);}catch(error){console.error('Lifeline audit write failed',{code:safeErrorCode(error)});}
 
-  const publicClassification={
+  return json({ok:true,risk:{
     level:classification.level,
-    confidence:classification.confidence,
-    reason:classification.reason,
-    responseWindowSeconds:classification.responseWindowSeconds,
-    source:classification.source,
-    incidentId:persistence.incidentId||null,
-    persisted:Boolean(persistence.persisted)
-  };
-  return json({ok:true,risk:publicClassification});
+    responseWindowSeconds:classification.responseWindowSeconds
+  }});
 }
 
 export async function handleLifelineRiskRoute(request,env){const url=new URL(request.url);if(url.pathname==='/api/member/lifeline/risk'&&request.method==='POST')return handleAssess(request,env);return null;}
