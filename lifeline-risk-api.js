@@ -14,13 +14,13 @@ function cleanHistory(value){if(!Array.isArray(value))return [];return value.sli
 function isClearlyQuotedOrEducational(text){
   const raw=String(text||'').trim();
   const t=raw.toLowerCase();
-  const framing=['i was reading','an article','the article','what does that phrase mean','what does this phrase mean','what does "','what does “','in context','quoted','quote','for a paper','for an assignment','for homework','definition of','what does it mean'];
+  const framing=['i was reading','i was reading about','reading about','an article','the article','news article','in the news','what does that phrase mean','what does this phrase mean','what does "','what does “','in context','quoted','quote','for a paper','for an assignment','for homework','definition of','what does it mean','what does overdose mean','what is an overdose','what does suicide mean','what does suicidal mean'];
   const hasFraming=framing.some(k=>t.includes(k));
   const hasQuote=/["“”'][^"“”']{1,160}["“”']/.test(raw);
-  const personalSignals=['i feel this way','i feel like this','this is how i feel','i mean it','i want to die','i want to kill myself','i am suicidal','i’m suicidal','im suicidal','i might hurt myself','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];
+  const personalSignals=['i feel this way','i feel like this','this is how i feel','i mean it','i want to die','i want to kill myself','i am suicidal','i’m suicidal','im suicidal','i overdosed','i took too much','i can’t breathe','i cant breathe','i feel unsafe','i need help right now','i might hurt myself','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];
   const stripped=raw.replace(/["“”'][^"“”']{1,160}["“”']/g,' ').toLowerCase();
   const hasPersonalOutsideQuote=personalSignals.some(k=>stripped.includes(k));
-  return hasFraming&&hasQuote&&!hasPersonalOutsideQuote;
+  return hasFraming&&!hasPersonalOutsideQuote&&(hasQuote||t.includes('article')||t.includes('news')||t.includes('reading about')||t.includes('definition')||t.includes('what does')||t.includes('what is'));
 }
 function isClearlyThirdPartyReport(text){
   const raw=String(text||'').trim();
@@ -44,15 +44,16 @@ const RISK_PROMPT=`You are Aria Lifeline Risk Monitor. Your only job is to class
 Evaluate the CURRENT member message in the context of recent MEMBER messages. Aria's own prior replies are not evidence and must never raise the risk level. The level describes the MEMBER'S own current safety/support state, not the state of another person they are asking about.
 
 Use exactly one level:
-- normal: ordinary conversation, frustration, neutral questions, routine health/app questions, quoted material, academic/definition questions, third-person reports about a friend/family member/other person, or no meaningful distress signal from the member.
+- normal: ordinary conversation, frustration, neutral questions, routine health/app questions, quoted material, news/article questions, academic/definition questions, third-person reports about another person, or no meaningful distress signal from the member.
 - concern: distress, fear, worry, pain, panic, confusion, overwhelm, or deterioration expressed by the member that merits supportive follow-up and closer monitoring.
 - high: substantial safety concern or credible risk expressed by the member where Aria should present the member with a clear option to speak with trained live support. Statements such as "I feel unsafe" or "I need help right now" are high unless the member also gives an explicit indication of immediate or imminent danger.
-- critical: reserve this for explicit or strongly evidenced immediate/imminent danger to the member, such as active self-harm intent, overdose, inability to breathe, unconsciousness, active violence, a weapon threat, severe uncontrolled bleeding, or a direct statement that the member is in immediate danger.
+- critical: reserve this for explicit or strongly evidenced immediate/imminent danger to the member, such as active self-harm intent, an actual overdose, inability to breathe, unconsciousness, active violence, a weapon threat, severe uncontrolled bleeding, or a direct statement that the member is in immediate danger.
 
 Important rules:
 - This is a support/safety classification, not a diagnosis or clinical assessment.
 - Consider context and multiple MEMBER signals, not isolated keywords.
-- Quoted phrases, article excerpts, fictional dialogue, academic questions, definition questions, or questions about what words mean are NOT personal safety disclosures unless the member separately indicates the words describe their own current state.
+- Quoted phrases, article excerpts, news questions, fictional dialogue, academic questions, definition questions, or questions about what words mean are NOT personal safety disclosures unless the member separately indicates the situation is happening to them.
+- Example: I was reading about overdoses in a news article. What does overdose mean? => normal.
 - Third-person reports are not personal safety disclosures. Example: My friend said "I want to die" yesterday, but they told me today they were exaggerating. What should I do? => normal for the member.
 - A third-person report can still warrant advice about helping that other person; that advice belongs in the conversational response, not in the member's risk level.
 - Example: I was reading an article that said "I want to die." What does that phrase mean in context? => normal.
@@ -65,7 +66,7 @@ Important rules:
 - Never include private chain-of-thought. The reason must be a short summary suitable for an audit record.`;
 
 async function classifyWithAI(env,message,history){
-  if(isClearlyQuotedOrEducational(message))return {level:'normal',confidence:0.98,reason:'Quoted or educational context without a personal safety disclosure.',responseWindowSeconds:0,source:'context-guard',provider:null,model:null};
+  if(isClearlyQuotedOrEducational(message))return {level:'normal',confidence:0.98,reason:'Quoted, news, or educational context without a personal safety disclosure.',responseWindowSeconds:0,source:'context-guard',provider:null,model:null};
   if(isClearlyThirdPartyReport(message))return {level:'normal',confidence:0.98,reason:'Third-person report without a personal safety disclosure from the member.',responseWindowSeconds:0,source:'context-guard',provider:null,model:null};
   const memberHistory=history.filter(item=>item.role==='user');const transcript=memberHistory.map(item=>`MEMBER: ${item.content}`).join('\n');const inference=await runAriaSafetyModel(env,{messages:[{role:'system',content:RISK_PROMPT},{role:'user',content:`Recent MEMBER messages:\n${transcript||'(none)'}\n\nCURRENT MEMBER MESSAGE:\n${message}\n\nReturn the JSON classification only.`}],maxTokens:180,temperature:0.05,topP:0.2});const parsed=extractJson(inference?.result?.response);if(!parsed)throw Object.assign(new Error('invalid_risk_response'),{code:'AI_INVALID_CLASSIFICATION'});let level=normalizeLevel(parsed.level);const memberEvidence=`${memberHistory.map(h=>h.content).join(' ')} ${message}`;if(level==='critical'&&!hasExplicitCriticalSignal(memberEvidence))level='high';return {level,confidence:Math.max(0,Math.min(1,Number(parsed.confidence)||0)),reason:String(parsed.reason||'Conversation-aware Lifeline classification.').slice(0,240),responseWindowSeconds:0,source:'ai',provider:inference.provider,model:inference.model};}
 
