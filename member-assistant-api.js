@@ -6,6 +6,7 @@ import {
 } from './member-conversations-api.js';
 import { runAriaConversationModel } from './aria-ai-provider.js';
 import { consumeAiRateLimit } from './ai-rate-limit.js';
+import { recordAiOperationalAudit } from './ai-operational-audit.js';
 
 function json(data,init={}){
   return new Response(JSON.stringify(data),{
@@ -49,6 +50,11 @@ function safeErrorCode(error){
   return String(error?.code||error?.name||'AI_INFERENCE_FAILED').slice(0,80);
 }
 
+async function auditAi(env,userId,eventType,details){
+  try{await recordAiOperationalAudit(env,{userId,eventType,scope:'assistant',...details});}
+  catch(error){console.error('AI operational audit write failed',{code:safeErrorCode(error)});}
+}
+
 const SYSTEM_PROMPT=`You are Aria Assistant, the conversational member assistant inside Aria AI.
 
 Your job is to answer members' everyday questions clearly, naturally, calmly, and helpfully. You can answer broad general-knowledge questions, explain Aria features, help a member navigate the app, discuss routines and organization, provide companionship and supportive conversation, and provide general educational information.
@@ -90,6 +96,7 @@ async function handleAssistant(request,env){
 
   const rate=await consumeAiRateLimit(env,{userId:member.user_id,scope:'assistant',limit:20});
   if(!rate.allowed){
+    await auditAi(env,member.user_id,'ai_assistant_rate_limited',{count:rate.count,limit:rate.limit});
     return json({
       ok:false,
       code:'assistant_rate_limited',
@@ -141,6 +148,7 @@ async function handleAssistant(request,env){
   }catch(error){
     const code=safeErrorCode(error);
     console.error('Aria Assistant inference failed',{code});
+    await auditAi(env,member.user_id,'ai_assistant_inference_failed',{code});
     if(code==='AI_PROVIDER_TIMEOUT'||code==='TimeoutError'){
       return json({ok:false,code:'assistant_timeout',error:'Aria is taking longer than expected right now. Please try again.'},{status:504});
     }
