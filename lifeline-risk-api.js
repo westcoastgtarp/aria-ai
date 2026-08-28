@@ -1,6 +1,7 @@
 import { recordLifelineSignal } from './lifeline-persistence.js';
 import { runAriaSafetyModel } from './aria-ai-provider.js';
 import { consumeAiRateLimit } from './ai-rate-limit.js';
+import { recordAiOperationalAudit } from './ai-operational-audit.js';
 
 function json(data,init={}){return new Response(JSON.stringify(data),{...init,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff',...(init.headers||{})}});}
 function bytesToHex(bytes){return [...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');}
@@ -14,6 +15,7 @@ function fallbackRisk(text){const t=String(text||'').toLowerCase();const critica
 function normalizeLevel(value){const level=String(value||'').trim().toLowerCase().replace(/[_-]+/g,' ');if(level==='critical')return 'critical';if(level==='high'||level==='high risk')return 'high';if(level==='concern')return 'concern';return 'normal';}
 function extractJson(text){const raw=String(text||'').trim();try{return JSON.parse(raw);}catch{}const match=raw.match(/\{[\s\S]*\}/);if(!match)return null;try{return JSON.parse(match[0]);}catch{return null;}}
 function safeErrorCode(error){return String(error?.code||error?.name||'AI_CLASSIFICATION_FAILED').slice(0,80);}
+async function auditAi(env,userId,eventType,details){try{await recordAiOperationalAudit(env,{userId,eventType,scope:'lifeline-risk',...details});}catch(error){console.error('AI operational audit write failed',{code:safeErrorCode(error)});}}
 async function recordSafetyAudit(env,member,classification){if(!env.DB||classification.level==='normal')return;const now=new Date().toISOString();await env.DB.prepare(`INSERT INTO audit_events (id,category,event_type,actor_user_id,subject_type,subject_id,details_json,occurred_at,recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(`AUD-${crypto.randomUUID()}`,'Lifeline Safety','lifeline_risk_classified',member.user_id,'member',member.user_id,JSON.stringify({level:classification.level,confidence:classification.confidence,source:classification.source}),now,now).run();}
 
 const RISK_PROMPT=`You are Aria Lifeline Risk Monitor. Your only job is to classify safety and support signals in a member conversation.
@@ -45,14 +47,17 @@ async function handleAssess(request,env){
   if(!(await hasLifelineAccess(env,member.user_id)))return json({ok:false,code:'lifeline_unavailable',error:'Lifeline conversation monitoring is not active for this account.'},{status:403});
   let body=null;try{body=await request.json();}catch{}
   const message=String(body?.message||'').trim();if(!message)return json({ok:false,error:'A message is required.'},{status:400});if(message.length>4000)return json({ok:false,error:'Please shorten your message and try again.'},{status:400});
-  const history=cleanHistory(body?.history);let classification;
+  const history=cleanHistory(body?.history);let classification;let fallbackReason=null;
 
   const rate=await consumeAiRateLimit(env,{userId:member.user_id,scope:'lifeline-risk',limit:40});
   if(rate.allowed){
-    try{classification=await classifyWithAI(env,message,history);}catch(error){console.error('Lifeline AI risk classification failed; using fallback',{code:safeErrorCode(error)});}
+    try{classification=await classifyWithAI(env,message,history);}catch(error){const code=safeErrorCode(error);console.error('Lifeline AI risk classification failed; using fallback',{code});fallbackReason=code;await auditAi(env,member.user_id,'ai_lifeline_classifier_failed',{code,fallback:'local_conservative_classifier'});}
+  }else{
+    fallbackReason='AI_RATE_LIMITED';
+    await auditAi(env,member.user_id,'ai_lifeline_classifier_rate_limited',{count:rate.count,limit:rate.limit,fallback:'local_conservative_classifier'});
   }
 
-  if(!classification){const level=fallbackRisk(`${history.map(h=>h.content).join(' ')} ${message}`);classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};}
+  if(!classification){const level=fallbackRisk(`${history.map(h=>h.content).join(' ')} ${message}`);classification={level,confidence:level==='normal'?0.55:0.7,reason:'Conservative fallback classification used because the AI risk monitor was unavailable.',responseWindowSeconds:0,source:'fallback',provider:null,model:null};if(fallbackReason)classification.fallbackReason=fallbackReason;}
 
   let persistence={persisted:false,incidentId:null,reason:'normal'};
   if(classification.level!=='normal'){
