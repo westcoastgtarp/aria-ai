@@ -54,7 +54,16 @@ async function handleAssess(request,env){
   }
   try{await recordSafetyAudit(env,member,classification);}catch(error){console.error('Lifeline audit write failed',error);}
 
-  return json({ok:true,risk:{...classification,incidentId:persistence.incidentId||null,persisted:Boolean(persistence.persisted)}});
+  const publicClassification={
+    level:classification.level,
+    confidence:classification.confidence,
+    reason:classification.reason,
+    responseWindowSeconds:classification.responseWindowSeconds,
+    source:classification.source,
+    incidentId:persistence.incidentId||null,
+    persisted:Boolean(persistence.persisted)
+  };
+  return json({ok:true,risk:publicClassification});
 }
 
 export async function handleLifelineRiskRoute(request,env){const url=new URL(request.url);if(url.pathname==='/api/member/lifeline/risk'&&request.method==='POST')return handleAssess(request,env);return null;}
