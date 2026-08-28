@@ -13,7 +13,9 @@
   }
   function ensureCard(){
     const page=document.getElementById('reminders-page');
-    if(!page||document.getElementById('memberNotificationPreferences'))return null;
+    if(!page)return null;
+    const existing=document.getElementById('memberNotificationPreferences');
+    if(existing)return existing;
     const heading=page.querySelector('.section-heading');
     const card=document.createElement('section');
     card.id='memberNotificationPreferences';
@@ -97,7 +99,8 @@
   }
 
   function boot(){
-    if(!ensureCard())return;
+    const card=ensureCard();
+    if(!card)return;
     document.getElementById('memberNotificationSave')?.addEventListener('click',save);
     load();
   }
