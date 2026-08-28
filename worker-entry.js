@@ -19,6 +19,7 @@ import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
 import { handleStructuredMemberMedicationRoute } from './member-medications-structured-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
 import { handleMemberRemindersRoute } from './member-reminders-api.js';
+import { handleMemberNotificationPreferencesRoute } from './member-notification-preferences-api.js';
 import { runMedicationReminderScheduler } from './medication-reminder-scheduler.js';
 
 function withAriaFormSystem(response,pathname) {
@@ -33,6 +34,7 @@ function withAriaFormSystem(response,pathname) {
         element.append('<link rel="stylesheet" href="/medication-structured-form.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-reminders.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-overview-reminders.css?v=20260826-1" />', { html: true });
+        element.append('<link rel="stylesheet" href="/member-notification-preferences.css?v=20260827-1" />', { html: true });
       }
     });
 
@@ -40,7 +42,7 @@ function withAriaFormSystem(response,pathname) {
     rewriter.on('body', {
       element(element) {
         element.prepend('<script src="/member-medication-structured-form.js?v=20260826-3"></script>', { html: true });
-        element.append('<script src="/member-assistant-live.js?v=20260826-4"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script>', { html: true });
+        element.append('<script src="/member-assistant-live.js?v=20260826-4"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-1"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script>', { html: true });
       }
     });
   }
@@ -64,6 +66,9 @@ export default {
 
     const remindersResponse = await handleMemberRemindersRoute(request, env);
     if (remindersResponse) return remindersResponse;
+
+    const notificationPreferencesResponse = await handleMemberNotificationPreferencesRoute(request, env);
+    if (notificationPreferencesResponse) return notificationPreferencesResponse;
 
     const conversationsResponse = await handleMemberConversationsRoute(request, env);
     if (conversationsResponse) return conversationsResponse;
