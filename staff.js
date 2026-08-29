@@ -20,7 +20,7 @@
     if(!document.querySelector('link[data-live-support-chat]')){
       const chatStyles=document.createElement('link');
       chatStyles.rel='stylesheet';
-      chatStyles.href='live-support-chat.css?v=20260828-2';
+      chatStyles.href='live-support-chat.css?v=20260828-3';
       chatStyles.dataset.liveSupportChat='true';
       document.head.appendChild(chatStyles);
     }
@@ -110,7 +110,7 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260828-2';
+    chat.src='staff-live-support-chat.js?v=20260828-3';
     document.body.appendChild(chat);
 
     const core=document.createElement('script');
