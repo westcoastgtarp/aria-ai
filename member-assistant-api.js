@@ -39,6 +39,21 @@ async function hasAssistantAccess(env,userId){
   return paidActive||trialActive(selection.selected_at);
 }
 
+async function hasAssignedHumanSupport(env,userId){
+  const ticket=await env.DB.prepare(`
+    SELECT id
+    FROM tickets
+    WHERE created_by_user_id=?
+      AND department='Operations'
+      AND category='Member Communication'
+      AND status!='Closed'
+      AND assigned_to_user_id IS NOT NULL
+    ORDER BY updated_at DESC
+    LIMIT 1
+  `).bind(userId).first();
+  return Boolean(ticket?.id);
+}
+
 function aiHistory(messages,{memberOnly=false}={}){
   return messages.slice(-10).map(item=>({
     role:item.role==='assistant'?'assistant':'user',
@@ -98,6 +113,13 @@ async function handleAssistant(request,env){
 
   const member=await currentConversationMember(request,env);
   if(!member)return json({ok:false,error:'Member authentication required.'},{status:401});
+  if(await hasAssignedHumanSupport(env,member.user_id)){
+    return json({
+      ok:false,
+      code:'human_support_active',
+      error:'A live support specialist is connected to this conversation.'
+    },{status:409});
+  }
   if(!(await hasAssistantAccess(env,member.user_id))){
     return json({
       ok:false,
