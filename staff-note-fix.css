@@ -1,0 +1,33 @@
+.ticket-main>div[style*="margin-top:16px;width:100%"]>div:last-child{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  gap:12px!important;
+  align-items:end!important;
+  width:100%!important;
+}
+
+.ticket-note-input{
+  width:100%!important;
+  min-width:0!important;
+  min-height:150px!important;
+  max-height:320px!important;
+  padding:13px 14px!important;
+  font-size:13px!important;
+  line-height:1.55!important;
+  resize:vertical!important;
+}
+
+.ticket-note-add{
+  min-width:104px!important;
+  min-height:42px!important;
+  align-self:end!important;
+}
+
+@media(max-width:760px){
+  .ticket-main>div[style*="margin-top:16px;width:100%"]>div:last-child{
+    grid-template-columns:1fr!important;
+  }
+  .ticket-note-add{
+    justify-self:start!important;
+  }
+}
