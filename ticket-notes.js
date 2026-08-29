@@ -1,11 +1,25 @@
 (function(){
   let ticketSyncBusy=false;
+  let liveSupportViewer=null;
+  let queueRefreshTimer=null;
+  let waitClockTimer=null;
 
   function formatTicketDate(value){
     if(!value)return '';
     const date=new Date(value);
     if(Number.isNaN(date.getTime()))return String(value);
     return new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(date);
+  }
+
+  function formatWait(seconds){
+    const total=Math.max(0,Number(seconds)||0);
+    const minutes=Math.floor(total/60);
+    const remainder=total%60;
+    return `${minutes}:${String(remainder).padStart(2,'0')}`;
+  }
+
+  function isLiveSupportQueue(){
+    return String(liveSupportViewer?.role||'').toLowerCase()==='live support specialist';
   }
 
   async function ticketApi(path,options={}){
@@ -36,12 +50,38 @@
     </div>`;
   }
 
+  function liveSupportWaitMarkup(ticket){
+    if(!isLiveSupportQueue()||ticket.category!=='Member Communication'||ticket.assignedToUserId)return '';
+    const waiting=Math.max(0,Number(ticket.waitingSeconds)||0);
+    const overdue=Boolean(ticket.overdue||waiting>120);
+    return `<div data-lifeline-wait-wrap="${escapeHtml(ticket.id)}" data-created-at="${escapeHtml(ticket.created||'')}" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span data-lifeline-wait="${escapeHtml(ticket.id)}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800;${overdue?'background:#fff0f0;color:#b42318;border:1px solid #f5b7b1':'background:#eef7ff;color:#245c8f;border:1px solid #c9e3f8'}">Waiting ${formatWait(waiting)}</span>
+      <span data-lifeline-overdue="${escapeHtml(ticket.id)}" style="${overdue?'display:inline-flex':'display:none'};align-items:center;padding:6px 10px;border-radius:999px;background:#b42318;color:#fff;font-size:10px;font-weight:900;letter-spacing:.04em">OVER 2 MIN</span>
+      <span style="font-size:10px;color:#7b8798">Target: claim within 2:00</span>
+    </div>`;
+  }
+
+  function liveSupportActions(ticket){
+    if(!isLiveSupportQueue()||ticket.category!=='Member Communication')return null;
+    if(!ticket.assignedToUserId){
+      return `<button class="status-btn lifeline-claim" data-id="${escapeHtml(ticket.id)}" style="font-weight:800">Claim conversation</button>`;
+    }
+    return '';
+  }
+
   renderTicketQueue=function(dept,elementId,summaryId){
     const queue=document.getElementById(elementId),summary=document.getElementById(summaryId);if(!queue||!summary)return;
     const items=tickets.filter(t=>t.department===dept),open=items.filter(t=>t.status==='Open').length,progress=items.filter(t=>t.status==='In Progress').length,closed=items.filter(t=>t.status==='Closed').length;
     const average=items.length?Math.round(items.reduce((sum,t)=>sum+normalizeTicketProgress(t),0)/items.length):0;
-    summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span><span class="summary-chip">Closed <strong>${closed}</strong></span><span class="summary-chip">Queue progress <strong>${average}%</strong></span>`;
-    queue.innerHTML=items.length?items.map(t=>`<article class="ticket-card"><div class="ticket-main"><div class="ticket-id">${escapeHtml(t.id)} • ${escapeHtml(t.category)} • ${escapeHtml(formatTicketDate(t.created))}</div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.details)}</p><div class="ticket-meta"><span class="pill ${String(t.priority).toLowerCase()}">${escapeHtml(t.priority)}</span><span class="pill ${statusClass(t.status)}">${escapeHtml(t.status)}</span>${t.createdBy?`<span class="pill">Opened by ${escapeHtml(t.createdBy)}</span>`:''}</div>${progressControl(t)}${ticketNotesMarkup(t)}</div><div class="ticket-actions">${t.status!=='In Progress'&&t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="In Progress">Start</button>`:''}${t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Closed">Close</button>`:''}${t.status==='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button>`:''}</div></article>`).join(''):'<div class="empty-queue">No tickets in this queue.</div>';
+    const overdue=isLiveSupportQueue()&&dept==='Operations'?items.filter(t=>t.category==='Member Communication'&&!t.assignedToUserId&&(t.overdue||Number(t.waitingSeconds)>120)).length:0;
+    summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span><span class="summary-chip">Closed <strong>${closed}</strong></span>${isLiveSupportQueue()&&dept==='Operations'?`<span class="summary-chip" style="${overdue?'background:#fff0f0;color:#b42318;border-color:#f5b7b1':''}">Over 2 min <strong>${overdue}</strong></span>`:`<span class="summary-chip">Queue progress <strong>${average}%</strong></span>`}`;
+    queue.innerHTML=items.length?items.map(t=>{
+      const specialActions=liveSupportActions(t);
+      const genericActions=`${t.status!=='In Progress'&&t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="In Progress">Start</button>`:''}${t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Closed">Close</button>`:''}${t.status==='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button>`:''}`;
+      const actions=specialActions===null?genericActions:(specialActions||genericActions);
+      const canWork=!isLiveSupportQueue()||t.category!=='Member Communication'||Boolean(t.assignedToUserId);
+      return `<article class="ticket-card" data-lifeline-ticket="${escapeHtml(t.id)}"><div class="ticket-main"><div class="ticket-id">${escapeHtml(t.id)} • ${escapeHtml(t.category)} • ${escapeHtml(formatTicketDate(t.created))}</div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.details)}</p><div class="ticket-meta"><span class="pill ${String(t.priority).toLowerCase()}">${escapeHtml(t.priority)}</span><span class="pill ${statusClass(t.status)}">${escapeHtml(t.status)}</span>${t.createdBy?`<span class="pill">Opened by ${escapeHtml(t.createdBy)}</span>`:''}${t.assignedTo?`<span class="pill">Assigned to ${escapeHtml(t.assignedTo)}</span>`:''}</div>${liveSupportWaitMarkup(t)}${canWork?progressControl(t):''}${canWork?ticketNotesMarkup(t):''}</div><div class="ticket-actions">${actions}</div></article>`;
+    }).join(''):'<div class="empty-queue">No tickets in this queue.</div>';
   };
 
   renderTickets=function(){
@@ -50,18 +90,40 @@
     renderTicketQueue('Engineering','engineeringQueue','engineeringSummary');
   };
 
-  async function loadTickets(){
+  function tickWaitClocks(){
+    document.querySelectorAll('[data-lifeline-wait-wrap]').forEach(wrap=>{
+      const created=new Date(wrap.dataset.createdAt||'').getTime();
+      if(!Number.isFinite(created))return;
+      const seconds=Math.max(0,Math.floor((Date.now()-created)/1000));
+      const wait=wrap.querySelector('[data-lifeline-wait]');
+      const overdue=wrap.querySelector('[data-lifeline-overdue]');
+      if(wait){
+        wait.textContent=`Waiting ${formatWait(seconds)}`;
+        if(seconds>120){
+          wait.style.background='#fff0f0';wait.style.color='#b42318';wait.style.borderColor='#f5b7b1';
+        }
+      }
+      if(overdue&&seconds>120)overdue.style.display='inline-flex';
+    });
+  }
+
+  async function loadTickets({silent=false}={}){
+    if(ticketSyncBusy)return;
     try{
       const data=await ticketApi('/api/staff/tickets');
+      liveSupportViewer=data.viewer||null;
       tickets=(data.tickets||[]).map(ticket=>({...ticket,progress:normalizeTicketProgress(ticket),notes:Array.isArray(ticket.notes)?ticket.notes:[]}));
       sessionStorage.removeItem('aria-staff-tickets');
       renderTickets();
       updateDashboardCounts();
+      tickWaitClocks();
     }catch(error){
       console.error(error);
-      ['operationsQueue','itQueue','engineeringQueue'].forEach(id=>{
-        const el=document.getElementById(id);if(el)el.innerHTML='<div class="empty-queue">Could not load the live ticket queue. Refresh or sign in again.</div>';
-      });
+      if(!silent){
+        ['operationsQueue','itQueue','engineeringQueue'].forEach(id=>{
+          const el=document.getElementById(id);if(el)el.innerHTML='<div class="empty-queue">Could not load the live ticket queue. Refresh or sign in again.</div>';
+        });
+      }
     }
   }
 
@@ -81,6 +143,7 @@
         title,details
       })});
       closeModal('ticketModal');
+      ticketSyncBusy=false;
       await loadTickets();
     }catch(error){alert(error.message);}
     finally{
@@ -89,12 +152,28 @@
     }
   }
 
+  async function claimLiveSupport(id,button){
+    if(ticketSyncBusy)return;
+    ticketSyncBusy=true;
+    if(button){button.disabled=true;button.textContent='Claiming...';}
+    try{
+      const data=await ticketApi(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/claim`,{method:'POST',body:'{}'});
+      if(data.responseWithinTarget===false){
+        console.warn(`Live Support response target exceeded for ${id}: ${data.responseSeconds}s`);
+      }
+      ticketSyncBusy=false;
+      await loadTickets();
+    }catch(error){alert(error.message);}
+    finally{ticketSyncBusy=false;if(button){button.disabled=false;button.textContent='Claim conversation';}}
+  }
+
   async function updateLiveTicket(id,changes,button){
     if(ticketSyncBusy)return;
     ticketSyncBusy=true;
     if(button)button.disabled=true;
     try{
       await ticketApi(`/api/staff/tickets/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(changes)});
+      ticketSyncBusy=false;
       await loadTickets();
     }catch(error){alert(error.message);}
     finally{ticketSyncBusy=false;if(button)button.disabled=false;}
@@ -109,6 +188,7 @@
     if(button){button.disabled=true;button.textContent='Saving...';}
     try{
       await ticketApi(`/api/staff/tickets/${encodeURIComponent(id)}/notes`,{method:'POST',body:JSON.stringify({note})});
+      ticketSyncBusy=false;
       await loadTickets();
     }catch(error){alert(error.message);}
     finally{ticketSyncBusy=false;if(button){button.disabled=false;button.textContent='Add Note';}}
@@ -117,6 +197,9 @@
   document.addEventListener('click',event=>{
     const save=event.target.closest('#saveTicket');
     if(save){event.preventDefault();event.stopImmediatePropagation();createLiveTicket();return;}
+
+    const claimButton=event.target.closest('.lifeline-claim');
+    if(claimButton){event.preventDefault();event.stopImmediatePropagation();claimLiveSupport(claimButton.dataset.id,claimButton);return;}
 
     const statusButton=event.target.closest('.ticket-status');
     if(statusButton){
@@ -140,4 +223,14 @@
   renderTickets();
   updateDashboardCounts();
   loadTickets();
+  waitClockTimer=setInterval(tickWaitClocks,1000);
+  queueRefreshTimer=setInterval(()=>{
+    const focused=document.activeElement;
+    if(focused?.classList?.contains('ticket-note-input'))return;
+    loadTickets({silent:true});
+  },10000);
+  window.addEventListener('beforeunload',()=>{
+    if(waitClockTimer)clearInterval(waitClockTimer);
+    if(queueRefreshTimer)clearInterval(queueRefreshTimer);
+  },{once:true});
 })();
