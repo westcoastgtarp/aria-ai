@@ -3,8 +3,7 @@
   window.__ariaStaffLiveSupportChatLoaded=true;
 
   let currentTicketId=null;
-  let currentPanel=null;
-  let currentData=null;
+  let workspace=null;
   let pollTimer=null;
   let canSend=false;
 
@@ -16,135 +15,157 @@
     return (meta.split('•')[0]||'').trim();
   }
 
-  function findTicketCard(id){
-    return [...document.querySelectorAll('.ticket-card')].find(card=>ticketIdFromCard(card)===id)||null;
-  }
+  function ensureWorkspace(){
+    if(workspace&&document.body.contains(workspace))return workspace;
+    const operations=document.getElementById('operations-page');
+    const queue=document.getElementById('operationsQueue');
+    if(!operations||!queue)return null;
 
-  function setButtonState(id,open){
-    document.querySelectorAll(`.live-support-open-chat[data-id="${CSS.escape(id)}"]`).forEach(button=>{
-      button.textContent=open?'Hide chat':'Open chat';
-      button.setAttribute('aria-expanded',open?'true':'false');
-    });
-  }
-
-  function buildPanel(id){
-    const card=findTicketCard(id);if(!card)return null;
-    const existing=card.querySelector(`.live-chat-inline[data-ticket-id="${CSS.escape(id)}"]`);
-    if(existing)return existing;
-
-    const panel=document.createElement('section');
-    panel.className='live-chat-inline';
-    panel.dataset.ticketId=id;
-    panel.innerHTML=`
+    workspace=document.createElement('section');
+    workspace.id='liveSupportWorkspace';
+    workspace.className='live-chat-inline';
+    workspace.hidden=true;
+    workspace.innerHTML=`
       <header class="live-chat-inline-head">
-        <div><div class="eyebrow">ARIA LIVE SUPPORT</div><h3>Member conversation</h3><span class="live-chat-inline-status">Connecting…</span></div>
+        <div>
+          <div class="eyebrow">ARIA LIVE SUPPORT</div>
+          <h3 id="liveSupportWorkspaceTitle">Member conversation</h3>
+          <span class="live-chat-inline-status" id="liveSupportWorkspaceStatus">Not connected</span>
+        </div>
+        <button type="button" class="status-btn" id="liveSupportWorkspaceClose">Hide chat</button>
       </header>
-      <div class="live-chat-transcript"><div class="empty-queue">Loading conversation…</div></div>
-      <form class="live-chat-compose">
+      <div class="live-chat-transcript" id="liveSupportWorkspaceTranscript"><div class="empty-queue">Choose a conversation to open.</div></div>
+      <form class="live-chat-compose hidden" id="liveSupportWorkspaceCompose">
         <textarea maxlength="4000" placeholder="Message the member..."></textarea>
         <button class="primary" type="submit">Send</button>
       </form>
-      <div class="live-chat-readonly hidden">Read-only conversation review</div>`;
+      <div class="live-chat-readonly hidden" id="liveSupportWorkspaceReadonly">Read-only conversation review</div>`;
 
-    panel.querySelector('.live-chat-compose')?.addEventListener('submit',event=>send(event,id));
-    const main=card.querySelector('.ticket-main');
-    const meta=main?.querySelector('.ticket-meta');
-    if(meta)meta.insertAdjacentElement('afterend',panel);
-    else main?.prepend(panel);
-    return panel;
+    queue.parentNode.insertBefore(workspace,queue);
+    workspace.querySelector('#liveSupportWorkspaceClose')?.addEventListener('click',close);
+    workspace.querySelector('#liveSupportWorkspaceCompose')?.addEventListener('submit',send);
+    return workspace;
+  }
+
+  function setButtonState(id,open){
+    document.querySelectorAll('.live-support-open-chat').forEach(button=>{
+      const match=button.dataset.id===id;
+      button.textContent=match&&open?'Hide chat':'Open chat';
+      button.setAttribute('aria-expanded',match&&open?'true':'false');
+    });
   }
 
   function render(data){
-    if(!currentTicketId)return;
-    currentData=data;
-    currentPanel=buildPanel(currentTicketId);
-    if(!currentPanel)return;
+    const panel=ensureWorkspace();if(!panel)return;
     canSend=Boolean(data.canSend);
+    panel.hidden=false;
 
-    const heading=currentPanel.querySelector('h3');
-    const status=currentPanel.querySelector('.live-chat-inline-status');
+    const heading=panel.querySelector('#liveSupportWorkspaceTitle');
+    const status=panel.querySelector('#liveSupportWorkspaceStatus');
     if(heading)heading.textContent=data.ticket?.memberName||'Member conversation';
-    if(status)status.textContent=[data.ticket?.assignedTo?`Support: ${data.ticket.assignedTo}`:'',data.ticket?.status||''].filter(Boolean).join(' • ');
+    if(status)status.textContent=[data.ticket?.assignedTo?`Support: ${data.ticket.assignedTo}`:'',data.ticket?.status||''].filter(Boolean).join(' • ')||'Connected';
 
-    const transcript=currentPanel.querySelector('.live-chat-transcript');
+    const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
     if(transcript){
       transcript.innerHTML=(data.messages||[]).map(message=>{
         const role=message.role==='member'?'member':message.role==='staff'?'staff':'aria';
         const label=message.role==='member'?'Member':message.role==='staff'?'Support':'Aria';
         return `<div class="live-chat-line ${role}"><div class="live-chat-label">${label}<span>${esc(fmt(message.createdAt))}</span></div><div class="live-chat-bubble">${esc(message.content).replace(/\n/g,'<br>')}</div></div>`;
-      }).join('')||'<div class="empty-queue">No conversation messages yet.</div>';
+      }).join('')||'<div class="empty-queue">No conversation messages were found for this member yet.</div>';
       transcript.scrollTop=transcript.scrollHeight;
     }
 
-    const compose=currentPanel.querySelector('.live-chat-compose');
-    const readonly=currentPanel.querySelector('.live-chat-readonly');
-    compose?.classList.toggle('hidden',!canSend);
-    readonly?.classList.toggle('hidden',canSend);
+    panel.querySelector('#liveSupportWorkspaceCompose')?.classList.toggle('hidden',!canSend);
+    panel.querySelector('#liveSupportWorkspaceReadonly')?.classList.toggle('hidden',canSend);
     setButtonState(currentTicketId,true);
+  }
+
+  function showError(message,statusCode=''){
+    const panel=ensureWorkspace();if(!panel)return;
+    panel.hidden=false;
+    const status=panel.querySelector('#liveSupportWorkspaceStatus');
+    if(status)status.textContent='Could not load conversation';
+    const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
+    if(transcript)transcript.innerHTML=`<div class="empty-queue"><strong>Live Support chat could not load.</strong><br>${esc(message)}${statusCode?`<br><small>HTTP ${esc(statusCode)}</small>`:''}</div>`;
+    panel.querySelector('#liveSupportWorkspaceCompose')?.classList.add('hidden');
+    panel.querySelector('#liveSupportWorkspaceReadonly')?.classList.remove('hidden');
   }
 
   async function load({poll=false}={}){
     if(!currentTicketId)return;
-    currentPanel=buildPanel(currentTicketId);
+    const panel=ensureWorkspace();if(!panel)return;
+    panel.hidden=false;
+    if(!poll){
+      const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
+      if(transcript)transcript.innerHTML='<div class="empty-queue">Loading conversation…</div>';
+      const status=panel.querySelector('#liveSupportWorkspaceStatus');
+      if(status)status.textContent='Connecting…';
+    }
+
     try{
       const suffix=poll?'?poll=1':'';
       const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/conversation${suffix}`,{credentials:'same-origin',cache:'no-store'});
-      const data=await response.json().catch(()=>({}));
-      if(!response.ok||!data.ok)throw new Error(data.error||'Conversation could not be loaded.');
+      const raw=await response.text();
+      let data={};
+      try{data=raw?JSON.parse(raw):{};}catch{}
+      if(!response.ok||!data.ok){
+        const message=data.error||data.message||raw.slice(0,180)||'Conversation could not be loaded.';
+        throw Object.assign(new Error(message),{status:response.status});
+      }
       render(data);
     }catch(error){
-      currentPanel=buildPanel(currentTicketId);
-      const transcript=currentPanel?.querySelector('.live-chat-transcript');
-      if(transcript)transcript.innerHTML=`<div class="empty-queue">${esc(error.message)}</div>`;
+      console.error('Live Support conversation load failed',error);
+      showError(error.message||'Conversation could not be loaded.',error.status||'');
     }
   }
 
   function open(id){
-    if(currentTicketId===id&&findTicketCard(id)?.querySelector('.live-chat-inline')){
-      close(id);return;
-    }
-    if(currentTicketId)setButtonState(currentTicketId,false);
-    document.querySelectorAll('.live-chat-inline').forEach(panel=>panel.remove());
+    if(!id)return;
+    if(currentTicketId===id&&workspace&&!workspace.hidden){close();return;}
     currentTicketId=id;
-    currentPanel=buildPanel(id);
-    currentData=null;
+    canSend=false;
     setButtonState(id,true);
+    const panel=ensureWorkspace();
+    if(panel){
+      panel.hidden=false;
+      panel.scrollIntoView({behavior:'smooth',block:'start'});
+    }
     load();
     if(pollTimer)clearInterval(pollTimer);
     pollTimer=setInterval(()=>load({poll:true}),3000);
   }
 
-  function close(id=currentTicketId){
-    if(id)setButtonState(id,false);
-    document.querySelectorAll('.live-chat-inline').forEach(panel=>panel.remove());
+  function close(){
+    if(currentTicketId)setButtonState(currentTicketId,false);
     currentTicketId=null;
-    currentPanel=null;
-    currentData=null;
     canSend=false;
+    if(workspace)workspace.hidden=true;
     if(pollTimer)clearInterval(pollTimer);
     pollTimer=null;
   }
 
-  async function send(event,id){
+  async function send(event){
     event.preventDefault();
-    if(!currentTicketId||currentTicketId!==id||!canSend)return;
+    if(!currentTicketId||!canSend)return;
     const form=event.currentTarget;
     const input=form.querySelector('textarea');
     const content=input?.value.trim();if(!content)return;
     const button=form.querySelector('button');if(button)button.disabled=true;
     try{
-      const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/messages`,{
+      const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/messages`,{
         method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({content})
       });
-      const data=await response.json().catch(()=>({}));
-      if(!response.ok||!data.ok)throw new Error(data.error||'Message could not be sent.');
+      const raw=await response.text();
+      let data={};try{data=raw?JSON.parse(raw):{};}catch{}
+      if(!response.ok||!data.ok)throw new Error(data.error||raw.slice(0,180)||'Message could not be sent.');
       input.value='';
       await load({poll:true});
-    }catch(error){alert(error.message);}
+    }catch(error){alert(error.message||'Message could not be sent.');}
     finally{if(button)button.disabled=false;}
   }
 
   function addButtons(){
+    ensureWorkspace();
     document.querySelectorAll('.ticket-card').forEach(card=>{
       const meta=card.querySelector('.ticket-id')?.textContent||'';
       if(!/MEMBER COMMUNICATION/i.test(meta))return;
@@ -158,12 +179,8 @@
         button.dataset.id=id;
         actions.prepend(button);
       }
-      button.textContent=currentTicketId===id?'Hide chat':'Open chat';
-      button.setAttribute('aria-expanded',currentTicketId===id?'true':'false');
-      if(currentTicketId===id){
-        currentPanel=buildPanel(id);
-        if(currentData)render(currentData);
-      }
+      button.textContent=currentTicketId===id&&workspace&&!workspace.hidden?'Hide chat':'Open chat';
+      button.setAttribute('aria-expanded',currentTicketId===id&&workspace&&!workspace.hidden?'true':'false');
     });
   }
 
@@ -174,7 +191,7 @@
     open(button.dataset.id);
   },true);
 
-  const observer=new MutationObserver(()=>addButtons());
+  const observer=new MutationObserver(addButtons);
   observer.observe(document.body,{childList:true,subtree:true});
   addButtons();
   window.addEventListener('beforeunload',()=>{observer.disconnect();if(pollTimer)clearInterval(pollTimer);},{once:true});
