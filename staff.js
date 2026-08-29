@@ -3,12 +3,20 @@
   let authenticatedStaff=null;
 
   function loadPolishStyles(){
-    if(document.querySelector('link[data-staff-polish]'))return;
-    const link=document.createElement('link');
-    link.rel='stylesheet';
-    link.href='staff-polish.css?v=20260828-3';
-    link.dataset.staffPolish='true';
-    document.head.appendChild(link);
+    if(!document.querySelector('link[data-staff-polish]')){
+      const link=document.createElement('link');
+      link.rel='stylesheet';
+      link.href='staff-polish.css?v=20260828-3';
+      link.dataset.staffPolish='true';
+      document.head.appendChild(link);
+    }
+    if(!document.querySelector('link[data-staff-note-fix]')){
+      const noteFix=document.createElement('link');
+      noteFix.rel='stylesheet';
+      noteFix.href='staff-note-fix.css?v=20260828-1';
+      noteFix.dataset.staffNoteFix='true';
+      document.head.appendChild(noteFix);
+    }
   }
 
   function firstName(value=''){
