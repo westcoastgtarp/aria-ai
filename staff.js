@@ -130,7 +130,7 @@
       applyStaffIdentity();
 
       const hiring=document.createElement('script');
-      hiring.src='hiring-live.js?v=20260821-d1-applications';
+      hiring.src='hiring-live.js?v=20260828-2';
       hiring.onload=()=>{
         const candidateActions=document.createElement('script');
         candidateActions.src='candidate-actions.js?v=20260821-launch1';
