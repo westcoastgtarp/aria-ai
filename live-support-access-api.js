@@ -22,6 +22,7 @@ function parseCookies(request){
 async function readBody(request){try{return await request.json();}catch{return null;}}
 function uuid(prefix){return `${prefix}-${crypto.randomUUID()}`;}
 function normalized(value){return String(value||'').trim().toLowerCase();}
+function secondsSince(value){const ms=new Date(value).getTime();return Number.isFinite(ms)?Math.max(0,Math.floor((Date.now()-ms)/1000)):0;}
 
 async function currentStaff(request,env){
   if(!env.DB)return null;
@@ -57,7 +58,19 @@ async function audit(env,session,eventType,ticketId,details={}){
   `).bind(uuid('AUD'),eventType,session.user_id,ticketId,ticketId,JSON.stringify(details),now,now).run();
 }
 
+async function recordLifelineStaffEvent(env,session,ticket,eventType,status,details={}){
+  const incident=await env.DB.prepare(`SELECT id,member_user_id,current_risk_level FROM lifeline_incidents WHERE related_ticket_id=? AND status!='closed' ORDER BY updated_at DESC LIMIT 1`).bind(ticket.id).first();
+  if(!incident)return;
+  const now=new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE lifeline_incidents SET status=?,updated_at=? WHERE id=?`).bind(status,now,incident.id),
+    env.DB.prepare(`INSERT INTO lifeline_events (id,incident_id,member_user_id,event_type,risk_level,actor_type,actor_user_id,details_json,occurred_at,recorded_at) VALUES (?,?,?,?,?,'staff',?,?,?,?)`)
+      .bind(uuid('LFLE'),incident.id,incident.member_user_id,eventType,incident.current_risk_level||null,session.user_id,JSON.stringify({ticketId:ticket.id,...details}),now,now)
+  ]);
+}
+
 function ticketShape(row){
+  const waitingSeconds=row.assigned_to_user_id?0:secondsSince(row.created_at);
   return {
     id:row.id,
     department:row.department,
@@ -73,6 +86,9 @@ function ticketShape(row){
     createdBy:row.created_by_name||row.created_by_email||'Aria Lifeline',
     assignedToUserId:row.assigned_to_user_id||null,
     assignedTo:row.assigned_to_name||row.assigned_to_email||null,
+    waitingSeconds,
+    responseTargetSeconds:120,
+    overdue:!row.assigned_to_user_id&&waitingSeconds>120,
     notes:[]
   };
 }
@@ -112,13 +128,15 @@ async function listSpecialistQueue(env,session){
       AND t.category='Member Communication'
       AND t.status!='Closed'
       AND (t.assigned_to_user_id IS NULL OR t.assigned_to_user_id=?)
-    ORDER BY CASE t.priority WHEN 'Urgent' THEN 0 WHEN 'High' THEN 1 ELSE 2 END,t.updated_at DESC
+    ORDER BY CASE WHEN t.assigned_to_user_id IS NULL THEN 0 ELSE 1 END, t.created_at ASC
     LIMIT 200
   `).bind(session.user_id).all();
   const tickets=await attachNotes(env,(rows.results||[]).map(ticketShape));
   return json({
     ok:true,
     tickets,
+    responseTargetSeconds:120,
+    overdueCount:tickets.filter(ticket=>ticket.overdue).length,
     viewer:{role:'Live Support Specialist',queue:'Member Communication',reviewAccess:false}
   });
 }
@@ -140,6 +158,8 @@ async function listRestrictedRecords(env,session){
   return json({
     ok:true,
     records:tickets,
+    responseTargetSeconds:120,
+    overdueCount:tickets.filter(ticket=>ticket.overdue).length,
     viewer:{role:session.role_name,reviewAccess:true,readOnly:true}
   });
 }
@@ -164,6 +184,8 @@ async function claimTicket(env,session,id){
   }
 
   const now=new Date().toISOString();
+  const responseSeconds=secondsSince(ticket.created_at);
+  const responseWithinTarget=responseSeconds<=120;
   const result=await env.DB.prepare(`
     UPDATE tickets
     SET assigned_to_user_id=?,status='In Progress',progress=CASE WHEN progress=0 THEN 25 ELSE progress END,updated_at=?
@@ -177,8 +199,9 @@ async function claimTicket(env,session,id){
   if(Number(result?.meta?.changes||0)!==1){
     return json({ok:false,error:'This Live Support conversation was claimed by another specialist.'},{status:409});
   }
-  try{await audit(env,session,'live_support_conversation_claimed',id,{assignedToUserId:session.user_id});}catch(error){console.error('Live support claim audit failed',error);}
-  return json({ok:true,claimed:true,ticketId:id,assignedToUserId:session.user_id,updatedAt:now});
+  try{await audit(env,session,'live_support_conversation_claimed',id,{assignedToUserId:session.user_id,responseSeconds,responseTargetSeconds:120,responseWithinTarget});}catch(error){console.error('Live support claim audit failed',error);}
+  try{await recordLifelineStaffEvent(env,session,ticket,'human_support_assigned','human_support_assigned',{responseSeconds,responseTargetSeconds:120,responseWithinTarget});}catch(error){console.error('Lifeline assignment sync failed',error);}
+  return json({ok:true,claimed:true,ticketId:id,assignedToUserId:session.user_id,responseSeconds,responseTargetSeconds:120,responseWithinTarget,updatedAt:now});
 }
 
 function ensureAssignedToSpecialist(ticket,session){
@@ -213,6 +236,9 @@ async function updateTicket(request,env,session,id){
     WHERE id=? AND assigned_to_user_id=?
   `).bind(status,progress,now,id,session.user_id).run();
   try{await audit(env,session,'live_support_member_communication_updated',id,{status,progress});}catch(error){console.error('Live support audit failed',error);}
+  if(status==='Closed'){
+    try{await recordLifelineStaffEvent(env,session,ticket,'human_support_closed','closed',{progress:100});}catch(error){console.error('Lifeline close sync failed',error);}
+  }
   return json({ok:true,status,progress,updatedAt:now});
 }
 
