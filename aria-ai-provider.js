@@ -87,11 +87,6 @@ export async function runAriaConversationModel(env,{messages,maxTokens=500,tempe
 }
 
 export async function runAriaSafetyModel(env,{messages,maxTokens=180,temperature=0.05,topP=0.2}={}){
-  if(String(env?.ARIA_FORCE_SAFETY_FALLBACK||'').trim()==='1'){
-    const error=new Error('Safety fallback validation mode is enabled.');
-    error.code='AI_FORCED_FALLBACK_TEST';
-    throw error;
-  }
   const ai=requireWorkersAI(env);
   const model=configuredModel(env,'ARIA_SAFETY_MODEL',DEFAULT_SAFETY_MODEL);
   const timeoutMs=configuredTimeout(env,'ARIA_SAFETY_TIMEOUT_MS',DEFAULT_SAFETY_TIMEOUT_MS);
