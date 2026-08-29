@@ -2,89 +2,180 @@
   if(window.__ariaStaffLiveSupportChatLoaded)return;
   window.__ariaStaffLiveSupportChatLoaded=true;
 
-  let overlay=null;
   let currentTicketId=null;
+  let currentPanel=null;
+  let currentData=null;
   let pollTimer=null;
   let canSend=false;
 
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
   function fmt(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}
 
-  function ensureOverlay(){
-    if(overlay)return overlay;
-    overlay=document.createElement('div');overlay.className='live-chat-overlay hidden';overlay.innerHTML=`
-      <section class="live-chat-console" role="dialog" aria-modal="true" aria-label="Live Support conversation">
-        <header class="live-chat-console-head"><div><div class="eyebrow">ARIA LIVE SUPPORT</div><h2 id="liveChatMemberName">Member conversation</h2><span id="liveChatStatus"></span></div><button class="live-chat-close" type="button" aria-label="Close conversation">×</button></header>
-        <div class="live-chat-transcript" id="liveChatTranscript"></div>
-        <form class="live-chat-compose" id="liveChatCompose"><textarea id="liveChatInput" maxlength="4000" placeholder="Message the member..."></textarea><button class="primary" type="submit">Send</button></form>
-        <div class="live-chat-readonly hidden" id="liveChatReadonly">Read-only conversation review</div>
-      </section>`;
-    document.body.appendChild(overlay);
-    overlay.querySelector('.live-chat-close')?.addEventListener('click',close);
-    overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
-    overlay.querySelector('#liveChatCompose')?.addEventListener('submit',send);
-    return overlay;
+  function ticketIdFromCard(card){
+    const meta=card?.querySelector('.ticket-id')?.textContent||'';
+    return (meta.split('•')[0]||'').trim();
+  }
+
+  function findTicketCard(id){
+    return [...document.querySelectorAll('.ticket-card')].find(card=>ticketIdFromCard(card)===id)||null;
+  }
+
+  function setButtonState(id,open){
+    document.querySelectorAll(`.live-support-open-chat[data-id="${CSS.escape(id)}"]`).forEach(button=>{
+      button.textContent=open?'Hide chat':'Open chat';
+      button.setAttribute('aria-expanded',open?'true':'false');
+    });
+  }
+
+  function buildPanel(id){
+    const card=findTicketCard(id);if(!card)return null;
+    const existing=card.querySelector(`.live-chat-inline[data-ticket-id="${CSS.escape(id)}"]`);
+    if(existing)return existing;
+
+    const panel=document.createElement('section');
+    panel.className='live-chat-inline';
+    panel.dataset.ticketId=id;
+    panel.innerHTML=`
+      <header class="live-chat-inline-head">
+        <div><div class="eyebrow">ARIA LIVE SUPPORT</div><h3>Member conversation</h3><span class="live-chat-inline-status">Connecting…</span></div>
+      </header>
+      <div class="live-chat-transcript"><div class="empty-queue">Loading conversation…</div></div>
+      <form class="live-chat-compose">
+        <textarea maxlength="4000" placeholder="Message the member..."></textarea>
+        <button class="primary" type="submit">Send</button>
+      </form>
+      <div class="live-chat-readonly hidden">Read-only conversation review</div>`;
+
+    panel.querySelector('.live-chat-compose')?.addEventListener('submit',event=>send(event,id));
+    const main=card.querySelector('.ticket-main');
+    const meta=main?.querySelector('.ticket-meta');
+    if(meta)meta.insertAdjacentElement('afterend',panel);
+    else main?.prepend(panel);
+    return panel;
   }
 
   function render(data){
-    ensureOverlay();canSend=Boolean(data.canSend);
-    document.getElementById('liveChatMemberName').textContent=data.ticket?.memberName||'Member conversation';
-    document.getElementById('liveChatStatus').textContent=[data.ticket?.assignedTo?`Support: ${data.ticket.assignedTo}`:'',data.ticket?.status||''].filter(Boolean).join(' • ');
-    const transcript=document.getElementById('liveChatTranscript');
-    transcript.innerHTML=(data.messages||[]).map(m=>{
-      const role=m.role==='member'?'member':m.role==='staff'?'staff':'aria';
-      const label=m.role==='member'?'Member':m.role==='staff'?'Support':'Aria';
-      return `<div class="live-chat-line ${role}"><div class="live-chat-label">${label}<span>${esc(fmt(m.createdAt))}</span></div><div class="live-chat-bubble">${esc(m.content).replace(/\n/g,'<br>')}</div></div>`;
-    }).join('')||'<div class="empty-queue">No conversation messages yet.</div>';
-    transcript.scrollTop=transcript.scrollHeight;
-    document.getElementById('liveChatCompose').classList.toggle('hidden',!canSend);
-    document.getElementById('liveChatReadonly').classList.toggle('hidden',canSend);
+    if(!currentTicketId)return;
+    currentData=data;
+    currentPanel=buildPanel(currentTicketId);
+    if(!currentPanel)return;
+    canSend=Boolean(data.canSend);
+
+    const heading=currentPanel.querySelector('h3');
+    const status=currentPanel.querySelector('.live-chat-inline-status');
+    if(heading)heading.textContent=data.ticket?.memberName||'Member conversation';
+    if(status)status.textContent=[data.ticket?.assignedTo?`Support: ${data.ticket.assignedTo}`:'',data.ticket?.status||''].filter(Boolean).join(' • ');
+
+    const transcript=currentPanel.querySelector('.live-chat-transcript');
+    if(transcript){
+      transcript.innerHTML=(data.messages||[]).map(message=>{
+        const role=message.role==='member'?'member':message.role==='staff'?'staff':'aria';
+        const label=message.role==='member'?'Member':message.role==='staff'?'Support':'Aria';
+        return `<div class="live-chat-line ${role}"><div class="live-chat-label">${label}<span>${esc(fmt(message.createdAt))}</span></div><div class="live-chat-bubble">${esc(message.content).replace(/\n/g,'<br>')}</div></div>`;
+      }).join('')||'<div class="empty-queue">No conversation messages yet.</div>';
+      transcript.scrollTop=transcript.scrollHeight;
+    }
+
+    const compose=currentPanel.querySelector('.live-chat-compose');
+    const readonly=currentPanel.querySelector('.live-chat-readonly');
+    compose?.classList.toggle('hidden',!canSend);
+    readonly?.classList.toggle('hidden',canSend);
+    setButtonState(currentTicketId,true);
   }
 
   async function load({poll=false}={}){
     if(!currentTicketId)return;
+    currentPanel=buildPanel(currentTicketId);
     try{
       const suffix=poll?'?poll=1':'';
-      const r=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/conversation${suffix}`,{credentials:'same-origin',cache:'no-store'});
-      const data=await r.json().catch(()=>({}));
-      if(!r.ok||!data.ok)throw new Error(data.error||'Conversation could not be loaded.');
+      const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/conversation${suffix}`,{credentials:'same-origin',cache:'no-store'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||'Conversation could not be loaded.');
       render(data);
     }catch(error){
-      const t=document.getElementById('liveChatTranscript');if(t)t.innerHTML=`<div class="empty-queue">${esc(error.message)}</div>`;
+      currentPanel=buildPanel(currentTicketId);
+      const transcript=currentPanel?.querySelector('.live-chat-transcript');
+      if(transcript)transcript.innerHTML=`<div class="empty-queue">${esc(error.message)}</div>`;
     }
   }
 
   function open(id){
-    currentTicketId=id;ensureOverlay().classList.remove('hidden');load();
-    if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(()=>load({poll:true}),3000);
-  }
-  function close(){
-    currentTicketId=null;if(pollTimer)clearInterval(pollTimer);pollTimer=null;overlay?.classList.add('hidden');
+    if(currentTicketId===id&&findTicketCard(id)?.querySelector('.live-chat-inline')){
+      close(id);return;
+    }
+    if(currentTicketId)setButtonState(currentTicketId,false);
+    document.querySelectorAll('.live-chat-inline').forEach(panel=>panel.remove());
+    currentTicketId=id;
+    currentPanel=buildPanel(id);
+    currentData=null;
+    setButtonState(id,true);
+    load();
+    if(pollTimer)clearInterval(pollTimer);
+    pollTimer=setInterval(()=>load({poll:true}),3000);
   }
 
-  async function send(event){
-    event.preventDefault();if(!currentTicketId||!canSend)return;
-    const input=document.getElementById('liveChatInput');const content=input?.value.trim();if(!content)return;
-    const button=event.currentTarget.querySelector('button');button.disabled=true;
+  function close(id=currentTicketId){
+    if(id)setButtonState(id,false);
+    document.querySelectorAll('.live-chat-inline').forEach(panel=>panel.remove());
+    currentTicketId=null;
+    currentPanel=null;
+    currentData=null;
+    canSend=false;
+    if(pollTimer)clearInterval(pollTimer);
+    pollTimer=null;
+  }
+
+  async function send(event,id){
+    event.preventDefault();
+    if(!currentTicketId||currentTicketId!==id||!canSend)return;
+    const form=event.currentTarget;
+    const input=form.querySelector('textarea');
+    const content=input?.value.trim();if(!content)return;
+    const button=form.querySelector('button');if(button)button.disabled=true;
     try{
-      const r=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/messages`,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({content})});
-      const data=await r.json().catch(()=>({}));if(!r.ok||!data.ok)throw new Error(data.error||'Message could not be sent.');
-      input.value='';await load({poll:true});
-    }catch(error){alert(error.message);}finally{button.disabled=false;}
+      const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/messages`,{
+        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({content})
+      });
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||'Message could not be sent.');
+      input.value='';
+      await load({poll:true});
+    }catch(error){alert(error.message);}
+    finally{if(button)button.disabled=false;}
   }
 
   function addButtons(){
     document.querySelectorAll('.ticket-card').forEach(card=>{
       const meta=card.querySelector('.ticket-id')?.textContent||'';
-      if(!/MEMBER COMMUNICATION/i.test(meta)||card.querySelector('.live-support-open-chat'))return;
-      const id=(meta.split('•')[0]||'').trim();if(!id)return;
+      if(!/MEMBER COMMUNICATION/i.test(meta))return;
+      const id=ticketIdFromCard(card);if(!id)return;
       const actions=card.querySelector('.ticket-actions');if(!actions)return;
-      const button=document.createElement('button');button.className='status-btn live-support-open-chat';button.type='button';button.textContent='Open chat';button.dataset.id=id;
-      actions.prepend(button);
+      let button=actions.querySelector('.live-support-open-chat');
+      if(!button){
+        button=document.createElement('button');
+        button.className='status-btn live-support-open-chat';
+        button.type='button';
+        button.dataset.id=id;
+        actions.prepend(button);
+      }
+      button.textContent=currentTicketId===id?'Hide chat':'Open chat';
+      button.setAttribute('aria-expanded',currentTicketId===id?'true':'false');
+      if(currentTicketId===id){
+        currentPanel=buildPanel(id);
+        if(currentData)render(currentData);
+      }
     });
   }
 
-  document.addEventListener('click',event=>{const b=event.target.closest('.live-support-open-chat');if(b){event.preventDefault();event.stopImmediatePropagation();open(b.dataset.id);}},true);
-  const observer=new MutationObserver(addButtons);observer.observe(document.body,{childList:true,subtree:true});addButtons();
+  document.addEventListener('click',event=>{
+    const button=event.target.closest('.live-support-open-chat');
+    if(!button)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    open(button.dataset.id);
+  },true);
+
+  const observer=new MutationObserver(()=>addButtons());
+  observer.observe(document.body,{childList:true,subtree:true});
+  addButtons();
   window.addEventListener('beforeunload',()=>{observer.disconnect();if(pollTimer)clearInterval(pollTimer);},{once:true});
 })();
