@@ -22,6 +22,10 @@
     return String(liveSupportViewer?.role||'').toLowerCase()==='live support specialist';
   }
 
+  function isArchivedMemberChat(ticket){
+    return ticket?.department==='Operations'&&ticket?.category==='Member Communication'&&ticket?.status==='Closed';
+  }
+
   async function ticketApi(path,options={}){
     const response=await fetch(path,{
       credentials:'same-origin',
@@ -50,6 +54,15 @@
     </div>`;
   }
 
+  function archivedNotesMarkup(ticket){
+    const notes=Array.isArray(ticket.notes)?ticket.notes:[];
+    if(!notes.length)return '<div class="empty-queue" style="margin-top:14px;padding:18px">No internal notes were recorded for this conversation.</div>';
+    return `<div style="margin-top:16px;border-top:1px solid #edf0f4;padding-top:12px">
+      <div style="font-size:11px;font-weight:800;color:#667388;margin-bottom:4px">Internal support notes</div>
+      ${notes.slice().reverse().map(note=>`<div style="padding:10px 0;border-bottom:1px solid #edf0f4"><div style="display:flex;justify-content:space-between;gap:12px"><strong style="font-size:11px;color:#4d5a70">${escapeHtml(note.author||'Staff')}</strong><span style="font-size:10px;color:#8a95a5">${escapeHtml(formatTicketDate(note.created))}</span></div><div style="font-size:12px;color:#59667a;line-height:1.55;margin-top:4px;white-space:pre-wrap">${escapeHtml(note.text||'')}</div></div>`).join('')}
+    </div>`;
+  }
+
   function liveSupportWaitMarkup(ticket){
     if(!isLiveSupportQueue()||ticket.category!=='Member Communication'||ticket.assignedToUserId)return '';
     const waiting=Math.max(0,Number(ticket.waitingSeconds)||0);
@@ -71,7 +84,9 @@
 
   renderTicketQueue=function(dept,elementId,summaryId){
     const queue=document.getElementById(elementId),summary=document.getElementById(summaryId);if(!queue||!summary)return;
-    const items=tickets.filter(t=>t.department===dept),open=items.filter(t=>t.status==='Open').length,progress=items.filter(t=>t.status==='In Progress').length,closed=items.filter(t=>t.status==='Closed').length;
+    let items=tickets.filter(t=>t.department===dept);
+    if(dept==='Operations')items=items.filter(t=>!isArchivedMemberChat(t));
+    const open=items.filter(t=>t.status==='Open').length,progress=items.filter(t=>t.status==='In Progress').length,closed=items.filter(t=>t.status==='Closed').length;
     const average=items.length?Math.round(items.reduce((sum,t)=>sum+normalizeTicketProgress(t),0)/items.length):0;
     const overdue=isLiveSupportQueue()&&dept==='Operations'?items.filter(t=>t.category==='Member Communication'&&!t.assignedToUserId&&(t.overdue||Number(t.waitingSeconds)>120)).length:0;
     summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span><span class="summary-chip">Closed <strong>${closed}</strong></span>${isLiveSupportQueue()&&dept==='Operations'?`<span class="summary-chip" style="${overdue?'background:#fff0f0;color:#b42318;border-color:#f5b7b1':''}">Over 2 min <strong>${overdue}</strong></span>`:`<span class="summary-chip">Queue progress <strong>${average}%</strong></span>`}`;
@@ -84,8 +99,27 @@
     }).join(''):'<div class="empty-queue">No tickets in this queue.</div>';
   };
 
+  function renderAriaChatArchive(){
+    const queue=document.getElementById('ariaChatQueue'),summary=document.getElementById('ariaChatSummary');
+    if(!queue||!summary)return;
+    const items=tickets.filter(isArchivedMemberChat).sort((a,b)=>new Date(b.updated||b.created||0)-new Date(a.updated||a.created||0));
+    const assigned=items.filter(t=>t.assignedTo).length;
+    summary.innerHTML=`<span class="summary-chip">Archived <strong>${items.length}</strong></span><span class="summary-chip">Handled by staff <strong>${assigned}</strong></span>`;
+    queue.innerHTML=items.length?items.map(t=>`<article class="ticket-card aria-chat-archive-card">
+      <div class="ticket-main">
+        <div class="ticket-id">${escapeHtml(t.id)} • Closed ${escapeHtml(formatTicketDate(t.updated||t.created))}</div>
+        <h3>${escapeHtml(t.title)}</h3>
+        <p>${escapeHtml(t.details)}</p>
+        <div class="ticket-meta"><span class="pill closed">Closed</span>${t.createdBy?`<span class="pill">Member: ${escapeHtml(t.createdBy)}</span>`:''}${t.assignedTo?`<span class="pill">Handled by ${escapeHtml(t.assignedTo)}</span>`:''}</div>
+        ${archivedNotesMarkup(t)}
+      </div>
+      <div class="ticket-actions"><button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button></div>
+    </article>`).join(''):'<div class="empty-queue">No closed Aria Chat records yet.</div>';
+  }
+
   renderTickets=function(){
     renderTicketQueue('Operations','operationsQueue','operationsSummary');
+    renderAriaChatArchive();
     renderTicketQueue('IT','itQueue','itSummary');
     renderTicketQueue('Engineering','engineeringQueue','engineeringSummary');
   };
@@ -120,7 +154,7 @@
     }catch(error){
       console.error(error);
       if(!silent){
-        ['operationsQueue','itQueue','engineeringQueue'].forEach(id=>{
+        ['operationsQueue','ariaChatQueue','itQueue','engineeringQueue'].forEach(id=>{
           const el=document.getElementById(id);if(el)el.innerHTML='<div class="empty-queue">Could not load the live ticket queue. Refresh or sign in again.</div>';
         });
       }
