@@ -45,7 +45,7 @@ function withAriaFormSystem(response,pathname) {
   if (pathname === '/' || pathname === '/index.html') {
     rewriter.on('body', {
       element(element) {
-        element.prepend('<script src="/member-medication-structured-form.js?v=20260826-3"></script>', { html: true });
+        element.prepend('<script src="/member-account-guard.js?v=20260828-1"></script><script src="/member-medication-structured-form.js?v=20260826-3"></script>', { html: true });
         element.append('<script src="/member-live-support-chat.js?v=20260828-1"></script><script src="/member-assistant-live.js?v=20260827-7"></script><script src="/member-live-support-header.js?v=20260828-2"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-4"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script>', { html: true });
       }
     });
