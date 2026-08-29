@@ -50,6 +50,10 @@
     indicator.hidden=!data?.agentTyping;
   }
 
+  function supportName(){
+    return String(window.__ariaHumanSupportName||'Brandon').trim()||'Brandon';
+  }
+
   function renderMessage(message){
     const box=log();if(!box||!message?.id||seen.has(message.id))return;
     seen.add(message.id);
@@ -57,7 +61,7 @@
     const role=message.role==='member'?'user':message.role==='staff'?'support':'aria';
     div.className=`aria-bubble-msg ${role}`;
     div.dataset.messageId=message.id;
-    const label=message.role==='staff'?'<span class="aria-support-sender">Aria Support</span>':'';
+    const label=message.role==='staff'?`<span class="aria-support-sender">${esc(supportName())}</span>`:'';
     div.innerHTML=`${label}${esc(message.content).replace(/\n/g,'<br>')}<span class="aria-bubble-time">${esc(time(message.createdAt))}</span>`;
     box.appendChild(div);box.scrollTop=box.scrollHeight;
   }
