@@ -24,6 +24,13 @@
       chatStyles.dataset.liveSupportChat='true';
       document.head.appendChild(chatStyles);
     }
+    if(!document.querySelector('link[data-aria-chat-archive-lock]')){
+      const archiveLock=document.createElement('link');
+      archiveLock.rel='stylesheet';
+      archiveLock.href='aria-chat-archive-lock.css?v=20260828-1';
+      archiveLock.dataset.ariaChatArchiveLock='true';
+      document.head.appendChild(archiveLock);
+    }
   }
 
   function firstName(value=''){
@@ -110,7 +117,7 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260828-5';
+    chat.src='staff-live-support-chat.js?v=20260828-6';
     document.body.appendChild(chat);
 
     const core=document.createElement('script');
