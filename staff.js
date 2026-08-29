@@ -120,6 +120,10 @@
     chat.src='staff-live-support-chat.js?v=20260828-6';
     document.body.appendChild(chat);
 
+    const queueWatch=document.createElement('script');
+    queueWatch.src='live-support-queue-watch.js?v=20260828-1';
+    document.body.appendChild(queueWatch);
+
     const core=document.createElement('script');
     core.src='staff-core.js';
     core.onload=()=>{
