@@ -20,7 +20,7 @@
     if(!document.querySelector('link[data-live-support-chat]')){
       const chatStyles=document.createElement('link');
       chatStyles.rel='stylesheet';
-      chatStyles.href='live-support-chat.css?v=20260828-1';
+      chatStyles.href='live-support-chat.css?v=20260828-2';
       chatStyles.dataset.liveSupportChat='true';
       document.head.appendChild(chatStyles);
     }
@@ -109,6 +109,10 @@
     logout.src='portal-logout.js?v=20260821-2';
     document.body.appendChild(logout);
 
+    const chat=document.createElement('script');
+    chat.src='staff-live-support-chat.js?v=20260828-2';
+    document.body.appendChild(chat);
+
     const core=document.createElement('script');
     core.src='staff-core.js';
     core.onload=()=>{
@@ -138,12 +142,8 @@
         audit.src='audit-blueprint.js?v=20260828-2';
         audit.onload=()=>{
           const notes=document.createElement('script');
-          notes.src='ticket-notes.js?v=20260828-ariachat1';
+          notes.src='ticket-notes.js?v=20260828-ariachat2';
           notes.onload=()=>{
-            const chat=document.createElement('script');
-            chat.src='staff-live-support-chat.js?v=20260828-1';
-            document.body.appendChild(chat);
-
             const invites=document.createElement('script');
             invites.src='account-invites.js';
             invites.onload=()=>{
