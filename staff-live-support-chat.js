@@ -48,10 +48,16 @@
     return workspace;
   }
 
+  function buttonText(button,open){
+    const reviewOnly=button.dataset.reviewOnly==='true';
+    if(reviewOnly)return open?'Hide review':'Review chat';
+    return open?'Hide chat':'Open chat';
+  }
+
   function setButtonState(id,open){
     document.querySelectorAll('.live-support-open-chat').forEach(button=>{
       const match=button.dataset.id===id;
-      const nextText=match&&open?'Hide chat':'Open chat';
+      const nextText=buttonText(button,Boolean(match&&open));
       const nextExpanded=match&&open?'true':'false';
       if(button.textContent!==nextText)button.textContent=nextText;
       if(button.getAttribute('aria-expanded')!==nextExpanded)button.setAttribute('aria-expanded',nextExpanded);
@@ -174,6 +180,7 @@
       if(!/MEMBER COMMUNICATION/i.test(meta))return;
       const id=ticketIdFromCard(card);if(!id)return;
       const actions=card.querySelector('.ticket-actions');if(!actions)return;
+      const reviewOnly=card.classList.contains('aria-chat-archive-card');
       let button=actions.querySelector('.live-support-open-chat');
       if(!button){
         button=document.createElement('button');
@@ -182,8 +189,9 @@
         button.dataset.id=id;
         actions.prepend(button);
       }
+      button.dataset.reviewOnly=reviewOnly?'true':'false';
       const openState=currentTicketId===id&&workspace&&!workspace.hidden;
-      const nextText=openState?'Hide chat':'Open chat';
+      const nextText=buttonText(button,openState);
       const nextExpanded=openState?'true':'false';
       if(button.textContent!==nextText)button.textContent=nextText;
       if(button.getAttribute('aria-expanded')!==nextExpanded)button.setAttribute('aria-expanded',nextExpanded);
