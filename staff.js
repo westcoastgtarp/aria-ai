@@ -110,7 +110,7 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260828-3';
+    chat.src='staff-live-support-chat.js?v=20260828-4';
     document.body.appendChild(chat);
 
     const core=document.createElement('script');
