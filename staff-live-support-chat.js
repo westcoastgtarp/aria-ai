@@ -5,6 +5,7 @@
   let currentTicketId=null;
   let workspace=null;
   let pollTimer=null;
+  let buttonScanTimer=null;
   let canSend=false;
 
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
@@ -50,8 +51,10 @@
   function setButtonState(id,open){
     document.querySelectorAll('.live-support-open-chat').forEach(button=>{
       const match=button.dataset.id===id;
-      button.textContent=match&&open?'Hide chat':'Open chat';
-      button.setAttribute('aria-expanded',match&&open?'true':'false');
+      const nextText=match&&open?'Hide chat':'Open chat';
+      const nextExpanded=match&&open?'true':'false';
+      if(button.textContent!==nextText)button.textContent=nextText;
+      if(button.getAttribute('aria-expanded')!==nextExpanded)button.setAttribute('aria-expanded',nextExpanded);
     });
   }
 
@@ -179,8 +182,11 @@
         button.dataset.id=id;
         actions.prepend(button);
       }
-      button.textContent=currentTicketId===id&&workspace&&!workspace.hidden?'Hide chat':'Open chat';
-      button.setAttribute('aria-expanded',currentTicketId===id&&workspace&&!workspace.hidden?'true':'false');
+      const openState=currentTicketId===id&&workspace&&!workspace.hidden;
+      const nextText=openState?'Hide chat':'Open chat';
+      const nextExpanded=openState?'true':'false';
+      if(button.textContent!==nextText)button.textContent=nextText;
+      if(button.getAttribute('aria-expanded')!==nextExpanded)button.setAttribute('aria-expanded',nextExpanded);
     });
   }
 
@@ -191,8 +197,10 @@
     open(button.dataset.id);
   },true);
 
-  const observer=new MutationObserver(addButtons);
-  observer.observe(document.body,{childList:true,subtree:true});
   addButtons();
-  window.addEventListener('beforeunload',()=>{observer.disconnect();if(pollTimer)clearInterval(pollTimer);},{once:true});
+  buttonScanTimer=setInterval(addButtons,1000);
+  window.addEventListener('beforeunload',()=>{
+    if(pollTimer)clearInterval(pollTimer);
+    if(buttonScanTimer)clearInterval(buttonScanTimer);
+  },{once:true});
 })();
