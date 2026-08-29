@@ -6,6 +6,8 @@
   let workspace=null;
   let pollTimer=null;
   let buttonScanTimer=null;
+  let typingStopTimer=null;
+  let lastTypingPing=0;
   let canSend=false;
 
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
@@ -14,6 +16,25 @@
   function ticketIdFromCard(card){
     const meta=card?.querySelector('.ticket-id')?.textContent||'';
     return (meta.split('•')[0]||'').trim();
+  }
+
+  async function sendTyping(typing,{force=false}={}){
+    if(!currentTicketId||!canSend)return;
+    const now=Date.now();
+    if(typing&&!force&&now-lastTypingPing<1800)return;
+    if(typing)lastTypingPing=now;
+    try{
+      await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/typing`,{
+        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({typing})
+      });
+    }catch(error){console.error('Live Support typing update failed',error);}
+  }
+
+  function typingInput(){
+    if(!canSend)return;
+    sendTyping(true);
+    if(typingStopTimer)clearTimeout(typingStopTimer);
+    typingStopTimer=setTimeout(()=>sendTyping(false,{force:true}),3200);
   }
 
   function ensureWorkspace(){
@@ -45,6 +66,7 @@
     queue.parentNode.insertBefore(workspace,queue);
     workspace.querySelector('#liveSupportWorkspaceClose')?.addEventListener('click',close);
     workspace.querySelector('#liveSupportWorkspaceCompose')?.addEventListener('submit',send);
+    workspace.querySelector('#liveSupportWorkspaceCompose textarea')?.addEventListener('input',typingInput);
     return workspace;
   }
 
@@ -131,8 +153,10 @@
   function open(id){
     if(!id)return;
     if(currentTicketId===id&&workspace&&!workspace.hidden){close();return;}
+    if(currentTicketId)sendTyping(false,{force:true});
     currentTicketId=id;
     canSend=false;
+    lastTypingPing=0;
     setButtonState(id,true);
     const panel=ensureWorkspace();
     if(panel){
@@ -145,9 +169,13 @@
   }
 
   function close(){
+    sendTyping(false,{force:true});
+    if(typingStopTimer)clearTimeout(typingStopTimer);
+    typingStopTimer=null;
     if(currentTicketId)setButtonState(currentTicketId,false);
     currentTicketId=null;
     canSend=false;
+    lastTypingPing=0;
     if(workspace)workspace.hidden=true;
     if(pollTimer)clearInterval(pollTimer);
     pollTimer=null;
@@ -159,6 +187,9 @@
     const form=event.currentTarget;
     const input=form.querySelector('textarea');
     const content=input?.value.trim();if(!content)return;
+    if(typingStopTimer)clearTimeout(typingStopTimer);
+    typingStopTimer=null;
+    await sendTyping(false,{force:true});
     const button=form.querySelector('button');if(button)button.disabled=true;
     try{
       const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/messages`,{
@@ -208,6 +239,8 @@
   addButtons();
   buttonScanTimer=setInterval(addButtons,1000);
   window.addEventListener('beforeunload',()=>{
+    sendTyping(false,{force:true});
+    if(typingStopTimer)clearTimeout(typingStopTimer);
     if(pollTimer)clearInterval(pollTimer);
     if(buttonScanTimer)clearInterval(buttonScanTimer);
   },{once:true});
