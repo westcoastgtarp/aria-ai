@@ -6,6 +6,7 @@
   let seen=new Set();
   let pollTimer=null;
   let sending=false;
+  window.__ariaHumanSupportActive=false;
 
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
   function time(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(d);}
@@ -66,6 +67,8 @@
       active=true;seen=new Set();
       const box=log();if(box)box.innerHTML='';
     }
+    window.__ariaHumanSupportActive=true;
+    window.__ariaHumanSupportName=String(data.displayName||'').trim();
     showSupportHeader(data.displayName);
     showTyping(data);
     (data.messages||[]).forEach(renderMessage);
@@ -73,6 +76,8 @@
 
   function deactivate(){
     active=false;
+    window.__ariaHumanSupportActive=false;
+    window.__ariaHumanSupportName='';
     showAriaHeader();
     showTyping({agentTyping:false});
   }
