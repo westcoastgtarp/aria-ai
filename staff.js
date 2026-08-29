@@ -17,6 +17,13 @@
       noteFix.dataset.staffNoteFix='true';
       document.head.appendChild(noteFix);
     }
+    if(!document.querySelector('link[data-live-support-chat]')){
+      const chatStyles=document.createElement('link');
+      chatStyles.rel='stylesheet';
+      chatStyles.href='live-support-chat.css?v=20260828-1';
+      chatStyles.dataset.liveSupportChat='true';
+      document.head.appendChild(chatStyles);
+    }
   }
 
   function firstName(value=''){
@@ -133,6 +140,10 @@
           const notes=document.createElement('script');
           notes.src='ticket-notes.js?v=20260828-ariachat1';
           notes.onload=()=>{
+            const chat=document.createElement('script');
+            chat.src='staff-live-support-chat.js?v=20260828-1';
+            document.body.appendChild(chat);
+
             const invites=document.createElement('script');
             invites.src='account-invites.js';
             invites.onload=()=>{
