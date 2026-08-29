@@ -32,6 +32,11 @@ function canRespondToActiveTicket(session,ticket){
   const owns=Boolean(ticket.assigned_to_user_id&&ticket.assigned_to_user_id===session.user_id);
   return (owns&&isSpecialist(session))||isOversightResponder(session);
 }
+function canCloseActiveTicket(session,ticket){
+  if(!ticket||ticket.status==='Closed')return false;
+  if(isOversightResponder(session))return true;
+  return isSpecialist(session)&&ticket.assigned_to_user_id===session.user_id;
+}
 
 async function ticketById(env,id){
   return env.DB.prepare(`
@@ -129,10 +134,28 @@ async function staffSend(request,env,session,id){
   return json({ok:true,ticketId:id,conversationId:conversation.id,message},{status:201});
 }
 
+async function staffClose(env,session,id){
+  const ticket=await ticketById(env,id);if(!ticket)return json({ok:false,error:'Member Communication item not found.'},{status:404});
+  if(ticket.status==='Closed')return json({ok:true,closed:true,ticketId:id,alreadyClosed:true});
+  if(!canCloseActiveTicket(session,ticket))return json({ok:false,error:'You are not authorized to close this Live Support conversation.'},{status:403});
+  const now=new Date().toISOString();
+  await env.DB.prepare(`UPDATE tickets SET status='Closed',progress=100,updated_at=? WHERE id=? AND status!='Closed'`).bind(now,id).run();
+  const incident=await env.DB.prepare(`SELECT id,member_user_id,current_risk_level FROM lifeline_incidents WHERE related_ticket_id=? AND status!='closed' ORDER BY updated_at DESC LIMIT 1`).bind(id).first();
+  if(incident){
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE lifeline_incidents SET status='closed',updated_at=? WHERE id=?`).bind(now,incident.id),
+      env.DB.prepare(`INSERT INTO lifeline_events (id,incident_id,member_user_id,event_type,risk_level,actor_type,actor_user_id,details_json,occurred_at,recorded_at) VALUES (?,?,?,?,?,'staff',?,?,?,?)`)
+        .bind(uuid('LFLE'),incident.id,incident.member_user_id,'human_support_closed',incident.current_risk_level||null,session.user_id,JSON.stringify({ticketId:id,progress:100,role:session.role_name}),now,now)
+    ]);
+  }
+  try{await audit(env,{eventType:'live_support_conversation_closed',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,details:{role:session.role_name}});}catch(error){console.error('Live support close audit failed',error);}
+  return json({ok:true,closed:true,ticketId:id,status:'Closed',progress:100,updatedAt:now});
+}
+
 export async function handleLiveSupportChatRoute(request,env){
   const url=new URL(request.url);
   const memberRoute=url.pathname==='/api/member/lifeline/live-chat'||url.pathname==='/api/member/lifeline/live-chat/messages';
-  const staffMatch=url.pathname.match(/^\/api\/staff\/live-support\/tickets\/([^/]+)\/(conversation|messages)$/);
+  const staffMatch=url.pathname.match(/^\/api\/staff\/live-support\/tickets\/([^/]+)\/(conversation|messages|close)$/);
   if(!memberRoute&&!staffMatch)return null;
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
   const session=await currentSession(request,env);
@@ -150,6 +173,7 @@ export async function handleLiveSupportChatRoute(request,env){
     const id=decodeURIComponent(staffMatch[1]);
     if(staffMatch[2]==='conversation'&&request.method==='GET')return staffConversation(request,env,session,id,url);
     if(staffMatch[2]==='messages'&&request.method==='POST')return staffSend(request,env,session,id);
+    if(staffMatch[2]==='close'&&request.method==='POST')return staffClose(env,session,id);
     return json({ok:false,error:'Method not allowed.'},{status:405});
   }catch(error){
     console.error('Live support chat route failed',error);
