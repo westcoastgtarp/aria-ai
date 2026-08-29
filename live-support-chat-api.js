@@ -72,15 +72,45 @@ async function audit(env,{eventType,actorUserId,memberUserId,ticketId,messageId=
     .bind(uuid('AUD'),eventType,actorUserId||null,memberUserId||null,ticketId||null,JSON.stringify({messageId,...details}),now,now).run();
 }
 
+async function typingState(env,ticket){
+  if(!ticket?.id||!ticket?.assigned_to_user_id)return {typing:false,typingName:null};
+  const now=new Date().toISOString();
+  const row=await env.DB.prepare(`
+    SELECT p.staff_user_id,u.display_name,u.email
+    FROM live_support_typing p
+    LEFT JOIN users u ON u.id=p.staff_user_id
+    WHERE p.ticket_id=? AND p.staff_user_id=? AND p.expires_at>?
+    LIMIT 1
+  `).bind(ticket.id,ticket.assigned_to_user_id,now).first();
+  return row?{typing:true,typingName:firstName(row.display_name||row.email)}:{typing:false,typingName:null};
+}
+
+async function clearTyping(env,ticketId){
+  try{await env.DB.prepare(`DELETE FROM live_support_typing WHERE ticket_id=?`).bind(ticketId).run();}catch(error){console.error('Live support typing cleanup failed',error);}
+}
+
+async function ensureOversightAssignment(env,session,ticket){
+  if(!isOversightResponder(session)||ticket.assigned_to_user_id||ticket.status==='Closed')return ticket;
+  const now=new Date().toISOString();
+  await env.DB.prepare(`
+    UPDATE tickets
+    SET assigned_to_user_id=?,status='In Progress',progress=CASE WHEN progress=0 THEN 25 ELSE progress END,updated_at=?
+    WHERE id=? AND assigned_to_user_id IS NULL AND status!='Closed'
+  `).bind(session.user_id,now,ticket.id).run();
+  try{await audit(env,{eventType:'live_support_oversight_joined',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:ticket.id,details:{role:session.role_name}});}catch(error){console.error('Live support oversight join audit failed',error);}
+  return await ticketById(env,ticket.id);
+}
+
 async function memberState(request,env,session){
   const ticket=await activeMemberTicket(env,session.user_id);
-  if(!ticket)return json({ok:true,active:false,waiting:false,assigned:false,displayName:null,messages:[]});
+  if(!ticket)return json({ok:true,active:false,waiting:false,assigned:false,displayName:null,agentTyping:false,typingName:null,messages:[]});
   if(!ticket.assigned_to_user_id){
-    return json({ok:true,active:false,waiting:true,assigned:false,ticketId:ticket.id,displayName:null,messages:[]});
+    return json({ok:true,active:false,waiting:true,assigned:false,ticketId:ticket.id,displayName:null,agentTyping:false,typingName:null,messages:[]});
   }
   const conversation=await conversationForMember(env,session.user_id,{create:false});
   const data=conversation?await loadConversationMessages(env,session.user_id,conversation.id,100):{conversation:null,messages:[]};
-  return json({ok:true,active:true,waiting:false,assigned:true,ticketId:ticket.id,displayName:firstName(ticket.staff_name||ticket.staff_email),conversation:data.conversation,messages:data.messages});
+  const typing=await typingState(env,ticket);
+  return json({ok:true,active:true,waiting:false,assigned:true,ticketId:ticket.id,displayName:firstName(ticket.staff_name||ticket.staff_email),agentTyping:typing.typing,typingName:typing.typingName,conversation:data.conversation,messages:data.messages});
 }
 
 async function memberSend(request,env,session){
@@ -109,27 +139,36 @@ async function staffConversation(request,env,session,id,url){
   return json({ok:true,ticket:{id:ticket.id,status:ticket.status,memberName:ticket.member_name||ticket.member_email||'Member',assignedTo:firstName(ticket.staff_name||ticket.staff_email)},conversation:data.conversation,messages:data.messages,canSend,readOnly:!canSend});
 }
 
+async function staffTyping(request,env,session,id){
+  let ticket=await ticketById(env,id);if(!ticket)return json({ok:false,error:'Member Communication item not found.'},{status:404});
+  if(ticket.status==='Closed')return json({ok:false,error:'This Live Support conversation is closed.'},{status:409});
+  if(!canRespondToActiveTicket(session,ticket))return json({ok:false,error:'You do not have permission to respond in this active Live Support conversation.'},{status:403});
+  ticket=await ensureOversightAssignment(env,session,ticket);
+  const body=await readBody(request);
+  const typing=Boolean(body?.typing);
+  if(!typing){await clearTyping(env,id);return json({ok:true,typing:false});}
+  const now=new Date();
+  const expires=new Date(now.getTime()+6000).toISOString();
+  await env.DB.prepare(`
+    INSERT INTO live_support_typing (ticket_id,staff_user_id,expires_at,updated_at)
+    VALUES (?,?,?,?)
+    ON CONFLICT(ticket_id) DO UPDATE SET staff_user_id=excluded.staff_user_id,expires_at=excluded.expires_at,updated_at=excluded.updated_at
+  `).bind(id,session.user_id,expires,now.toISOString()).run();
+  return json({ok:true,typing:true,displayName:firstName(session.display_name||session.email),expiresAt:expires});
+}
+
 async function staffSend(request,env,session,id){
   let ticket=await ticketById(env,id);if(!ticket)return json({ok:false,error:'Member Communication item not found.'},{status:404});
   if(ticket.status==='Closed')return json({ok:false,error:'This Live Support conversation is closed and can only be reviewed.'},{status:409});
   if(!canRespondToActiveTicket(session,ticket))return json({ok:false,error:'You do not have permission to respond in this active Live Support conversation.'},{status:403});
-
-  if(isOversightResponder(session)&&!ticket.assigned_to_user_id){
-    const now=new Date().toISOString();
-    await env.DB.prepare(`
-      UPDATE tickets
-      SET assigned_to_user_id=?,status='In Progress',progress=CASE WHEN progress=0 THEN 25 ELSE progress END,updated_at=?
-      WHERE id=? AND assigned_to_user_id IS NULL AND status!='Closed'
-    `).bind(session.user_id,now,id).run();
-    try{await audit(env,{eventType:'live_support_oversight_joined',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,details:{role:session.role_name}});}catch(error){console.error('Live support oversight join audit failed',error);}
-    ticket=await ticketById(env,id);
-  }
+  ticket=await ensureOversightAssignment(env,session,ticket);
 
   const body=await readBody(request);const content=String(body?.content||'').trim();
   if(!content)return json({ok:false,error:'A message is required.'},{status:400});
   if(content.length>4000)return json({ok:false,error:'Please shorten the message and try again.'},{status:400});
   const conversation=await ensureOpenConversation(env,ticket.created_by_user_id);
   const message=await appendConversationMessage(env,{conversationId:conversation.id,userId:ticket.created_by_user_id,role:'staff',content,source:'staff',riskLevel:null});
+  await clearTyping(env,id);
   try{await audit(env,{eventType:'live_support_staff_message_sent',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,messageId:message?.id,details:{role:session.role_name}});}catch(error){console.error('Live support staff message audit failed',error);}
   return json({ok:true,ticketId:id,conversationId:conversation.id,message},{status:201});
 }
@@ -140,6 +179,7 @@ async function staffClose(env,session,id){
   if(!canCloseActiveTicket(session,ticket))return json({ok:false,error:'You are not authorized to close this Live Support conversation.'},{status:403});
   const now=new Date().toISOString();
   await env.DB.prepare(`UPDATE tickets SET status='Closed',progress=100,updated_at=? WHERE id=? AND status!='Closed'`).bind(now,id).run();
+  await clearTyping(env,id);
   const incident=await env.DB.prepare(`SELECT id,member_user_id,current_risk_level FROM lifeline_incidents WHERE related_ticket_id=? AND status!='closed' ORDER BY updated_at DESC LIMIT 1`).bind(id).first();
   if(incident){
     await env.DB.batch([
@@ -155,7 +195,7 @@ async function staffClose(env,session,id){
 export async function handleLiveSupportChatRoute(request,env){
   const url=new URL(request.url);
   const memberRoute=url.pathname==='/api/member/lifeline/live-chat'||url.pathname==='/api/member/lifeline/live-chat/messages';
-  const staffMatch=url.pathname.match(/^\/api\/staff\/live-support\/tickets\/([^/]+)\/(conversation|messages|close)$/);
+  const staffMatch=url.pathname.match(/^\/api\/staff\/live-support\/tickets\/([^/]+)\/(conversation|messages|typing|close)$/);
   if(!memberRoute&&!staffMatch)return null;
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
   const session=await currentSession(request,env);
@@ -173,6 +213,7 @@ export async function handleLiveSupportChatRoute(request,env){
     const id=decodeURIComponent(staffMatch[1]);
     if(staffMatch[2]==='conversation'&&request.method==='GET')return staffConversation(request,env,session,id,url);
     if(staffMatch[2]==='messages'&&request.method==='POST')return staffSend(request,env,session,id);
+    if(staffMatch[2]==='typing'&&request.method==='POST')return staffTyping(request,env,session,id);
     if(staffMatch[2]==='close'&&request.method==='POST')return staffClose(env,session,id);
     return json({ok:false,error:'Method not allowed.'},{status:405});
   }catch(error){
