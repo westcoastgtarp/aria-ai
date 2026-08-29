@@ -22,8 +22,8 @@
     return String(liveSupportViewer?.role||'').toLowerCase()==='live support specialist';
   }
 
-  function isArchivedMemberChat(ticket){
-    return ticket?.department==='Operations'&&ticket?.category==='Member Communication'&&ticket?.status==='Closed';
+  function isArchivedOperationsTicket(ticket){
+    return ticket?.department==='Operations'&&ticket?.status==='Closed';
   }
 
   async function ticketApi(path,options={}){
@@ -56,9 +56,9 @@
 
   function archivedNotesMarkup(ticket){
     const notes=Array.isArray(ticket.notes)?ticket.notes:[];
-    if(!notes.length)return '<div class="empty-queue" style="margin-top:14px;padding:18px">No internal notes were recorded for this conversation.</div>';
+    if(!notes.length)return '<div class="empty-queue" style="margin-top:14px;padding:18px">No internal notes were recorded for this item.</div>';
     return `<div style="margin-top:16px;border-top:1px solid #edf0f4;padding-top:12px">
-      <div style="font-size:11px;font-weight:800;color:#667388;margin-bottom:4px">Internal support notes</div>
+      <div style="font-size:11px;font-weight:800;color:#667388;margin-bottom:4px">Internal notes</div>
       ${notes.slice().reverse().map(note=>`<div style="padding:10px 0;border-bottom:1px solid #edf0f4"><div style="display:flex;justify-content:space-between;gap:12px"><strong style="font-size:11px;color:#4d5a70">${escapeHtml(note.author||'Staff')}</strong><span style="font-size:10px;color:#8a95a5">${escapeHtml(formatTicketDate(note.created))}</span></div><div style="font-size:12px;color:#59667a;line-height:1.55;margin-top:4px;white-space:pre-wrap">${escapeHtml(note.text||'')}</div></div>`).join('')}
     </div>`;
   }
@@ -85,36 +85,39 @@
   renderTicketQueue=function(dept,elementId,summaryId){
     const queue=document.getElementById(elementId),summary=document.getElementById(summaryId);if(!queue||!summary)return;
     let items=tickets.filter(t=>t.department===dept);
-    if(dept==='Operations')items=items.filter(t=>!isArchivedMemberChat(t));
-    const open=items.filter(t=>t.status==='Open').length,progress=items.filter(t=>t.status==='In Progress').length,closed=items.filter(t=>t.status==='Closed').length;
+    if(dept==='Operations')items=items.filter(t=>t.status!=='Closed');
+    const open=items.filter(t=>t.status==='Open').length,progress=items.filter(t=>t.status==='In Progress').length;
     const average=items.length?Math.round(items.reduce((sum,t)=>sum+normalizeTicketProgress(t),0)/items.length):0;
     const overdue=isLiveSupportQueue()&&dept==='Operations'?items.filter(t=>t.category==='Member Communication'&&!t.assignedToUserId&&(t.overdue||Number(t.waitingSeconds)>120)).length:0;
-    summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span><span class="summary-chip">Closed <strong>${closed}</strong></span>${isLiveSupportQueue()&&dept==='Operations'?`<span class="summary-chip" style="${overdue?'background:#fff0f0;color:#b42318;border-color:#f5b7b1':''}">Over 2 min <strong>${overdue}</strong></span>`:`<span class="summary-chip">Queue progress <strong>${average}%</strong></span>`}`;
+    summary.innerHTML=`<span class="summary-chip">Open <strong>${open}</strong></span><span class="summary-chip">In Progress <strong>${progress}</strong></span>${isLiveSupportQueue()&&dept==='Operations'?`<span class="summary-chip" style="${overdue?'background:#fff0f0;color:#b42318;border-color:#f5b7b1':''}">Over 2 min <strong>${overdue}</strong></span>`:`<span class="summary-chip">Queue progress <strong>${average}%</strong></span>`}`;
     queue.innerHTML=items.length?items.map(t=>{
       const specialActions=liveSupportActions(t);
-      const genericActions=`${t.status!=='In Progress'&&t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="In Progress">Start</button>`:''}${t.status!=='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Closed">Close</button>`:''}${t.status==='Closed'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button>`:''}`;
+      const genericActions=`${t.status!=='In Progress'?`<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="In Progress">Start</button>`:''}<button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Closed">Close</button>`;
       const actions=specialActions===null?genericActions:(specialActions||genericActions);
       const canWork=!isLiveSupportQueue()||t.category!=='Member Communication'||Boolean(t.assignedToUserId);
       return `<article class="ticket-card" data-lifeline-ticket="${escapeHtml(t.id)}"><div class="ticket-main"><div class="ticket-id">${escapeHtml(t.id)} • ${escapeHtml(t.category)} • ${escapeHtml(formatTicketDate(t.created))}</div><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.details)}</p><div class="ticket-meta"><span class="pill ${String(t.priority).toLowerCase()}">${escapeHtml(t.priority)}</span><span class="pill ${statusClass(t.status)}">${escapeHtml(t.status)}</span>${t.createdBy?`<span class="pill">Opened by ${escapeHtml(t.createdBy)}</span>`:''}${t.assignedTo?`<span class="pill">Assigned to ${escapeHtml(t.assignedTo)}</span>`:''}</div>${liveSupportWaitMarkup(t)}${canWork?progressControl(t):''}${canWork?ticketNotesMarkup(t):''}</div><div class="ticket-actions">${actions}</div></article>`;
-    }).join(''):'<div class="empty-queue">No tickets in this queue.</div>';
+    }).join(''):'<div class="empty-queue">No active tickets in this queue.</div>';
   };
 
   function renderAriaChatArchive(){
     const queue=document.getElementById('ariaChatQueue'),summary=document.getElementById('ariaChatSummary');
     if(!queue||!summary)return;
-    const items=tickets.filter(isArchivedMemberChat).sort((a,b)=>new Date(b.updated||b.created||0)-new Date(a.updated||a.created||0));
-    const assigned=items.filter(t=>t.assignedTo).length;
-    summary.innerHTML=`<span class="summary-chip">Archived <strong>${items.length}</strong></span><span class="summary-chip">Handled by staff <strong>${assigned}</strong></span>`;
-    queue.innerHTML=items.length?items.map(t=>`<article class="ticket-card aria-chat-archive-card">
-      <div class="ticket-main">
-        <div class="ticket-id">${escapeHtml(t.id)} • Closed ${escapeHtml(formatTicketDate(t.updated||t.created))}</div>
-        <h3>${escapeHtml(t.title)}</h3>
-        <p>${escapeHtml(t.details)}</p>
-        <div class="ticket-meta"><span class="pill closed">Closed</span>${t.createdBy?`<span class="pill">Member: ${escapeHtml(t.createdBy)}</span>`:''}${t.assignedTo?`<span class="pill">Handled by ${escapeHtml(t.assignedTo)}</span>`:''}</div>
-        ${archivedNotesMarkup(t)}
-      </div>
-      <div class="ticket-actions"><button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button></div>
-    </article>`).join(''):'<div class="empty-queue">No closed Aria Chat records yet.</div>';
+    const items=tickets.filter(isArchivedOperationsTicket).sort((a,b)=>new Date(b.updated||b.created||0)-new Date(a.updated||a.created||0));
+    const memberChats=items.filter(t=>t.category==='Member Communication').length;
+    summary.innerHTML=`<span class="summary-chip">Archived <strong>${items.length}</strong></span><span class="summary-chip">Member chats <strong>${memberChats}</strong></span>`;
+    queue.innerHTML=items.length?items.map(t=>{
+      const isMemberChat=t.category==='Member Communication';
+      return `<article class="ticket-card aria-chat-archive-card">
+        <div class="ticket-main">
+          <div class="ticket-id">${escapeHtml(t.id)} • ${escapeHtml(t.category)} • Closed ${escapeHtml(formatTicketDate(t.updated||t.created))}</div>
+          <h3>${escapeHtml(t.title)}</h3>
+          <p>${escapeHtml(t.details)}</p>
+          <div class="ticket-meta"><span class="pill closed">Closed</span>${t.createdBy?`<span class="pill">${isMemberChat?'Member':'Opened by'}: ${escapeHtml(t.createdBy)}</span>`:''}${t.assignedTo?`<span class="pill">Handled by ${escapeHtml(t.assignedTo)}</span>`:''}</div>
+          ${archivedNotesMarkup(t)}
+        </div>
+        <div class="ticket-actions"><button class="status-btn ticket-status" data-id="${escapeHtml(t.id)}" data-status="Open">Reopen</button></div>
+      </article>`;
+    }).join(''):'<div class="empty-queue">No closed Operations records yet.</div>';
   }
 
   renderTickets=function(){
@@ -133,9 +136,7 @@
       const overdue=wrap.querySelector('[data-lifeline-overdue]');
       if(wait){
         wait.textContent=`Waiting ${formatWait(seconds)}`;
-        if(seconds>120){
-          wait.style.background='#fff0f0';wait.style.color='#b42318';wait.style.borderColor='#f5b7b1';
-        }
+        if(seconds>120){wait.style.background='#fff0f0';wait.style.color='#b42318';wait.style.borderColor='#f5b7b1';}
       }
       if(overdue&&seconds>120)overdue.style.display='inline-flex';
     });
@@ -170,20 +171,12 @@
     const button=document.getElementById('saveTicket');
     if(button){button.disabled=true;button.textContent='Creating...';}
     try{
-      await ticketApi('/api/staff/tickets',{method:'POST',body:JSON.stringify({
-        department:ticketDepartment,
-        category:document.getElementById('ticketCategory')?.value||'',
-        priority:document.getElementById('ticketPriority')?.value||'Normal',
-        title,details
-      })});
+      await ticketApi('/api/staff/tickets',{method:'POST',body:JSON.stringify({department:ticketDepartment,category:document.getElementById('ticketCategory')?.value||'',priority:document.getElementById('ticketPriority')?.value||'Normal',title,details})});
       closeModal('ticketModal');
       ticketSyncBusy=false;
       await loadTickets();
     }catch(error){alert(error.message);}
-    finally{
-      ticketSyncBusy=false;
-      if(button){button.disabled=false;button.textContent='Create Ticket';}
-    }
+    finally{ticketSyncBusy=false;if(button){button.disabled=false;button.textContent='Create Ticket';}}
   }
 
   async function claimLiveSupport(id,button){
@@ -192,9 +185,7 @@
     if(button){button.disabled=true;button.textContent='Claiming...';}
     try{
       const data=await ticketApi(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/claim`,{method:'POST',body:'{}'});
-      if(data.responseWithinTarget===false){
-        console.warn(`Live Support response target exceeded for ${id}: ${data.responseSeconds}s`);
-      }
+      if(data.responseWithinTarget===false)console.warn(`Live Support response target exceeded for ${id}: ${data.responseSeconds}s`);
       ticketSyncBusy=false;
       await loadTickets();
     }catch(error){alert(error.message);}
@@ -231,10 +222,8 @@
   document.addEventListener('click',event=>{
     const save=event.target.closest('#saveTicket');
     if(save){event.preventDefault();event.stopImmediatePropagation();createLiveTicket();return;}
-
     const claimButton=event.target.closest('.lifeline-claim');
     if(claimButton){event.preventDefault();event.stopImmediatePropagation();claimLiveSupport(claimButton.dataset.id,claimButton);return;}
-
     const statusButton=event.target.closest('.ticket-status');
     if(statusButton){
       event.preventDefault();event.stopImmediatePropagation();
@@ -242,13 +231,8 @@
       const changes=status==='Closed'?{status,progress:100}:status==='Open'?{status,progress:0}:{status};
       updateLiveTicket(statusButton.dataset.id,changes,statusButton);return;
     }
-
     const progressButton=event.target.closest('.ticket-progress');
-    if(progressButton){
-      event.preventDefault();event.stopImmediatePropagation();
-      updateLiveTicket(progressButton.dataset.id,{progress:Number(progressButton.dataset.progress)},progressButton);return;
-    }
-
+    if(progressButton){event.preventDefault();event.stopImmediatePropagation();updateLiveTicket(progressButton.dataset.id,{progress:Number(progressButton.dataset.progress)},progressButton);return;}
     const noteButton=event.target.closest('.ticket-note-add');
     if(noteButton){event.preventDefault();event.stopImmediatePropagation();addLiveNote(noteButton.dataset.id,noteButton);}
   },true);
