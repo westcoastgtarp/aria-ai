@@ -16,6 +16,7 @@ import { handleMemberMembershipOptionsRoute } from './member-membership-options-
 import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
+import { handleLiveSupportChatRoute } from './live-support-chat-api.js';
 import { handleStructuredMemberMedicationRoute } from './member-medications-structured-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
 import { handleMemberRemindersRoute } from './member-reminders-api.js';
@@ -37,6 +38,7 @@ function withAriaFormSystem(response,pathname) {
         element.append('<link rel="stylesheet" href="/member-overview-reminders.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-notification-preferences.css?v=20260827-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-assistant-support-choice.css?v=20260827-1" />', { html: true });
+        element.append('<link rel="stylesheet" href="/live-support-chat.css?v=20260828-1" />', { html: true });
       }
     });
 
@@ -44,7 +46,7 @@ function withAriaFormSystem(response,pathname) {
     rewriter.on('body', {
       element(element) {
         element.prepend('<script src="/member-medication-structured-form.js?v=20260826-3"></script>', { html: true });
-        element.append('<script src="/member-assistant-live.js?v=20260827-7"></script><script src="/member-live-support-header.js?v=20260828-2"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-4"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script>', { html: true });
+        element.append('<script src="/member-live-support-chat.js?v=20260828-1"></script><script src="/member-assistant-live.js?v=20260827-7"></script><script src="/member-live-support-header.js?v=20260828-2"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-4"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script>', { html: true });
       }
     });
   }
@@ -54,6 +56,9 @@ function withAriaFormSystem(response,pathname) {
 
 export default {
   async fetch(request, env, ctx) {
+    const liveSupportChatResponse = await handleLiveSupportChatRoute(request, env);
+    if (liveSupportChatResponse) return liveSupportChatResponse;
+
     const lifelineSupportResponse = await handleLifelineSupportRoute(request, env);
     if (lifelineSupportResponse) return lifelineSupportResponse;
 
