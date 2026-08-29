@@ -21,7 +21,7 @@
         <div class="brand-mark" aria-hidden="true">A</div>
         <div>
           <div class="brand-name">Aria AI</div>
-          <div class="brand-subtitle">Lifeline Care</div>
+          <div class="brand-subtitle">Member Portal</div>
         </div>
       </div>
 
@@ -30,15 +30,13 @@
         <button class="nav-item" data-page="medications">Medications</button>
         <button class="nav-item" data-page="reminders">Reminders</button>
         <button class="nav-item" data-page="carecircle">Care Circle</button>
+        <button class="nav-item" data-page="privacy">Privacy & Security</button>
+        <button class="nav-item" data-page="incidents">Incident History</button>
       </nav>
 
-      <div class="sidebar-footer">
+      <div class="sidebar-footer member-status-footer">
         <div class="status-dot-line"><span class="dot green"></span> Lifeline Care active</div>
         <div class="small muted">Medication & Lifeline Support, 24/7</div>
-        <div class="footer-links" aria-label="Trust and account history">
-          <button class="footer-link" data-page="privacy">Privacy & Security</button>
-          <button class="footer-link" data-page="incidents">Incident History & Timeline</button>
-        </div>
       </div>
     </aside>
 
@@ -46,7 +44,7 @@
       <header class="topbar">
         <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
         <div>
-          <div class="eyebrow">ARIA AI</div>
+          <div class="eyebrow">MEMBER PORTAL</div>
           <h1 id="pageTitle">Welcome</h1>
         </div>
         <div class="topbar-actions">
@@ -158,7 +156,7 @@
       </section>
 
       <section class="page" id="privacy-page">
-        <div class="section-heading"><div><div class="eyebrow">TRUST CENTER</div><h2>Privacy & Security</h2><p>Aria is being designed around strong healthcare privacy, access-control, encryption, and auditing principles.</p></div></div>
+        <div class="section-heading"><div><div class="eyebrow">TRUST CENTER</div><h2>Privacy & Security</h2><p>Aria is being designed around strong privacy, access-control, encryption, and auditing principles.</p></div></div>
         <div class="security-grid">
           <article class="security-card"><div class="security-icon">🔐</div><h3>Encryption</h3><p>Production data is intended to be protected in transit and at rest.</p></article>
           <article class="security-card"><div class="security-icon">👤</div><h3>Access control</h3><p>Staff access is separated by role and limited to what each role needs.</p></article>
@@ -169,11 +167,11 @@
     </main>
   </div>
 
-  <button class="aria-chat-launcher" id="ariaChatLauncher" aria-label="Open Aria AI, your health companion">A</button>
+  <button class="aria-chat-launcher" id="ariaChatLauncher" aria-label="Open Aria AI">A</button>
   <section class="aria-bubble-panel" id="ariaBubblePanel" aria-label="Aria chat" hidden>
     <div class="aria-bubble-head">
       <div class="aria-bubble-avatar">A</div>
-      <div class="aria-bubble-title"><strong>Aria</strong><span>Your health companion</span></div>
+      <div class="aria-bubble-title"><strong>Aria AI</strong><span>Here when you need support</span></div>
       <button class="aria-chat-close" id="ariaChatClose" aria-label="Close chat">×</button>
     </div>
     <div class="aria-bubble-log" id="ariaBubbleLog" aria-live="polite"></div>
@@ -181,7 +179,7 @@
       <input id="ariaBubbleInput" autocomplete="off" placeholder="Message Aria..." aria-label="Message Aria" />
       <button id="ariaBubbleSend">Send</button>
     </div>
-    <div class="aria-bubble-note">Aria can support you, but it does not replace emergency services or a medical professional.</div>
+    <div class="aria-bubble-note">Aria can support you, but it does not replace emergency services or professional medical care.</div>
   </section>
 
   <div class="modal-backdrop hidden" id="modalBackdrop">
