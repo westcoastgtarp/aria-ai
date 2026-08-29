@@ -6,7 +6,7 @@
     if(document.querySelector('link[data-staff-polish]'))return;
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='staff-polish.css?v=20260821-1';
+    link.href='staff-polish.css?v=20260828-3';
     link.dataset.staffPolish='true';
     document.head.appendChild(link);
   }
@@ -48,6 +48,9 @@
       button.addEventListener('click',()=>{
         if(button.dataset.page==='dashboard'&&pageTitle){
           queueMicrotask(()=>{pageTitle.textContent=`Welcome, ${firstName(displayName)}`;});
+        }
+        if(button.dataset.page==='ariachat'&&pageTitle){
+          queueMicrotask(()=>{pageTitle.textContent='Aria Chat';});
         }
       });
     });
@@ -117,10 +120,10 @@
       guard.src='staff-access-guard.js';
       guard.onload=()=>{
         const audit=document.createElement('script');
-        audit.src='audit-blueprint.js';
+        audit.src='audit-blueprint.js?v=20260828-2';
         audit.onload=()=>{
           const notes=document.createElement('script');
-          notes.src='ticket-notes.js?v=20260821-d1';
+          notes.src='ticket-notes.js?v=20260828-ariachat1';
           notes.onload=()=>{
             const invites=document.createElement('script');
             invites.src='account-invites.js';
