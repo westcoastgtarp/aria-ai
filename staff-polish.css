@@ -196,6 +196,127 @@ body{
   box-shadow:0 0 0 3px rgba(98,105,229,.08)!important;
 }
 
+/* Dashboard cleanup */
+#dashboard-page{
+  max-width:1180px;
+}
+
+#dashboard-page .cards-4{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:22px;
+}
+
+#dashboard-page .card{
+  min-height:108px;
+  padding:17px 18px;
+  border-radius:14px;
+  box-shadow:none;
+}
+
+#dashboard-page .card span{
+  color:#7d8899;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+
+#dashboard-page .card strong{
+  margin-top:10px;
+  color:#202d42;
+  font-size:30px;
+  line-height:1;
+  letter-spacing:-.035em;
+}
+
+#dashboard-page>.panel{
+  margin-top:0;
+  padding:24px 26px 26px;
+  border-radius:18px;
+  box-shadow:none;
+}
+
+#dashboard-page>.panel .panel-head{
+  padding-bottom:18px;
+  border-bottom:1px solid #edf0f4;
+}
+
+#dashboard-page>.panel .panel-head h2{
+  margin:4px 0 0;
+  font-size:20px;
+  letter-spacing:-.02em;
+}
+
+#dashboard-page .flow{
+  position:relative;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:0;
+  margin-top:24px;
+}
+
+#dashboard-page .flow::before{
+  content:"";
+  position:absolute;
+  left:7%;
+  right:7%;
+  top:17px;
+  height:2px;
+  background:#e8ebf1;
+}
+
+#dashboard-page .flow-step{
+  position:relative;
+  z-index:1;
+  min-width:0;
+  padding:0 10px;
+  border:0;
+  background:transparent;
+  text-align:center;
+}
+
+#dashboard-page .flow-step span{
+  width:34px;
+  height:34px;
+  margin:0 auto 11px;
+  border:1px solid #dfe4ed;
+  border-radius:50%;
+  background:#fff;
+  color:#8a95a6;
+  box-shadow:0 0 0 6px #fff;
+}
+
+#dashboard-page .flow-step.done span{
+  border-color:#b9e1d6;
+  background:#e9f7f3;
+  color:#237d6d;
+}
+
+#dashboard-page .flow-step.current span{
+  border-color:#6269e5;
+  background:#6269e5;
+  color:#fff;
+}
+
+#dashboard-page .flow-step strong{
+  display:block;
+  color:#4c596d;
+  font-size:11px;
+  line-height:1.35;
+}
+
+#dashboard-page .flow-step.current strong{
+  color:#2f3a50;
+}
+
+#dashboard-page .flow-step small{
+  display:block;
+  max-width:120px;
+  margin:5px auto 0;
+  color:#929cac;
+  font-size:9px;
+  line-height:1.35;
+}
+
 /* Live Support / Member Communication workspace cleanup */
 .ticket-board{
   gap:16px;
@@ -502,6 +623,9 @@ body{
 .terms-callout{margin-top:18px;padding:14px 16px;border:1px solid #dfe3f7;border-radius:13px;background:#f7f8ff;color:#59667a;font-size:12px;line-height:1.55}
 
 @media(max-width:1120px){
+  #dashboard-page .cards-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #dashboard-page .flow{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 0}
+  #dashboard-page .flow::before{display:none}
   .staff-footer-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
@@ -618,6 +742,9 @@ body{
 }
 
 @media(max-width:560px){
+  #dashboard-page .cards-4{grid-template-columns:1fr}
+  #dashboard-page .flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+
   .staff-topbar{
     align-items:flex-start;
     gap:12px;
