@@ -16,6 +16,7 @@ import { handleMemberMembershipOptionsRoute } from './member-membership-options-
 import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
+import { handleLiveSupportHistoryGuardRoute } from './live-support-history-guard-api.js';
 import { handleLiveSupportChatRoute } from './live-support-chat-api.js';
 import { handleLiveSupportStartRoute } from './live-support-start-api.js';
 import { handleLiveSupportEscalationRoute } from './live-support-escalation-api.js';
@@ -49,7 +50,7 @@ function withAriaFormSystem(response,pathname) {
     rewriter.on('body', {
       element(element) {
         element.prepend('<script src="/member-account-guard.js?v=20260828-1"></script><script src="/member-medication-structured-form.js?v=20260826-3"></script>', { html: true });
-        element.append('<script src="/member-live-support-chat.js?v=20260830-2"></script><script src="/member-assistant-live.js?v=20260829-1"></script><script src="/member-live-support-header.js?v=20260828-2"></script><script src="/aria-chat-expand.js?v=20260829-1"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-4"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script>', { html: true });
+        element.append('<script src="/member-live-support-chat.js?v=20260830-3"></script><script src="/member-assistant-live.js?v=20260829-1"></script><script src="/member-live-support-header.js?v=20260828-2"></script><script src="/aria-chat-expand.js?v=20260829-1"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-4"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script>', { html: true });
       }
     });
   }
@@ -112,6 +113,9 @@ export default {
 
     const hiringResponse = await handleHiringOnboardingRoute(request, env);
     if (hiringResponse) return hiringResponse;
+
+    const liveSupportHistoryGuardResponse = await handleLiveSupportHistoryGuardRoute(request, env);
+    if (liveSupportHistoryGuardResponse) return liveSupportHistoryGuardResponse;
 
     const liveSupportResponse = await handleLiveSupportAccessRoute(request, env);
     if (liveSupportResponse) return liveSupportResponse;
