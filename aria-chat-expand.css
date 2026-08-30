@@ -1,0 +1,107 @@
+.aria-chat-head-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:4px;
+}
+.aria-chat-expand,
+.aria-chat-head-actions .aria-chat-close{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:#738095;
+  cursor:pointer;
+  transition:background .15s ease,color .15s ease,transform .15s ease;
+}
+.aria-chat-expand:hover,
+.aria-chat-head-actions .aria-chat-close:hover{
+  background:#f1f3f8;
+  color:#4f5b70;
+}
+.aria-chat-expand:focus-visible,
+.aria-chat-head-actions .aria-chat-close:focus-visible{
+  outline:3px solid rgba(98,105,229,.2);
+  outline-offset:1px;
+}
+.aria-chat-expand svg{
+  width:19px;
+  height:19px;
+  display:block;
+}
+
+.aria-bubble-panel.aria-chat-expanded{
+  position:fixed !important;
+  inset:18px !important;
+  width:auto !important;
+  height:auto !important;
+  max-width:none !important;
+  max-height:none !important;
+  right:18px !important;
+  bottom:18px !important;
+  border-radius:22px !important;
+  z-index:420 !important;
+  box-shadow:0 28px 90px rgba(17,31,56,.24) !important;
+}
+.aria-bubble-panel.aria-chat-expanded .aria-bubble-head{
+  padding:18px 24px;
+}
+.aria-bubble-panel.aria-chat-expanded .aria-bubble-log{
+  padding:28px clamp(24px,5vw,72px);
+}
+.aria-bubble-panel.aria-chat-expanded .aria-bubble-msg{
+  max-width:min(720px,72%);
+  font-size:14px;
+}
+.aria-bubble-panel.aria-chat-expanded .aria-bubble-input{
+  grid-template-columns:minmax(0,1fr) auto;
+  padding:16px clamp(24px,5vw,72px) 12px;
+  gap:12px;
+}
+.aria-bubble-panel.aria-chat-expanded .aria-bubble-input input{
+  min-height:48px;
+  padding:13px 15px;
+}
+.aria-bubble-panel.aria-chat-expanded .aria-bubble-input button{
+  min-width:92px;
+  padding:12px 20px;
+}
+.aria-bubble-panel.aria-chat-expanded .aria-bubble-note{
+  padding:0 clamp(24px,5vw,72px) 16px;
+}
+body.aria-chat-fullscreen-open{
+  overflow:hidden;
+}
+body.aria-chat-fullscreen-open .aria-chat-launcher{
+  opacity:0;
+  pointer-events:none;
+}
+
+@media(max-width:700px){
+  .aria-bubble-panel.aria-chat-expanded{
+    inset:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+  }
+  .aria-bubble-panel.aria-chat-expanded .aria-bubble-head{
+    padding:14px 16px;
+  }
+  .aria-bubble-panel.aria-chat-expanded .aria-bubble-log{
+    padding:18px 16px;
+  }
+  .aria-bubble-panel.aria-chat-expanded .aria-bubble-msg{
+    max-width:88%;
+  }
+  .aria-bubble-panel.aria-chat-expanded .aria-bubble-input{
+    padding:12px 14px 9px;
+  }
+  .aria-bubble-panel.aria-chat-expanded .aria-bubble-note{
+    padding:0 14px 11px;
+  }
+}
