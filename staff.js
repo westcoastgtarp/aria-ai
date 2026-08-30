@@ -124,7 +124,7 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260829-2';
+    chat.src='staff-live-support-chat.js?v=20260830-1';
     document.body.appendChild(chat);
 
     const escalation=document.createElement('script');
@@ -176,7 +176,7 @@
                 provisioning.src='staff-account-provisioning.js?v=20260821-d1-roster';
                 document.body.appendChild(provisioning);
               };
-              document.body.appendChild(invites);
+              document.body.appendChild(invvites);
             };
             document.body.appendChild(notes);
           };
