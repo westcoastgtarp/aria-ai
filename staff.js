@@ -176,7 +176,7 @@
                 provisioning.src='staff-account-provisioning.js?v=20260821-d1-roster';
                 document.body.appendChild(provisioning);
               };
-              document.body.appendChild(invvites);
+              document.body.appendChild(invites);
             };
             document.body.appendChild(notes);
           };
