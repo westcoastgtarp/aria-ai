@@ -55,14 +55,25 @@
   function setMessage(text,error=false){
     const el=document.getElementById('liveSupportEscalationMessage');if(!el)return;
     el.textContent=text||'';
-    el.style.color=error?'#b42318':'#617087';
+    el.className=error?'error':'success';
   }
 
   function render(escalation){
     const active=document.getElementById('liveSupportEscalationActive');if(!active)return;
-    if(!escalation){active.hidden=true;active.innerHTML='';return;}
+    const role=document.getElementById('liveSupportEscalationRole');
+    if(!escalation){
+      active.hidden=true;active.innerHTML='';
+      if(role)role.value='';
+      return;
+    }
+    const waiting=Boolean(escalation.awaitingPickup||!escalation.targetUserId);
     active.hidden=false;
-    active.innerHTML=`<strong>Escalated to ${esc(escalation.targetRole)}</strong><span>${esc(escalation.reason)}</span><small>Escalated by ${esc(escalation.escalatedBy||'Staff')}</small>`;
+    active.classList.toggle('waiting',waiting);
+    active.classList.toggle('connected',!waiting);
+    active.innerHTML=waiting
+      ? `<div class="esc-status-icon">↗</div><div class="esc-status-copy"><strong>Awaiting ${esc(escalation.targetRole)} pickup</strong><span>${esc(escalation.reason)}</span><small>Escalated by ${esc(escalation.escalatedBy||'Staff')}</small></div>`
+      : `<div class="esc-status-icon">✓</div><div class="esc-status-copy"><strong>${esc(escalation.targetRole)} • ${esc(escalation.targetName||'Support')} now leading</strong><span>${esc(escalation.reason)}</span><small>Escalated by ${esc(escalation.escalatedBy||'Staff')}</small></div>`;
+    if(role)role.value=escalation.targetRole||'';
   }
 
   async function refresh(){
@@ -98,7 +109,7 @@
       if(!response.ok||!data.ok)throw new Error(data.error||'Escalation could not be sent.');
       render(data.escalation);
       const reasonBox=document.getElementById('liveSupportEscalationReason');if(reasonBox)reasonBox.value='';
-      setMessage(`Escalated to ${role}.`);
+      setMessage(data.escalation?.awaitingPickup?`Escalated to ${role}. Awaiting pickup.`:`${data.escalation?.targetName||role} is now leading.`);
     }catch(error){setMessage(error.message||'Escalation could not be sent.',true);}
     finally{busy=false;if(button){button.disabled=false;button.textContent='Send escalation';}}
   }
@@ -108,12 +119,12 @@
     const style=document.createElement('style');
     style.id='liveSupportEscalationStyles';
     style.textContent=`
-      #liveSupportEscalationPanel.live-support-escalation-panel{display:block!important;margin:14px 16px!important;border:1px solid #e2e7ef!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 3px 12px rgba(35,48,73,.04)!important}
-      #liveSupportEscalationPanel>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;cursor:pointer!important;padding:13px 15px!important;font-size:12px!important;font-weight:800!important;color:#344054!important;list-style:none!important;background:#f8faff!important;border:0!important;margin:0!important}
+      #liveSupportEscalationPanel.live-support-escalation-panel{display:block!important;margin:14px 16px!important;border:1px solid #e1e6ef!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 4px 16px rgba(35,48,73,.05)!important}
+      #liveSupportEscalationPanel>summary{display:inline-flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;min-width:210px!important;cursor:pointer!important;padding:10px 13px!important;font-size:12px!important;font-weight:800!important;color:#344054!important;list-style:none!important;background:#fff!important;border:1px solid #dfe4ee!important;border-radius:10px!important;margin:12px!important;box-shadow:0 1px 3px rgba(16,24,40,.05)!important}
       #liveSupportEscalationPanel>summary::-webkit-details-marker{display:none!important}
-      #liveSupportEscalationPanel .live-support-escalation-chevron{font-size:16px!important;color:#7e8999!important;line-height:1!important;transition:transform .15s ease!important}
+      #liveSupportEscalationPanel .live-support-escalation-chevron{display:grid!important;place-items:center!important;width:22px!important;height:22px!important;border-radius:7px!important;background:#f1efff!important;color:#655de2!important;font-size:14px!important;line-height:1!important;transition:transform .15s ease!important}
       #liveSupportEscalationPanel[open] .live-support-escalation-chevron{transform:rotate(180deg)!important}
-      #liveSupportEscalationPanel .live-support-escalation-body{display:grid!important;grid-template-columns:minmax(210px,260px) minmax(0,1fr)!important;gap:14px!important;align-items:start!important;padding:16px!important;background:#fff!important}
+      #liveSupportEscalationPanel .live-support-escalation-body{display:grid!important;grid-template-columns:minmax(220px,280px) minmax(0,1fr)!important;gap:14px!important;align-items:start!important;padding:0 16px 16px!important;background:#fff!important}
       #liveSupportEscalationPanel .live-support-escalation-field{display:flex!important;flex-direction:column!important;gap:7px!important;min-width:0!important;margin:0!important}
       #liveSupportEscalationPanel .live-support-escalation-reason{grid-column:1/-1!important;width:100%!important}
       #liveSupportEscalationPanel .live-support-escalation-field label{display:block!important;width:100%!important;margin:0!important;padding:0!important;font-size:11px!important;font-weight:800!important;color:#5c687a!important;line-height:1.2!important;text-align:left!important}
@@ -122,12 +133,20 @@
       #liveSupportEscalationPanel #liveSupportEscalationReason{display:block!important;width:100%!important;height:96px!important;min-height:96px!important;max-height:220px!important;resize:vertical!important;line-height:1.45!important;overflow:auto!important}
       #liveSupportEscalationPanel select:focus,#liveSupportEscalationPanel textarea:focus{border-color:#6b63e8!important;box-shadow:0 0 0 3px rgba(107,99,232,.10)!important}
       #liveSupportEscalationPanel .live-support-escalation-actions{grid-column:1/-1!important;display:flex!important;align-items:center!important;gap:12px!important;margin-top:2px!important;padding:0!important}
-      #liveSupportEscalationPanel #liveSupportEscalationSend{min-width:130px!important;height:40px!important;padding:0 16px!important;border-radius:10px!important;margin:0!important}
-      #liveSupportEscalationPanel #liveSupportEscalationMessage{font-size:11px!important;line-height:1.4!important}
-      #liveSupportEscalationPanel .live-support-escalation-active{grid-column:1/-1!important;display:flex!important;gap:10px!important;align-items:center!important;flex-wrap:wrap!important;padding:10px 12px!important;border-radius:10px!important;background:#fff7ed!important;border:1px solid #fed7aa!important;color:#7c4a03!important;font-size:11px!important}
+      #liveSupportEscalationPanel #liveSupportEscalationSend{min-width:138px!important;height:40px!important;padding:0 16px!important;border-radius:10px!important;margin:0!important}
+      #liveSupportEscalationPanel #liveSupportEscalationMessage{font-size:11px!important;line-height:1.4!important;color:#617087!important}
+      #liveSupportEscalationPanel #liveSupportEscalationMessage.success{color:#2f6f5d!important}
+      #liveSupportEscalationPanel #liveSupportEscalationMessage.error{color:#b42318!important}
+      #liveSupportEscalationPanel .live-support-escalation-active{grid-column:1/-1!important;display:flex!important;align-items:flex-start!important;gap:12px!important;padding:12px 14px!important;border-radius:12px!important;font-size:11px!important}
       #liveSupportEscalationPanel .live-support-escalation-active[hidden]{display:none!important}
-      #liveSupportEscalationPanel .live-support-escalation-active span{color:#735f49!important}
-      #liveSupportEscalationPanel .live-support-escalation-active small{margin-left:auto!important;color:#8a755e!important}
+      #liveSupportEscalationPanel .live-support-escalation-active.waiting{background:#fff8ec!important;border:1px solid #f3d7aa!important;color:#6f4a17!important}
+      #liveSupportEscalationPanel .live-support-escalation-active.connected{background:#effaf6!important;border:1px solid #cbeadf!important;color:#1f6b58!important}
+      #liveSupportEscalationPanel .esc-status-icon{display:grid!important;place-items:center!important;flex:0 0 32px!important;width:32px!important;height:32px!important;border-radius:10px!important;background:#f0edff!important;color:#655de2!important;font-weight:900!important}
+      #liveSupportEscalationPanel .live-support-escalation-active.connected .esc-status-icon{background:#dbf2ea!important;color:#17755f!important}
+      #liveSupportEscalationPanel .esc-status-copy{display:grid!important;gap:3px!important;min-width:0!important}
+      #liveSupportEscalationPanel .esc-status-copy strong{font-size:12px!important;color:inherit!important}
+      #liveSupportEscalationPanel .esc-status-copy span{color:#677386!important;line-height:1.4!important}
+      #liveSupportEscalationPanel .esc-status-copy small{color:#8792a2!important}
       @media(max-width:800px){
         #liveSupportEscalationPanel .live-support-escalation-body{grid-template-columns:1fr!important}
         #liveSupportEscalationPanel .live-support-escalation-reason{grid-column:1!important}
