@@ -88,7 +88,8 @@ async function createEscalation(request,env,session,id,t){
     env.DB.prepare(`INSERT INTO live_support_escalations (id,ticket_id,escalated_by_user_id,target_user_id,target_role,reason,status,created_at) VALUES (?,?,?,NULL,?,?,'active',?)`).bind(escalationId,id,session.user_id,targetRole,reason,now)
   ]);
   try{await audit(env,session,id,'live_support_escalated',{escalationId,targetRole,awaitingPickup:true,reason});}catch(error){console.error('Live support escalation audit failed',error);}
-  return json({ok:true,escalation:{id:escalationId,targetRole,targetUserId:null,targetName:null,awaitingPickup:true,pickedUpByUserId:null,pickedUpByName:null,pickedUpAt:null,reason,status:'active',createdAt:now,escalatedBy:session.display_name||session.email||'Staff'}},{status:201});
+  const escalation={id:escalationId,targetRole,targetUserId:null,targetName:null,awaitingPickup:true,pickedUpByUserId:null,pickedUpByName:null,pickedUpAt:null,reason,status:'active',createdAt:now,escalatedBy:session.display_name||session.email||'Staff'};
+  return json({ok:true,escalation,canPickup:roleMatchesTarget(session.role_name,targetRole)},{status:201});
 }
 
 async function pickupEscalation(env,session,id,t){
@@ -105,7 +106,7 @@ async function pickupEscalation(env,session,id,t){
     env.DB.prepare(`DELETE FROM live_support_typing WHERE ticket_id=?`).bind(id)
   ]);
   try{await audit(env,session,id,'live_support_escalation_picked_up',{escalationId:escalation.id,targetRole:escalation.targetRole,pickedUpByUserId:session.user_id,pickedUpByName:firstName(session.display_name||session.email)});}catch(error){console.error('Live support escalation pickup audit failed',error);}
-  return json({ok:true,escalation:await getEscalation(env,id)},{status:200});
+  return json({ok:true,escalation:await getEscalation(env,id),canPickup:false},{status:200});
 }
 
 export async function handleLiveSupportEscalationRoute(request,env){
@@ -126,7 +127,11 @@ export async function handleLiveSupportEscalationRoute(request,env){
     return pickupEscalation(env,session,id,t);
   }
 
-  if(request.method==='GET')return json({ok:true,escalation:await getEscalation(env,id)});
+  if(request.method==='GET'){
+    const escalation=await getEscalation(env,id);
+    const canPickup=Boolean(escalation?.awaitingPickup&&roleMatchesTarget(session.role_name,escalation.targetRole));
+    return json({ok:true,escalation,canPickup});
+  }
   if(request.method==='POST')return createEscalation(request,env,session,id,t);
   return json({ok:false,error:'Method not allowed.'},{status:405});
 }
