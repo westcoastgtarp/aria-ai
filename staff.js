@@ -117,7 +117,7 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260829-1';
+    chat.src='staff-live-support-chat.js?v=20260829-2';
     document.body.appendChild(chat);
 
     const queueWatch=document.createElement('script');
