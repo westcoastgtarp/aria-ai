@@ -13,6 +13,7 @@
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
   function time(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(d);}
   function log(){return document.getElementById('ariaBubbleLog');}
+  function sameName(a,b){return String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase()&&Boolean(String(a||'').trim());}
 
   function headerNodes(){return {title:document.querySelector('.aria-bubble-title strong'),subtitle:document.querySelector('.aria-bubble-title span')};}
   function setInputPlaceholder(value){const input=document.getElementById('ariaBubbleInput');if(input)input.placeholder=value;}
@@ -30,17 +31,20 @@
 
   function addTransitionNotice(name){const box=log();if(!box)return;const safe=String(name||'Your support specialist').trim()||'Your support specialist';const div=document.createElement('div');div.className='aria-live-support-transition';div.textContent=`${safe} has ended the live support conversation. You’re back with Aria now.`;box.appendChild(div);box.scrollTop=box.scrollHeight;}
   function escalationSeenKey(id,state){return `aria-live-escalation-seen:${String(id||'')}:${state||'active'}`;}
-  function addEscalationNotice(escalation,displayName){
+  function addEscalationNotice(escalation,displayName,previousSupportName=''){
     const box=log();if(!box||!escalation?.id)return;
     const awaiting=Boolean(escalation.awaitingPickup||!escalation.targetUserId);
     const key=escalationSeenKey(escalation.id,awaiting?'waiting':'connected');
     if(sessionStorage.getItem(key)==='1')return;
     const currentName=String(displayName||lastSupportName||'your current support specialist').trim();
+    const previousName=String(previousSupportName||'').trim();
     const targetRole=String(escalation.targetRole||'senior support').trim();
     const div=document.createElement('div');
     div.className='aria-live-support-transition aria-live-support-escalated';
     if(awaiting){
       div.textContent=`Your conversation has been escalated to ${targetRole} for additional support. ${currentName} will stay with you while we wait for a ${targetRole} to join.`;
+    }else if(previousName&&sameName(previousName,currentName)){
+      div.textContent=`Your conversation has been escalated to ${targetRole}-level review. ${currentName} is continuing to support you.`;
     }else{
       const targetName=String(escalation.targetName||displayName||'a senior support team member').trim();
       div.textContent=`Your conversation has been escalated to ${targetRole} for additional support. ${targetName} is now leading the conversation.`;
@@ -63,6 +67,7 @@
 
   function activate(data){
     const incomingName=String(data.displayName||'').trim();
+    const previousSupportName=String(lastSupportName||window.__ariaHumanSupportName||'').trim();
     if(incomingName)lastSupportName=incomingName;
     if(!active){active=true;seedSeenFromDom();}
     window.__ariaHumanSupportActive=true;
@@ -71,7 +76,7 @@
     setStateBar('connected',incomingName);
     showTyping(data);
     (data.messages||[]).forEach(renderMessage);
-    if(data.escalation)addEscalationNotice(data.escalation,incomingName);
+    if(data.escalation)addEscalationNotice(data.escalation,incomingName,previousSupportName);
   }
   function deactivate(){const wasActive=active;const endingName=String(window.__ariaHumanSupportName||lastSupportName||'Your support specialist').trim();active=false;window.__ariaHumanSupportActive=false;window.__ariaHumanSupportName='';showAriaHeader();showTyping({agentTyping:false});if(wasActive){setStateBar('ended');addTransitionNotice(endingName);}else{const state=document.getElementById('ariaLiveSupportState');if(state&&!state.classList.contains('ended'))state.hidden=true;}}
 
