@@ -29,16 +29,22 @@
   }
 
   function addTransitionNotice(name){const box=log();if(!box)return;const safe=String(name||'Your support specialist').trim()||'Your support specialist';const div=document.createElement('div');div.className='aria-live-support-transition';div.textContent=`${safe} has ended the live support conversation. You’re back with Aria now.`;box.appendChild(div);box.scrollTop=box.scrollHeight;}
-  function escalationSeenKey(id){return `aria-live-escalation-seen:${String(id||'')}`;}
+  function escalationSeenKey(id,state){return `aria-live-escalation-seen:${String(id||'')}:${state||'active'}`;}
   function addEscalationNotice(escalation,displayName){
     const box=log();if(!box||!escalation?.id)return;
-    const key=escalationSeenKey(escalation.id);
+    const awaiting=Boolean(escalation.awaitingPickup||!escalation.targetUserId);
+    const key=escalationSeenKey(escalation.id,awaiting?'waiting':'connected');
     if(sessionStorage.getItem(key)==='1')return;
-    const targetName=String(escalation.targetName||displayName||'a senior support team member').trim();
+    const currentName=String(displayName||lastSupportName||'your current support specialist').trim();
     const targetRole=String(escalation.targetRole||'senior support').trim();
     const div=document.createElement('div');
     div.className='aria-live-support-transition aria-live-support-escalated';
-    div.textContent=`Your conversation has been escalated to ${targetRole} for additional support. ${targetName} is now leading the conversation.`;
+    if(awaiting){
+      div.textContent=`Your conversation has been escalated to ${targetRole} for additional support. ${currentName} will stay with you while we wait for a ${targetRole} to join.`;
+    }else{
+      const targetName=String(escalation.targetName||displayName||'a senior support team member').trim();
+      div.textContent=`Your conversation has been escalated to ${targetRole} for additional support. ${targetName} is now leading the conversation.`;
+    }
     box.appendChild(div);box.scrollTop=box.scrollHeight;
     sessionStorage.setItem(key,'1');
   }
