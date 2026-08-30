@@ -84,10 +84,11 @@ async function activeEscalation(env,ticketId){
   }
 }
 
-async function conversationForMember(env,userId,{create=false}={}){
+async function conversationForMember(env,userId,{create=false,includeClosed=false}={}){
   if(create)return ensureOpenConversation(env,userId);
   const open=await env.DB.prepare(`SELECT id,member_user_id,status,started_at,last_message_at,closed_at FROM member_conversations WHERE member_user_id=? AND status='open' ORDER BY last_message_at DESC LIMIT 1`).bind(userId).first();
   if(open)return open;
+  if(!includeClosed)return null;
   return env.DB.prepare(`SELECT id,member_user_id,status,started_at,last_message_at,closed_at FROM member_conversations WHERE member_user_id=? ORDER BY last_message_at DESC LIMIT 1`).bind(userId).first();
 }
 
@@ -156,7 +157,7 @@ async function staffConversation(request,env,session,id,url){
   const owns=Boolean(ticket.assigned_to_user_id&&ticket.assigned_to_user_id===session.user_id);
   const reviewer=isReviewRole(session);
   if(!owns&&!reviewer)return json({ok:false,error:'You may only view a Live Support conversation assigned to you.'},{status:403});
-  const conversation=await conversationForMember(env,ticket.created_by_user_id,{create:false});
+  const conversation=await conversationForMember(env,ticket.created_by_user_id,{create:false,includeClosed:ticket.status==='Closed'});
   const data=conversation?await loadConversationMessages(env,ticket.created_by_user_id,conversation.id,100):{conversation:null,messages:[]};
   const canSend=canRespondToActiveTicket(session,ticket);
   if(url.searchParams.get('poll')!=='1'){
