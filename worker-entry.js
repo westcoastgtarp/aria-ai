@@ -17,6 +17,7 @@ import { handleLifelineRiskRoute } from './lifeline-risk-api.js';
 import { handleLifelineSupportRoute } from './lifeline-support-api.js';
 import { handleLiveSupportAccessRoute } from './live-support-access-api.js';
 import { handleLiveSupportChatRoute } from './live-support-chat-api.js';
+import { handleLiveSupportStartRoute } from './live-support-start-api.js';
 import { handleStructuredMemberMedicationRoute } from './member-medications-structured-api.js';
 import { handleMemberMedicationsRoute } from './member-medications-api.js';
 import { handleMemberRemindersRoute } from './member-reminders-api.js';
@@ -57,6 +58,9 @@ function withAriaFormSystem(response,pathname) {
 
 export default {
   async fetch(request, env, ctx) {
+    const liveSupportStartResponse = await handleLiveSupportStartRoute(request, env);
+    if (liveSupportStartResponse) return liveSupportStartResponse;
+
     const liveSupportChatResponse = await handleLiveSupportChatRoute(request, env);
     if (liveSupportChatResponse) return liveSupportChatResponse;
 
