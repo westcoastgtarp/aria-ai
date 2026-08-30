@@ -25,12 +25,12 @@ async function currentSession(request,env){
 }
 
 function isSpecialist(session){return normalized(session?.role_name)==='live support specialist'&&normalized(session?.department)==='operations';}
-function isOversightResponder(session){return ['founder','founder / co-founder','co-founder','supervisor of live support'].includes(normalized(session?.role_name));}
+function isOversightResponder(session){return ['founder','founder / co-founder','co-founder','supervisor of live support','lead supervisor','supervisor'].includes(normalized(session?.role_name));}
 function isReviewRole(session){return isOversightResponder(session)||['hr','human resources'].includes(normalized(session?.role_name));}
 function canRespondToActiveTicket(session,ticket){
   if(!ticket||ticket.status==='Closed')return false;
   const owns=Boolean(ticket.assigned_to_user_id&&ticket.assigned_to_user_id===session.user_id);
-  return (owns&&isSpecialist(session))||isOversightResponder(session);
+  return (owns&&(isSpecialist(session)||isOversightResponder(session)))||isOversightResponder(session);
 }
 function canCloseActiveTicket(session,ticket){
   if(!ticket||ticket.status==='Closed')return false;
@@ -57,6 +57,31 @@ async function activeMemberTicket(env,userId){
     WHERE t.created_by_user_id=? AND t.department='Operations' AND t.category='Member Communication' AND t.status!='Closed'
     ORDER BY t.updated_at DESC LIMIT 1
   `).bind(userId).first();
+}
+
+async function activeEscalation(env,ticketId){
+  if(!ticketId)return null;
+  try{
+    const row=await env.DB.prepare(`
+      SELECT e.id,e.target_role,e.target_user_id,e.reason,e.created_at,
+        target.display_name AS target_name,target.email AS target_email
+      FROM live_support_escalations e
+      LEFT JOIN users target ON target.id=e.target_user_id
+      WHERE e.ticket_id=? AND e.status='active'
+      ORDER BY e.created_at DESC LIMIT 1
+    `).bind(ticketId).first();
+    return row?{
+      id:row.id,
+      targetRole:row.target_role,
+      targetUserId:row.target_user_id||null,
+      targetName:firstName(row.target_name||row.target_email||row.target_role),
+      reason:row.reason,
+      createdAt:row.created_at
+    }:null;
+  }catch(error){
+    console.error('Live support escalation state failed',error);
+    return null;
+  }
 }
 
 async function conversationForMember(env,userId,{create=false}={}){
@@ -103,14 +128,15 @@ async function ensureOversightAssignment(env,session,ticket){
 
 async function memberState(request,env,session){
   const ticket=await activeMemberTicket(env,session.user_id);
-  if(!ticket)return json({ok:true,active:false,waiting:false,assigned:false,displayName:null,agentTyping:false,typingName:null,messages:[]});
+  if(!ticket)return json({ok:true,active:false,waiting:false,assigned:false,displayName:null,agentTyping:false,typingName:null,escalation:null,messages:[]});
   if(!ticket.assigned_to_user_id){
-    return json({ok:true,active:false,waiting:true,assigned:false,ticketId:ticket.id,displayName:null,agentTyping:false,typingName:null,messages:[]});
+    return json({ok:true,active:false,waiting:true,assigned:false,ticketId:ticket.id,displayName:null,agentTyping:false,typingName:null,escalation:await activeEscalation(env,ticket.id),messages:[]});
   }
   const conversation=await conversationForMember(env,session.user_id,{create:false});
   const data=conversation?await loadConversationMessages(env,session.user_id,conversation.id,100):{conversation:null,messages:[]};
   const typing=await typingState(env,ticket);
-  return json({ok:true,active:true,waiting:false,assigned:true,ticketId:ticket.id,displayName:firstName(ticket.staff_name||ticket.staff_email),agentTyping:typing.typing,typingName:typing.typingName,conversation:data.conversation,messages:data.messages});
+  const escalation=await activeEscalation(env,ticket.id);
+  return json({ok:true,active:true,waiting:false,assigned:true,ticketId:ticket.id,displayName:firstName(ticket.staff_name||ticket.staff_email),agentTyping:typing.typing,typingName:typing.typingName,escalation,conversation:data.conversation,messages:data.messages});
 }
 
 async function memberSend(request,env,session){
@@ -167,9 +193,10 @@ async function staffSend(request,env,session,id){
   if(!content)return json({ok:false,error:'A message is required.'},{status:400});
   if(content.length>4000)return json({ok:false,error:'Please shorten the message and try again.'},{status:400});
   const conversation=await ensureOpenConversation(env,ticket.created_by_user_id);
-  const message=await appendConversationMessage(env,{conversationId:conversation.id,userId:ticket.created_by_user_id,role:'staff',content,source:'staff',riskLevel:null});
+  const senderName=firstName(session.display_name||session.email)||'Support';
+  const message=await appendConversationMessage(env,{conversationId:conversation.id,userId:ticket.created_by_user_id,role:'staff',content,source:`staff:${senderName}`,riskLevel:null});
   await clearTyping(env,id);
-  try{await audit(env,{eventType:'live_support_staff_message_sent',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,messageId:message?.id,details:{role:session.role_name}});}catch(error){console.error('Live support staff message audit failed',error);}
+  try{await audit(env,{eventType:'live_support_staff_message_sent',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,messageId:message?.id,details:{role:session.role_name,senderName}});}catch(error){console.error('Live support staff message audit failed',error);}
   return json({ok:true,ticketId:id,conversationId:conversation.id,message},{status:201});
 }
 
