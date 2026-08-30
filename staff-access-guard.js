@@ -1,6 +1,6 @@
 (function(){
   const ACCOUNT_LOG_ROLES=['founder / co-founder','founder','co-founder','system administrator','system admin'];
-  const AUDIT_LOG_ROLES=['founder / co-founder','founder','co-founder'];
+  const AUDIT_LOG_ROLES=['founder','lead supervisor'];
 
   function currentSession(){
     try{return JSON.parse(sessionStorage.getItem('aria-auth-session')||'null')||{};}catch{return {};}
@@ -35,7 +35,7 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     if(typeof showPage==='function')showPage('dashboard');
-    alert('Full Audit Log access is restricted to Founder / Co-Founder roles.');
+    alert('Full Audit Log access is restricted to Founder and Lead Supervisor.');
   },true);
 
   window.AriaStaffAccess={currentStaffRole,canAccessRestrictedLogs,canAccessAuditLogs,enforceLogVisibility};
