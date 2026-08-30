@@ -124,7 +124,7 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260830-1';
+    chat.src='staff-live-support-chat.js?v=20260830-2';
     document.body.appendChild(chat);
 
     const escalation=document.createElement('script');
@@ -161,7 +161,7 @@
         document.body.appendChild(footer);
 
         const guard=document.createElement('script');
-        guard.src='staff-access-guard.js';
+        guard.src='staff-access-guard.js?v=20260830-1';
         guard.onload=()=>{
           const audit=document.createElement('script');
           audit.src='audit-blueprint.js?v=20260828-2';
