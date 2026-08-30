@@ -195,7 +195,7 @@ async function staffSend(request,env,session,id){
   if(content.length>4000)return json({ok:false,error:'Please shorten the message and try again.'},{status:400});
   const conversation=await ensureOpenConversation(env,ticket.created_by_user_id);
   const senderName=firstName(session.display_name||session.email)||'Support';
-  const message=await appendConversationMessage(env,{conversationId:conversation.id,userId:ticket.created_by_user_id,role:'staff',content,source:`staff:${senderName}`,riskLevel:null});
+  const message=await appendConversationMessage(env,{conversationId:conversation.id,userId:ticket.created_by_user_id,role:'staff',content,source:'staff',riskLevel:null});
   await clearTyping(env,id);
   try{await audit(env,{eventType:'live_support_staff_message_sent',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,messageId:message?.id,details:{role:session.role_name,senderName}});}catch(error){console.error('Live support staff message audit failed',error);}
   return json({ok:true,ticketId:id,conversationId:conversation.id,message},{status:201});
