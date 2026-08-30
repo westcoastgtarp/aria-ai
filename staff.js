@@ -124,6 +124,10 @@
     queueWatch.src='live-support-queue-watch.js?v=20260829-1';
     document.body.appendChild(queueWatch);
 
+    const simplifyLiveSupport=document.createElement('script');
+    simplifyLiveSupport.src='live-support-ticket-simplify.js?v=20260829-1';
+    document.body.appendChild(simplifyLiveSupport);
+
     const core=document.createElement('script');
     core.src='staff-core.js';
     core.onload=()=>{
