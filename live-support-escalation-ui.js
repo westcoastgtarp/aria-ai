@@ -118,7 +118,7 @@
       #liveSupportEscalationPanel .live-support-escalation-field label{display:block!important;margin:0!important;padding:0!important;font-size:11px!important;font-weight:800!important;color:#5c687a!important;line-height:1.2!important}
       #liveSupportEscalationPanel select,#liveSupportEscalationPanel textarea{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;border:1px solid #d9e0ea!important;border-radius:10px!important;background:#fff!important;padding:10px 11px!important;font:inherit!important;font-size:12px!important;color:#263244!important;box-sizing:border-box!important;outline:none!important;box-shadow:none!important}
       #liveSupportEscalationPanel select{height:42px!important;min-height:42px!important}
-      #liveSupportEscalationPanel textarea{height:92px!important;min-height:92px!important;resize:vertical!important;line-height:1.45!important}
+      #liveSupportEscalationPanel textarea{height:120px!important;min-height:120px!important;resize:vertical!important;line-height:1.45!important}
       #liveSupportEscalationPanel select:focus,#liveSupportEscalationPanel textarea:focus{border-color:#6b63e8!important;box-shadow:0 0 0 3px rgba(107,99,232,.10)!important}
       #liveSupportEscalationPanel .live-support-escalation-actions{grid-column:1/-1!important;display:flex!important;align-items:center!important;gap:12px!important;margin-top:2px!important;padding:0!important}
       #liveSupportEscalationPanel #liveSupportEscalationSend{min-width:130px!important;height:40px!important;padding:0 16px!important;border-radius:10px!important;margin:0!important}
