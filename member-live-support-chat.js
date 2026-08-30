@@ -53,12 +53,18 @@
   function supportName(){return String(window.__ariaHumanSupportName||lastSupportName||'Support').trim()||'Support';}
   function messageSupportName(message){const source=String(message?.source||'');if(source.startsWith('staff:')){const name=source.slice(6).trim();if(name)return name;}return supportName();}
 
+  function seedSeenFromDom(){
+    document.querySelectorAll('#ariaBubbleLog [data-message-id]').forEach(node=>{
+      const id=String(node.dataset.messageId||'').trim();if(id)seen.add(id);
+    });
+  }
+
   function renderMessage(message){const box=log();if(!box||!message?.id||seen.has(message.id))return;seen.add(message.id);const div=document.createElement('div');const role=message.role==='member'?'user':message.role==='staff'?'support':'aria';div.className=`aria-bubble-msg ${role}`;div.dataset.messageId=message.id;const label=message.role==='staff'?`<span class="aria-support-sender">${esc(messageSupportName(message))}</span>`:'';div.innerHTML=`${label}${esc(message.content).replace(/\n/g,'<br>')}<span class="aria-bubble-time">${esc(time(message.createdAt))}</span>`;box.appendChild(div);box.scrollTop=box.scrollHeight;}
 
   function activate(data){
     const incomingName=String(data.displayName||'').trim();
     if(incomingName)lastSupportName=incomingName;
-    if(!active){active=true;seen=new Set();const box=log();if(box)box.innerHTML='';}
+    if(!active){active=true;seedSeenFromDom();}
     window.__ariaHumanSupportActive=true;
     window.__ariaHumanSupportName=incomingName;
     showSupportHeader(incomingName);
@@ -83,7 +89,7 @@
     event.preventDefault();event.stopImmediatePropagation();input.value='';sendLive(text);
   }
 
-  function boot(){ensureStateBar();ensureTypingIndicator();document.addEventListener('click',intercept,true);document.addEventListener('keydown',intercept,true);refresh();pollTimer=setInterval(refresh,2000);}
+  function boot(){ensureStateBar();ensureTypingIndicator();seedSeenFromDom();document.addEventListener('click',intercept,true);document.addEventListener('keydown',intercept,true);refresh();pollTimer=setInterval(refresh,2000);}
   window.addEventListener('beforeunload',()=>{if(stateResetTimer)clearTimeout(stateResetTimer);if(pollTimer)clearInterval(pollTimer);document.removeEventListener('click',intercept,true);document.removeEventListener('keydown',intercept,true);},{once:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
