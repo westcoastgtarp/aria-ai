@@ -93,8 +93,14 @@
 
     const heading=panel.querySelector('#liveSupportWorkspaceTitle');
     const status=panel.querySelector('#liveSupportWorkspaceStatus');
+    const closed=String(data.ticket?.status||'').toLowerCase()==='closed';
     if(heading)heading.textContent=data.ticket?.memberName||'Member conversation';
-    if(status)status.textContent=[data.ticket?.assignedTo?`Support: ${data.ticket.assignedTo}`:'',data.ticket?.status||''].filter(Boolean).join(' • ')||'Connected';
+    if(status){
+      status.className=`live-chat-inline-status ${closed?'closed':'active'}`;
+      status.textContent=closed
+        ?'CLOSED • Review only'
+        :`LIVE${data.ticket?.assignedTo?` • ${data.ticket.assignedTo} connected`:''}`;
+    }
 
     const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
     if(transcript){
@@ -107,7 +113,9 @@
     }
 
     panel.querySelector('#liveSupportWorkspaceCompose')?.classList.toggle('hidden',!canSend);
-    panel.querySelector('#liveSupportWorkspaceReadonly')?.classList.toggle('hidden',canSend);
+    const readonly=panel.querySelector('#liveSupportWorkspaceReadonly');
+    readonly?.classList.toggle('hidden',canSend);
+    if(readonly&&!canSend)readonly.textContent=closed?'Closed conversation • Review only':'Read-only conversation review';
     setButtonState(currentTicketId,true);
   }
 
@@ -115,7 +123,7 @@
     const panel=ensureWorkspace();if(!panel)return;
     panel.hidden=false;
     const status=panel.querySelector('#liveSupportWorkspaceStatus');
-    if(status)status.textContent='Could not load conversation';
+    if(status){status.className='live-chat-inline-status error';status.textContent='Could not load conversation';}
     const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
     if(transcript)transcript.innerHTML=`<div class="empty-queue"><strong>Live Support chat could not load.</strong><br>${esc(message)}${statusCode?`<br><small>HTTP ${esc(statusCode)}</small>`:''}</div>`;
     panel.querySelector('#liveSupportWorkspaceCompose')?.classList.add('hidden');
@@ -130,7 +138,7 @@
       const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
       if(transcript)transcript.innerHTML='<div class="empty-queue">Loading conversation…</div>';
       const status=panel.querySelector('#liveSupportWorkspaceStatus');
-      if(status)status.textContent='Connecting…';
+      if(status){status.className='live-chat-inline-status';status.textContent='Connecting…';}
     }
 
     try{
