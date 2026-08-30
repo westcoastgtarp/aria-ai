@@ -36,7 +36,7 @@ async function audit(env,session,ticketId,eventType,details){
 }
 
 async function resolveTargetStaff(env,targetRole,excludeUserId){
-  const row=await env.DB.prepare(`
+  return env.DB.prepare(`
     SELECT u.id,u.display_name,u.email,r.role_name
     FROM users u
     JOIN staff_roles r ON r.user_id=u.id AND r.active=1
@@ -47,17 +47,6 @@ async function resolveTargetStaff(env,targetRole,excludeUserId){
     ORDER BY r.assigned_at ASC,u.id ASC
     LIMIT 1
   `).bind(targetRole,excludeUserId||'').first();
-  if(row)return row;
-  return env.DB.prepare(`
-    SELECT u.id,u.display_name,u.email,r.role_name
-    FROM users u
-    JOIN staff_roles r ON r.user_id=u.id AND r.active=1
-    WHERE u.account_type='staff'
-      AND u.status='active'
-      AND lower(r.role_name)=lower(?)
-    ORDER BY r.assigned_at ASC,u.id ASC
-    LIMIT 1
-  `).bind(targetRole).first();
 }
 
 async function getEscalation(env,id){
@@ -75,7 +64,8 @@ async function getEscalation(env,id){
     id:row.id,
     targetRole:row.target_role,
     targetUserId:row.target_user_id||null,
-    targetName:firstName(row.target_name||row.target_email||row.target_role),
+    targetName:row.target_user_id?firstName(row.target_name||row.target_email):null,
+    awaitingPickup:!row.target_user_id,
     reason:row.reason,
     status:row.status,
     createdAt:row.created_at,
@@ -104,17 +94,20 @@ export async function handleLiveSupportEscalationRoute(request,env){
   if(!reason)return json({ok:false,error:'Enter a short reason for the escalation.'},{status:400});
   if(reason.length>500)return json({ok:false,error:'Escalation reason must be 500 characters or fewer.'},{status:400});
 
-  const target=await resolveTargetStaff(env,targetRole,session.user_id);
-  if(!target)return json({ok:false,error:`No active ${targetRole} staff account is available for this escalation.`},{status:409});
-
+  const target=await resolveTargetStaff(env,targetRole,t.assigned_to_user_id||session.user_id);
   const now=new Date().toISOString();
   const escalationId=uuid('ESC');
-  await env.DB.batch([
+  const statements=[
     env.DB.prepare(`UPDATE live_support_escalations SET status='resolved',resolved_at=?,resolved_by_user_id=? WHERE ticket_id=? AND status='active'`).bind(now,session.user_id,id),
-    env.DB.prepare(`INSERT INTO live_support_escalations (id,ticket_id,escalated_by_user_id,target_user_id,target_role,reason,status,created_at) VALUES (?,?,?,?,?,?,'active',?)`).bind(escalationId,id,session.user_id,target.id,targetRole,reason,now),
-    env.DB.prepare(`UPDATE tickets SET assigned_to_user_id=?,status='In Progress',updated_at=? WHERE id=? AND status!='Closed'`).bind(target.id,now,id),
-    env.DB.prepare(`DELETE FROM live_support_typing WHERE ticket_id=?`).bind(id)
-  ]);
-  try{await audit(env,session,id,'live_support_escalated',{escalationId,targetRole,targetUserId:target.id,targetName:firstName(target.display_name||target.email),reason});}catch(error){console.error('Live support escalation audit failed',error);}
-  return json({ok:true,escalation:{id:escalationId,targetRole,targetUserId:target.id,targetName:firstName(target.display_name||target.email||targetRole),reason,status:'active',createdAt:now,escalatedBy:session.display_name||session.email||'Staff'}},{status:201});
+    env.DB.prepare(`INSERT INTO live_support_escalations (id,ticket_id,escalated_by_user_id,target_user_id,target_role,reason,status,created_at) VALUES (?,?,?,?,?,?,'active',?)`).bind(escalationId,id,session.user_id,target?.id||null,targetRole,reason,now)
+  ];
+  if(target){
+    statements.push(env.DB.prepare(`UPDATE tickets SET assigned_to_user_id=?,status='In Progress',updated_at=? WHERE id=? AND status!='Closed'`).bind(target.id,now,id));
+    statements.push(env.DB.prepare(`DELETE FROM live_support_typing WHERE ticket_id=?`).bind(id));
+  }
+  await env.DB.batch(statements);
+
+  const targetName=target?firstName(target.display_name||target.email):null;
+  try{await audit(env,session,id,'live_support_escalated',{escalationId,targetRole,targetUserId:target?.id||null,targetName,awaitingPickup:!target,reason});}catch(error){console.error('Live support escalation audit failed',error);}
+  return json({ok:true,escalation:{id:escalationId,targetRole,targetUserId:target?.id||null,targetName,awaitingPickup:!target,reason,status:'active',createdAt:now,escalatedBy:session.display_name||session.email||'Staff'}},{status:201});
 }
