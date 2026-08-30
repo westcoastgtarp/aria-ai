@@ -167,13 +167,16 @@
   }
 
   function intercept(event){
-    if(!active)return;
+    const humanActive=active||window.__ariaHumanSupportActive===true;
+    if(!humanActive)return;
     const input=document.getElementById('ariaBubbleInput');
     if(!input)return;
     if(event.type==='keydown'&&event.key!=='Enter')return;
     const text=input.value.trim();if(!text)return;
-    event.preventDefault();event.stopImmediatePropagation();
-    input.value='';sendLive(text);
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    input.value='';
+    sendLive(text);
   }
 
   function boot(){
