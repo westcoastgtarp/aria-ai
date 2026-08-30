@@ -51,6 +51,25 @@
     });
   }
 
+  function restoreOperations(){
+    const page=sessionStorage.getItem('aria-live-support-return-page');
+    if(page!=='operations')return;
+    sessionStorage.removeItem('aria-live-support-return-page');
+    const nav=document.querySelector('[data-page="operations"]');
+    nav?.click();
+
+    const id=sessionStorage.getItem('aria-live-support-open-ticket');
+    if(!id)return;
+    sessionStorage.removeItem('aria-live-support-open-ticket');
+    let tries=0;
+    const timer=setInterval(()=>{
+      tries+=1;
+      const button=document.querySelector(`.live-support-open-chat[data-id="${CSS.escape(id)}"]`);
+      if(button){clearInterval(timer);button.click();}
+      else if(tries>=30)clearInterval(timer);
+    },250);
+  }
+
   async function startChat(id,button){
     if(!id||button?.disabled)return;
     const old=button.textContent;
@@ -60,6 +79,8 @@
       const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/start`,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:'{}'});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||'Live Support conversation could not be started.');
+      sessionStorage.setItem('aria-live-support-return-page','operations');
+      sessionStorage.setItem('aria-live-support-open-ticket',id);
       location.reload();
     }catch(error){
       alert(error.message||'Live Support conversation could not be started.');
@@ -77,6 +98,7 @@
   },true);
 
   decorate();
+  restoreOperations();
   const observer=new MutationObserver(decorate);
   const queue=document.getElementById('operationsQueue');
   if(queue)observer.observe(queue,{childList:true,subtree:true});
