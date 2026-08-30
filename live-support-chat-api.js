@@ -27,6 +27,7 @@ async function currentSession(request,env){
 function isSpecialist(session){return normalized(session?.role_name)==='live support specialist'&&normalized(session?.department)==='operations';}
 function isOversightResponder(session){return ['founder','founder / co-founder','co-founder','supervisor of live support','lead supervisor','supervisor'].includes(normalized(session?.role_name));}
 function isReviewRole(session){return isOversightResponder(session)||['hr','human resources'].includes(normalized(session?.role_name));}
+function canReviewClosedConversation(session){return ['founder','lead supervisor'].includes(normalized(session?.role_name));}
 function canRespondToActiveTicket(session,ticket){
   if(!ticket||ticket.status==='Closed')return false;
   const owns=Boolean(ticket.assigned_to_user_id&&ticket.assigned_to_user_id===session.user_id);
@@ -154,14 +155,16 @@ async function memberSend(request,env,session){
 
 async function staffConversation(request,env,session,id,url){
   const ticket=await ticketById(env,id);if(!ticket)return json({ok:false,error:'Member Communication item not found.'},{status:404});
+  const closed=ticket.status==='Closed';
   const owns=Boolean(ticket.assigned_to_user_id&&ticket.assigned_to_user_id===session.user_id);
   const reviewer=isReviewRole(session);
-  if(!owns&&!reviewer)return json({ok:false,error:'You may only view a Live Support conversation assigned to you.'},{status:403});
-  const conversation=await conversationForMember(env,ticket.created_by_user_id,{create:false,includeClosed:ticket.status==='Closed'});
+  if(closed&&!canReviewClosedConversation(session))return json({ok:false,error:'Closed conversation history is restricted to Founder and Lead Supervisor.'},{status:403});
+  if(!closed&&!owns&&!reviewer)return json({ok:false,error:'You may only view a Live Support conversation assigned to you.'},{status:403});
+  const conversation=await conversationForMember(env,ticket.created_by_user_id,{create:false,includeClosed:closed});
   const data=conversation?await loadConversationMessages(env,ticket.created_by_user_id,conversation.id,100):{conversation:null,messages:[]};
   const canSend=canRespondToActiveTicket(session,ticket);
   if(url.searchParams.get('poll')!=='1'){
-    try{await audit(env,{eventType:'live_support_conversation_opened',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,details:{readOnly:!canSend}});}catch(error){console.error('Live support conversation open audit failed',error);}
+    try{await audit(env,{eventType:closed?'live_support_closed_conversation_reviewed':'live_support_conversation_opened',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,details:{readOnly:!canSend,role:session.role_name}});}catch(error){console.error('Live support conversation open audit failed',error);}
   }
   return json({ok:true,ticket:{id:ticket.id,status:ticket.status,memberName:ticket.member_name||ticket.member_email||'Member',assignedTo:firstName(ticket.staff_name||ticket.staff_email)},conversation:data.conversation,messages:data.messages,canSend,readOnly:!canSend});
 }
@@ -195,10 +198,10 @@ async function staffSend(request,env,session,id){
   if(content.length>4000)return json({ok:false,error:'Please shorten the message and try again.'},{status:400});
   const conversation=await ensureOpenConversation(env,ticket.created_by_user_id);
   const senderName=firstName(session.display_name||session.email)||'Support';
-  const message=await appendConversationMessage(env,{conversationId:conversation.id,userId:ticket.created_by_user_id,role:'staff',content,source:'staff',riskLevel:null});
+  const message=await appendConversationMessage(env,{conversationId:conversation.id,userId:ticket.created_by_user_id,role:'staff',content,source:'staff',riskLevel:null,staffUserId:session.user_id});
   await clearTyping(env,id);
   try{await audit(env,{eventType:'live_support_staff_message_sent',actorUserId:session.user_id,memberUserId:ticket.created_by_user_id,ticketId:id,messageId:message?.id,details:{role:session.role_name,senderName}});}catch(error){console.error('Live support staff message audit failed',error);}
-  return json({ok:true,ticketId:id,conversationId:conversation.id,message},{status:201});
+  return json({ok:true,ticketId:id,conversationId:conversation.id,message:{...message,staffName:senderName}},{status:201});
 }
 
 async function staffClose(env,session,id){
