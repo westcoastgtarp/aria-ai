@@ -20,7 +20,7 @@
       if(card.classList.contains('aria-chat-archive-card'))return;
       const meta=card.querySelector('.ticket-id')?.textContent||'';
       if(!/MEMBER COMMUNICATION/i.test(meta))return;
-      card.classList.add('live-support-ticket-card');
+      if(!card.classList.contains('live-support-ticket-card'))card.classList.add('live-support-ticket-card');
 
       const assignmentText=card.querySelector('.ticket-meta')?.textContent||'';
       const assigned=/Assigned to/i.test(assignmentText);
@@ -32,7 +32,7 @@
       if(!assigned){
         if(genericStart){
           start=genericStart;
-          start.classList.add('live-support-start-chat');
+          if(!start.classList.contains('live-support-start-chat'))start.classList.add('live-support-start-chat');
         }else if(!start){
           start=document.createElement('button');
           start.type='button';
@@ -40,14 +40,14 @@
           start.dataset.id=ticketId(card);
           actions.prepend(start);
         }
-        if(start)start.textContent='Start chat';
+        if(start&&start.textContent!=='Start chat')start.textContent='Start chat';
       }else{
-        genericStart?.remove();
-        start?.remove();
+        if(genericStart)genericStart.remove();
+        if(start&&start!==genericStart)start.remove();
       }
 
       const close=card.querySelector('.ticket-status[data-status="Closed"]');
-      if(close)close.textContent='Close ticket';
+      if(close&&close.textContent!=='Close ticket')close.textContent='Close ticket';
     });
   }
 
