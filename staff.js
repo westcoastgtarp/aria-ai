@@ -121,7 +121,7 @@
     document.body.appendChild(chat);
 
     const escalation=document.createElement('script');
-    escalation.src='live-support-escalation-ui.js?v=20260829-2';
+    escalation.src='live-support-escalation-ui.js?v=20260829-3';
     document.body.appendChild(escalation);
 
     const queueWatch=document.createElement('script');
