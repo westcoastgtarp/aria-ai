@@ -170,42 +170,113 @@ export async function loadConversationMessages(env,userId,conversationId=null,li
   };
 }
 
-async function auditConversationClose(env,member,conversationIds){
-  if(!conversationIds.length)return;
+async function auditConversationClose(env,member,conversationIds,ticketIds){
+  if(!conversationIds.length&&!ticketIds.length)return;
   const now=new Date().toISOString();
   await env.DB.prepare(`
     INSERT INTO audit_events
     (id,category,event_type,actor_user_id,subject_type,subject_id,details_json,occurred_at,recorded_at)
-    VALUES (?, 'Member Communication','member_conversation_closed_on_logout',?,'member',?,?,?,?)
+    VALUES (?, 'Member Communication','member_session_closed_on_logout',?,'member',?,?,?,?)
   `).bind(
     `AUD-${crypto.randomUUID()}`,
     member.user_id,
     member.user_id,
-    JSON.stringify({conversationIds,count:conversationIds.length,reason:'member_logout'}),
+    JSON.stringify({conversationIds,ticketIds,conversationCount:conversationIds.length,ticketCount:ticketIds.length,reason:'member_logout'}),
     now,
     now
   ).run();
 }
 
 async function closeOpenConversations(env,member){
-  const open=await env.DB.prepare(`
-    SELECT id
-    FROM member_conversations
-    WHERE member_user_id=? AND status='open'
-    ORDER BY last_message_at DESC
-  `).bind(member.user_id).all();
-  const ids=(open.results||[]).map(row=>row.id).filter(Boolean);
-  if(!ids.length)return json({ok:true,closed:true,conversationIds:[],count:0});
+  const [openConversations,openTickets]=await Promise.all([
+    env.DB.prepare(`
+      SELECT id
+      FROM member_conversations
+      WHERE member_user_id=? AND status='open'
+      ORDER BY last_message_at DESC
+    `).bind(member.user_id).all(),
+    env.DB.prepare(`
+      SELECT id
+      FROM tickets
+      WHERE created_by_user_id=?
+        AND department='Operations'
+        AND category='Member Communication'
+        AND status!='Closed'
+      ORDER BY updated_at DESC
+    `).bind(member.user_id).all()
+  ]);
 
+  const conversationIds=(openConversations.results||[]).map(row=>row.id).filter(Boolean);
+  const ticketIds=(openTickets.results||[]).map(row=>row.id).filter(Boolean);
   const now=new Date().toISOString();
-  await env.DB.prepare(`
-    UPDATE member_conversations
-    SET status='closed',closed_at=?
-    WHERE member_user_id=? AND status='open'
-  `).bind(now,member.user_id).run();
+  const statements=[];
 
-  try{await auditConversationClose(env,member,ids);}catch(error){console.error('Conversation close audit failed',error);}
-  return json({ok:true,closed:true,conversationIds:ids,count:ids.length,closedAt:now});
+  if(conversationIds.length){
+    statements.push(env.DB.prepare(`
+      UPDATE member_conversations
+      SET status='closed',closed_at=?
+      WHERE member_user_id=? AND status='open'
+    `).bind(now,member.user_id));
+  }
+
+  if(ticketIds.length){
+    statements.push(env.DB.prepare(`
+      UPDATE tickets
+      SET status='Closed',progress=100,updated_at=?
+      WHERE created_by_user_id=?
+        AND department='Operations'
+        AND category='Member Communication'
+        AND status!='Closed'
+    `).bind(now,member.user_id));
+
+    for(const ticketId of ticketIds){
+      statements.push(env.DB.prepare(`DELETE FROM live_support_typing WHERE ticket_id=?`).bind(ticketId));
+      statements.push(env.DB.prepare(`
+        UPDATE live_support_escalations
+        SET status='resolved',resolved_at=?
+        WHERE ticket_id=? AND status='active'
+      `).bind(now,ticketId));
+    }
+  }
+
+  const incidents=await env.DB.prepare(`
+    SELECT id,current_risk_level,related_ticket_id
+    FROM lifeline_incidents
+    WHERE member_user_id=? AND status!='closed'
+    ORDER BY updated_at DESC
+  `).bind(member.user_id).all();
+
+  for(const incident of incidents.results||[]){
+    statements.push(env.DB.prepare(`UPDATE lifeline_incidents SET status='closed',updated_at=? WHERE id=?`).bind(now,incident.id));
+    statements.push(env.DB.prepare(`
+      INSERT INTO lifeline_events
+      (id,incident_id,member_user_id,event_type,risk_level,actor_type,actor_user_id,details_json,occurred_at,recorded_at)
+      VALUES (?,?,?,?,?,'member',?,?,?,?)
+    `).bind(
+      `LFLE-${crypto.randomUUID()}`,
+      incident.id,
+      member.user_id,
+      'member_session_ended',
+      incident.current_risk_level||null,
+      member.user_id,
+      JSON.stringify({ticketId:incident.related_ticket_id||null,reason:'member_logout'}),
+      now,
+      now
+    ));
+  }
+
+  if(statements.length)await env.DB.batch(statements);
+  try{await auditConversationClose(env,member,conversationIds,ticketIds);}catch(error){console.error('Member session close audit failed',error);}
+
+  return json({
+    ok:true,
+    closed:true,
+    conversationIds,
+    ticketIds,
+    conversationCount:conversationIds.length,
+    ticketCount:ticketIds.length,
+    closedAt:now
+  });
 }
 
 async function handleGet(request,env,member,url){
