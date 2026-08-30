@@ -53,6 +53,19 @@
     }
   }
 
+  function showClosedConfirmation(){
+    const workspace=document.getElementById('liveSupportWorkspace');
+    if(!workspace||workspace.hidden)return;
+    const status=workspace.querySelector('#liveSupportWorkspaceStatus');
+    if(status){
+      status.className='live-chat-inline-status closed';
+      status.textContent='CLOSED • Conversation archived';
+    }
+    workspace.querySelector('#liveSupportWorkspaceCompose')?.classList.add('hidden');
+    const readonly=workspace.querySelector('#liveSupportWorkspaceReadonly');
+    if(readonly){readonly.classList.remove('hidden');readonly.textContent='Conversation closed • Moving to Aria Chat archive';}
+  }
+
   async function closeLiveSupportTicket(id,button){
     if(!id)return;
     const original=button?.textContent||'Close';
@@ -63,7 +76,9 @@
       });
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||'Live Support conversation could not be closed.');
-      location.reload();
+      showClosedConfirmation();
+      if(button)button.textContent='Closed';
+      setTimeout(()=>location.reload(),900);
     }catch(error){
       alert(error.message||'Live Support conversation could not be closed.');
       if(button){button.disabled=false;button.textContent=original;}
