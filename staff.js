@@ -20,7 +20,7 @@
     if(!document.querySelector('link[data-live-support-chat]')){
       const chatStyles=document.createElement('link');
       chatStyles.rel='stylesheet';
-      chatStyles.href='live-support-chat.css?v=20260828-4';
+      chatStyles.href='live-support-chat.css?v=20260829-1';
       chatStyles.dataset.liveSupportChat='true';
       document.head.appendChild(chatStyles);
     }
@@ -117,11 +117,11 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260828-7';
+    chat.src='staff-live-support-chat.js?v=20260829-1';
     document.body.appendChild(chat);
 
     const queueWatch=document.createElement('script');
-    queueWatch.src='live-support-queue-watch.js?v=20260828-1';
+    queueWatch.src='live-support-queue-watch.js?v=20260829-1';
     document.body.appendChild(queueWatch);
 
     const core=document.createElement('script');
