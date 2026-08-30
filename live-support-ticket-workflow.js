@@ -10,17 +10,42 @@
     };
   }
 
+  function ticketId(card){
+    const meta=card.querySelector('.ticket-id')?.textContent||'';
+    return (meta.split('•')[0]||'').trim();
+  }
+
   function decorate(){
     document.querySelectorAll('.ticket-card').forEach(card=>{
       if(card.classList.contains('aria-chat-archive-card'))return;
       const meta=card.querySelector('.ticket-id')?.textContent||'';
       if(!/MEMBER COMMUNICATION/i.test(meta))return;
       card.classList.add('live-support-ticket-card');
-      const start=card.querySelector('.ticket-status[data-status="In Progress"]');
-      if(start){
-        start.classList.add('live-support-start-chat');
-        start.textContent='Start chat';
+
+      const assignmentText=card.querySelector('.ticket-meta')?.textContent||'';
+      const assigned=/Assigned to/i.test(assignmentText);
+      const actions=card.querySelector('.ticket-actions');
+      if(!actions)return;
+
+      let start=card.querySelector('.live-support-start-chat');
+      const genericStart=card.querySelector('.ticket-status[data-status="In Progress"]');
+      if(!assigned){
+        if(genericStart){
+          start=genericStart;
+          start.classList.add('live-support-start-chat');
+        }else if(!start){
+          start=document.createElement('button');
+          start.type='button';
+          start.className='status-btn live-support-start-chat';
+          start.dataset.id=ticketId(card);
+          actions.prepend(start);
+        }
+        if(start)start.textContent='Start chat';
+      }else{
+        genericStart?.remove();
+        start?.remove();
       }
+
       const close=card.querySelector('.ticket-status[data-status="Closed"]');
       if(close)close.textContent='Close ticket';
     });
