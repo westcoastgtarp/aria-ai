@@ -5,6 +5,7 @@
   let lastTicketId='';
   let pollTimer=null;
   let busy=false;
+  let pickupBusy=false;
 
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
   function currentTicketId(){const open=document.querySelector('.live-support-open-chat[aria-expanded="true"]');return String(open?.dataset.id||'').trim();}
@@ -63,7 +64,7 @@
 
   function setMessage(text,error=false){const el=document.getElementById('liveSupportEscalationMessage');if(!el)return;el.textContent=text||'';el.className=error?'error':'success';}
 
-  function render(escalation){
+  function render(escalation,{canPickup=false}={}){
     const title=document.getElementById('liveSupportEscalationTitle');
     const badge=document.getElementById('liveSupportEscalationBadge');
     const meta=document.getElementById('liveSupportEscalationMeta');
@@ -80,7 +81,7 @@
       return;
     }
 
-    const waiting=Boolean(escalation.awaitingPickup||!escalation.targetUserId);
+    const waiting=Boolean(escalation.awaitingPickup||!escalation.pickedUpAt);
     title.textContent=`Escalated to ${escalation.targetRole}`;
     badge.textContent=waiting?'Awaiting pickup':'Escalated';
     badge.className=`esc-header-badge ${waiting?'waiting':'connected'}`;
@@ -89,9 +90,18 @@
 
     footer.hidden=false;
     footer.className=`live-support-escalation-footer ${waiting?'waiting':'connected'}`;
-    footer.innerHTML=waiting
-      ? `<span class="esc-footer-icon">↗</span><div><strong>Awaiting ${esc(escalation.targetRole)} pickup</strong><span>${esc(escalation.reason)}</span></div>`
-      : `<span class="esc-footer-icon">✓</span><div><strong>${esc(escalation.targetName||escalation.targetRole)} is now leading</strong><span>The conversation has been escalated.</span></div>`;
+    if(waiting){
+      footer.innerHTML=`
+        <span class="esc-footer-icon">↗</span>
+        <div class="esc-footer-copy">
+          <strong>Awaiting ${esc(escalation.targetRole)} pickup</strong>
+          <span>${esc(escalation.reason)}</span>
+        </div>
+        ${canPickup?'<button type="button" id="liveSupportEscalationPickup" class="live-support-escalation-pickup">Take escalation</button>':''}`;
+      footer.querySelector('#liveSupportEscalationPickup')?.addEventListener('click',pickup);
+    }else{
+      footer.innerHTML=`<span class="esc-footer-icon">✓</span><div><strong>${esc(escalation.pickedUpByName||escalation.targetName||escalation.targetRole)} is now leading</strong><span>The conversation has been escalated.</span></div>`;
+    }
   }
 
   async function refresh(){
@@ -102,8 +112,26 @@
     try{
       const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/escalation`,{credentials:'same-origin',cache:'no-store'});
       const data=await response.json().catch(()=>({}));
-      if(response.ok&&data.ok)render(data.escalation||null);
+      if(response.ok&&data.ok)render(data.escalation||null,{canPickup:Boolean(data.canPickup)});
     }catch(error){console.error('Live Support escalation status failed',error);}
+  }
+
+  async function pickup(){
+    if(pickupBusy)return;
+    const id=currentTicketId();
+    if(!id){setMessage('Open an active conversation first.',true);return;}
+    pickupBusy=true;
+    const button=document.getElementById('liveSupportEscalationPickup');
+    if(button){button.disabled=true;button.textContent='Taking escalation...';}
+    try{
+      const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/escalation/pickup`,{method:'POST',credentials:'same-origin'});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||'Escalation could not be picked up.');
+      render(data.escalation||null,{canPickup:false});
+      setMessage('You are now leading this conversation.');
+      window.dispatchEvent(new CustomEvent('aria:live-support-escalation-picked-up',{detail:{ticketId:id,escalation:data.escalation||null}}));
+    }catch(error){setMessage(error.message||'Escalation could not be picked up.',true);}
+    finally{pickupBusy=false;if(button&&document.body.contains(button)){button.disabled=false;button.textContent='Take escalation';}}
   }
 
   async function submit(){
@@ -120,9 +148,9 @@
       const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/escalation`,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({targetRole:role,reason})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||'Escalation could not be sent.');
-      render(data.escalation);
+      render(data.escalation,{canPickup:Boolean(data.canPickup)});
       const reasonBox=document.getElementById('liveSupportEscalationReason');if(reasonBox)reasonBox.value='';
-      setMessage(data.escalation?.awaitingPickup?`Awaiting ${role} pickup.`:`${data.escalation?.targetName||role} is now leading.`);
+      setMessage(`Awaiting ${role} pickup.`);
     }catch(error){setMessage(error.message||'Escalation could not be sent.',true);}
     finally{busy=false;if(button){button.disabled=false;button.innerHTML='<span aria-hidden="true">↗</span>Send escalation';}}
   }
