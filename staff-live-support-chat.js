@@ -12,6 +12,7 @@
 
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
   function fmt(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(d);}
+  function senderName(message){const raw=String(message?.staffName||'').trim();return raw?raw.split(/\s+/)[0]:'Support';}
 
   function ticketIdFromCard(card){
     const meta=card?.querySelector('.ticket-id')?.textContent||'';
@@ -134,8 +135,8 @@
 
       transcript.innerHTML=(data.messages||[]).map(message=>{
         const role=message.role==='member'?'member':message.role==='staff'?'staff':'aria';
-        const label=message.role==='member'?'Member':message.role==='staff'?'Support':'Aria';
-        return `<div class="live-chat-line ${role}"><div class="live-chat-label">${label}<span>${esc(fmt(message.createdAt))}</span></div><div class="live-chat-bubble">${esc(message.content).replace(/\n/g,'<br>')}</div></div>`;
+        const label=message.role==='member'?'Member':message.role==='staff'?senderName(message):'Aria';
+        return `<div class="live-chat-line ${role}"><div class="live-chat-label">${esc(label)}<span>${esc(fmt(message.createdAt))}</span></div><div class="live-chat-bubble">${esc(message.content).replace(/\n/g,'<br>')}</div></div>`;
       }).join('')||'<div class="empty-queue">No conversation messages were found for this member yet.</div>';
 
       transcript.dataset.rendered='true';
