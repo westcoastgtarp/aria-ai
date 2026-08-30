@@ -130,7 +130,7 @@
       applyStaffIdentity();
 
       const workflow=document.createElement('script');
-      workflow.src='live-support-ticket-workflow.js?v=20260829-1';
+      workflow.src='live-support-ticket-workflow.js?v=20260829-2';
       workflow.onload=()=>{
         const hiring=document.createElement('script');
         hiring.src='hiring-live.js?v=20260828-2';
