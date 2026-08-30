@@ -55,7 +55,7 @@
   function ensureTypingIndicator(){let indicator=document.getElementById('ariaLiveTyping');if(indicator)return indicator;const inputRow=document.querySelector('.aria-bubble-input');if(!inputRow)return null;indicator=document.createElement('div');indicator.id='ariaLiveTyping';indicator.className='aria-live-typing';indicator.hidden=true;inputRow.parentNode.insertBefore(indicator,inputRow);return indicator;}
   function showTyping(data){const indicator=ensureTypingIndicator();if(!indicator)return;const name=String(data?.typingName||data?.displayName||'Support').trim();indicator.textContent=data?.agentTyping?`${name} is typing…`:'';indicator.hidden=!data?.agentTyping;}
   function supportName(){return String(window.__ariaHumanSupportName||lastSupportName||'Support').trim()||'Support';}
-  function messageSupportName(message){const source=String(message?.source||'');if(source.startsWith('staff:')){const name=source.slice(6).trim();if(name)return name;}return supportName();}
+  function messageSupportName(message){const stored=String(message?.staffName||'').trim();if(stored)return stored.split(/\s+/)[0];const source=String(message?.source||'');if(source.startsWith('staff:')){const name=source.slice(6).trim();if(name)return name;}return supportName();}
 
   function seedSeenFromDom(){
     document.querySelectorAll('#ariaBubbleLog [data-message-id]').forEach(node=>{
