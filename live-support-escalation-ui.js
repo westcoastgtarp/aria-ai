@@ -63,6 +63,7 @@
   }
 
   function setMessage(text,error=false){const el=document.getElementById('liveSupportEscalationMessage');if(!el)return;el.textContent=text||'';el.className=error?'error':'success';}
+  function resetForm(){const role=document.getElementById('liveSupportEscalationRole');const reason=document.getElementById('liveSupportEscalationReason');if(role)role.value='';if(reason)reason.value='';}
 
   function render(escalation,{canPickup=false}={}){
     const title=document.getElementById('liveSupportEscalationTitle');
@@ -77,7 +78,6 @@
       badge.textContent='Command review';badge.className='esc-header-badge';
       meta.innerHTML='<span>Escalation</span><strong>Choose a command role</strong>';
       footer.hidden=true;footer.innerHTML='';
-      if(role)role.value='';
       return;
     }
 
@@ -108,7 +108,7 @@
     const ws=workspace();if(!ws||ws.hidden)return;
     ensurePanel();
     const id=currentTicketId();if(!id){render(null);return;}
-    if(id!==lastTicketId){lastTicketId=id;setMessage('');}
+    if(id!==lastTicketId){lastTicketId=id;setMessage('');resetForm();}
     try{
       const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(id)}/escalation`,{credentials:'same-origin',cache:'no-store'});
       const data=await response.json().catch(()=>({}));
