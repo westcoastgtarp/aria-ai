@@ -6,6 +6,8 @@
   let seen=new Set();
   let pollTimer=null;
   let sending=false;
+  let lastSupportName='';
+  let stateResetTimer=null;
   window.__ariaHumanSupportActive=false;
 
   function esc(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
@@ -27,7 +29,50 @@
     if(!safe){showAriaHeader();return;}
     const {title,subtitle}=headerNodes();
     if(title)title.textContent=`${safe} • Aria Support`;
-    if(subtitle)subtitle.textContent='Here with you now';
+    if(subtitle)subtitle.textContent='Live support connected';
+  }
+
+  function ensureStateBar(){
+    let state=document.getElementById('ariaLiveSupportState');
+    if(state)return state;
+    const head=document.querySelector('.aria-bubble-head');
+    if(!head)return null;
+    state=document.createElement('div');
+    state.id='ariaLiveSupportState';
+    state.className='aria-live-support-state';
+    state.hidden=true;
+    head.insertAdjacentElement('afterend',state);
+    return state;
+  }
+
+  function setStateBar(mode,name=''){
+    const state=ensureStateBar();if(!state)return;
+    if(stateResetTimer){clearTimeout(stateResetTimer);stateResetTimer=null;}
+    if(mode==='connected'){
+      const safe=String(name||'Support').trim()||'Support';
+      state.className='aria-live-support-state connected';
+      state.innerHTML=`<span class="aria-live-support-dot" aria-hidden="true"></span><strong>${esc(safe)} is connected</strong><span>Human support is leading this conversation.</span>`;
+      state.hidden=false;
+      return;
+    }
+    if(mode==='ended'){
+      state.className='aria-live-support-state ended';
+      state.innerHTML='<strong>Live support ended</strong><span>You’re back with Aria.</span>';
+      state.hidden=false;
+      stateResetTimer=setTimeout(()=>{state.hidden=true;},8000);
+      return;
+    }
+    state.hidden=true;
+  }
+
+  function addTransitionNotice(name){
+    const box=log();if(!box)return;
+    const safe=String(name||'Your support specialist').trim()||'Your support specialist';
+    const div=document.createElement('div');
+    div.className='aria-live-support-transition';
+    div.textContent=`${safe} has ended the live support conversation. You’re back with Aria now.`;
+    box.appendChild(div);
+    box.scrollTop=box.scrollHeight;
   }
 
   function ensureTypingIndicator(){
@@ -51,7 +96,7 @@
   }
 
   function supportName(){
-    return String(window.__ariaHumanSupportName||'Brandon').trim()||'Brandon';
+    return String(window.__ariaHumanSupportName||lastSupportName||'Brandon').trim()||'Brandon';
   }
 
   function renderMessage(message){
@@ -67,23 +112,35 @@
   }
 
   function activate(data){
+    const incomingName=String(data.displayName||'').trim();
+    if(incomingName)lastSupportName=incomingName;
     if(!active){
       active=true;seen=new Set();
       const box=log();if(box)box.innerHTML='';
     }
     window.__ariaHumanSupportActive=true;
-    window.__ariaHumanSupportName=String(data.displayName||'').trim();
-    showSupportHeader(data.displayName);
+    window.__ariaHumanSupportName=incomingName;
+    showSupportHeader(incomingName);
+    setStateBar('connected',incomingName);
     showTyping(data);
     (data.messages||[]).forEach(renderMessage);
   }
 
   function deactivate(){
+    const wasActive=active;
+    const endingName=String(window.__ariaHumanSupportName||lastSupportName||'Your support specialist').trim();
     active=false;
     window.__ariaHumanSupportActive=false;
     window.__ariaHumanSupportName='';
     showAriaHeader();
     showTyping({agentTyping:false});
+    if(wasActive){
+      setStateBar('ended');
+      addTransitionNotice(endingName);
+    }else{
+      const state=document.getElementById('ariaLiveSupportState');
+      if(state&&!state.classList.contains('ended'))state.hidden=true;
+    }
   }
 
   async function refresh(){
@@ -120,11 +177,15 @@
   }
 
   function boot(){
+    ensureStateBar();
     ensureTypingIndicator();
     document.getElementById('ariaBubbleSend')?.addEventListener('click',intercept,true);
     document.getElementById('ariaBubbleInput')?.addEventListener('keydown',intercept,true);
     refresh();pollTimer=setInterval(refresh,2000);
   }
-  window.addEventListener('beforeunload',()=>pollTimer&&clearInterval(pollTimer),{once:true});
+  window.addEventListener('beforeunload',()=>{
+    if(stateResetTimer)clearTimeout(stateResetTimer);
+    if(pollTimer)clearInterval(pollTimer);
+  },{once:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
