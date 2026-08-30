@@ -41,14 +41,14 @@ async function currentSession(request, env) {
   `).bind(tokenHash, new Date().toISOString()).first();
 }
 
-async function requireFounder(request, env) {
+async function requireAuditReviewer(request, env) {
   const session = await currentSession(request, env);
   if (!session || session.account_type !== 'staff' || session.status !== 'active') {
     return { error: json({ ok: false, error: 'Authentication required.' }, { status: 401 }) };
   }
   const role = String(session.staff_role || '').trim().toLowerCase();
-  if (role !== 'founder') {
-    return { error: json({ ok: false, error: 'Audit history is restricted to Founder access.' }, { status: 403 }) };
+  if (!['founder','lead supervisor'].includes(role)) {
+    return { error: json({ ok: false, error: 'Audit history is restricted to Founder and Lead Supervisor access.' }, { status: 403 }) };
   }
   return { session };
 }
@@ -64,7 +64,7 @@ function safeInt(value, fallback, min, max) {
 }
 
 async function listAuditEvents(request, env) {
-  const auth = await requireFounder(request, env);
+  const auth = await requireAuditReviewer(request, env);
   if (auth.error) return auth.error;
 
   const url = new URL(request.url);
@@ -130,7 +130,7 @@ async function listAuditEvents(request, env) {
     ok: true,
     events,
     categories: categoriesResult.results || [],
-    viewer: { id: auth.session.user_id, name: auth.session.display_name || auth.session.email, role: 'Founder' }
+    viewer: { id: auth.session.user_id, name: auth.session.display_name || auth.session.email, role: auth.session.staff_role }
   });
 }
 
