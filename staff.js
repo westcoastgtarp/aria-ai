@@ -27,7 +27,7 @@
     if(!document.querySelector('link[data-live-support-escalation]')){
       const escalationStyles=document.createElement('link');
       escalationStyles.rel='stylesheet';
-      escalationStyles.href='live-support-escalation.css?v=20260829-3';
+      escalationStyles.href='live-support-escalation.css?v=20260830-1';
       escalationStyles.dataset.liveSupportEscalation='true';
       document.head.appendChild(escalationStyles);
     }
@@ -128,7 +128,7 @@
     document.body.appendChild(chat);
 
     const escalation=document.createElement('script');
-    escalation.src='live-support-escalation-ui.js?v=20260829-9';
+    escalation.src='live-support-escalation-ui.js?v=20260830-1';
     document.body.appendChild(escalation);
 
     const queueWatch=document.createElement('script');
