@@ -124,55 +124,56 @@
     queueWatch.src='live-support-queue-watch.js?v=20260829-1';
     document.body.appendChild(queueWatch);
 
-    const simplifyLiveSupport=document.createElement('script');
-    simplifyLiveSupport.src='live-support-ticket-simplify.js?v=20260829-1';
-    document.body.appendChild(simplifyLiveSupport);
-
     const core=document.createElement('script');
     core.src='staff-core.js';
     core.onload=()=>{
       applyStaffIdentity();
 
-      const hiring=document.createElement('script');
-      hiring.src='hiring-live.js?v=20260828-2';
-      hiring.onload=()=>{
-        const candidateActions=document.createElement('script');
-        candidateActions.src='candidate-actions.js?v=20260821-launch1';
-        document.body.appendChild(candidateActions);
-      };
-      document.body.appendChild(hiring);
-
-      const hr=document.createElement('script');
-      hr.src='hr-live.js?v=20260821-d1-1';
-      document.body.appendChild(hr);
-
-      const footer=document.createElement('script');
-      footer.src='staff-footer.js?v=20260821-3';
-      document.body.appendChild(footer);
-
-      const guard=document.createElement('script');
-      guard.src='staff-access-guard.js';
-      guard.onload=()=>{
-        const audit=document.createElement('script');
-        audit.src='audit-blueprint.js?v=20260828-2';
-        audit.onload=()=>{
-          const notes=document.createElement('script');
-          notes.src='ticket-notes.js?v=20260828-ariachat2';
-          notes.onload=()=>{
-            const invites=document.createElement('script');
-            invites.src='account-invites.js';
-            invites.onload=()=>{
-              const provisioning=document.createElement('script');
-              provisioning.src='staff-account-provisioning.js?v=20260821-d1-roster';
-              document.body.appendChild(provisioning);
-            };
-            document.body.appendChild(invites);
-          };
-          document.body.appendChild(notes);
+      const workflow=document.createElement('script');
+      workflow.src='live-support-ticket-workflow.js?v=20260829-1';
+      workflow.onload=()=>{
+        const hiring=document.createElement('script');
+        hiring.src='hiring-live.js?v=20260828-2';
+        hiring.onload=()=>{
+          const candidateActions=document.createElement('script');
+          candidateActions.src='candidate-actions.js?v=20260821-launch1';
+          document.body.appendChild(candidateActions);
         };
-        document.body.appendChild(audit);
+        document.body.appendChild(hiring);
+
+        const hr=document.createElement('script');
+        hr.src='hr-live.js?v=20260821-d1-1';
+        document.body.appendChild(hr);
+
+        const footer=document.createElement('script');
+        footer.src='staff-footer.js?v=20260821-3';
+        document.body.appendChild(footer);
+
+        const guard=document.createElement('script');
+        guard.src='staff-access-guard.js';
+        guard.onload=()=>{
+          const audit=document.createElement('script');
+          audit.src='audit-blueprint.js?v=20260828-2';
+          audit.onload=()=>{
+            const notes=document.createElement('script');
+            notes.src='ticket-notes.js?v=20260829-liveflow1';
+            notes.onload=()=>{
+              const invites=document.createElement('script');
+              invites.src='account-invites.js';
+              invites.onload=()=>{
+                const provisioning=document.createElement('script');
+                provisioning.src='staff-account-provisioning.js?v=20260821-d1-roster';
+                document.body.appendChild(provisioning);
+              };
+              document.body.appendChild(invites);
+            };
+            document.body.appendChild(notes);
+          };
+          document.body.appendChild(audit);
+        };
+        document.body.appendChild(guard);
       };
-      document.body.appendChild(guard);
+      document.body.appendChild(workflow);
     };
     document.body.appendChild(core);
   }
