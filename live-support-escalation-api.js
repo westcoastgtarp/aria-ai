@@ -29,34 +29,30 @@ function canEscalate(session,t){
   if(['founder','founder / co-founder','co-founder','supervisor of live support','lead supervisor','supervisor'].includes(role))return true;
   return normalized(session.department)==='operations'&&t.assigned_to_user_id===session.user_id;
 }
+function roleMatchesTarget(roleName,targetRole){
+  const role=normalized(roleName);
+  const target=normalized(targetRole);
+  if(target==='founder')return ['founder','founder / co-founder','co-founder'].includes(role);
+  if(target==='lead supervisor')return role==='lead supervisor';
+  if(target==='supervisor')return ['supervisor','supervisor of live support'].includes(role);
+  return false;
+}
 async function audit(env,session,ticketId,eventType,details){
   const now=new Date().toISOString();
   await env.DB.prepare(`INSERT INTO audit_events (id,category,event_type,actor_user_id,subject_type,subject_id,related_ticket_id,details_json,occurred_at,recorded_at) VALUES (?, 'Member Communication', ?, ?, 'ticket', ?, ?, ?, ?, ?)`)
     .bind(uuid('AUD'),eventType,session.user_id,ticketId,ticketId,JSON.stringify(details),now,now).run();
 }
 
-async function resolveTargetStaff(env,targetRole,excludeUserId){
-  return env.DB.prepare(`
-    SELECT u.id,u.display_name,u.email,r.role_name
-    FROM users u
-    JOIN staff_roles r ON r.user_id=u.id AND r.active=1
-    WHERE u.account_type='staff'
-      AND u.status='active'
-      AND lower(r.role_name)=lower(?)
-      AND u.id<>?
-    ORDER BY r.assigned_at ASC,u.id ASC
-    LIMIT 1
-  `).bind(targetRole,excludeUserId||'').first();
-}
-
 async function getEscalation(env,id){
   const row=await env.DB.prepare(`
-    SELECT e.id,e.target_role,e.target_user_id,e.reason,e.status,e.created_at,
+    SELECT e.id,e.target_role,e.target_user_id,e.picked_up_by_user_id,e.picked_up_at,e.reason,e.status,e.created_at,
       by_user.display_name AS escalated_by_name,by_user.email AS escalated_by_email,
-      target.display_name AS target_name,target.email AS target_email
+      target.display_name AS target_name,target.email AS target_email,
+      pickup.display_name AS picked_up_by_name,pickup.email AS picked_up_by_email
     FROM live_support_escalations e
     LEFT JOIN users by_user ON by_user.id=e.escalated_by_user_id
     LEFT JOIN users target ON target.id=e.target_user_id
+    LEFT JOIN users pickup ON pickup.id=e.picked_up_by_user_id
     WHERE e.ticket_id=? AND e.status='active'
     ORDER BY e.created_at DESC LIMIT 1
   `).bind(id).first();
@@ -65,7 +61,10 @@ async function getEscalation(env,id){
     targetRole:row.target_role,
     targetUserId:row.target_user_id||null,
     targetName:row.target_user_id?firstName(row.target_name||row.target_email):null,
-    awaitingPickup:!row.target_user_id,
+    awaitingPickup:!row.picked_up_at,
+    pickedUpByUserId:row.picked_up_by_user_id||null,
+    pickedUpByName:row.picked_up_by_user_id?firstName(row.picked_up_by_name||row.picked_up_by_email):null,
+    pickedUpAt:row.picked_up_at||null,
     reason:row.reason,
     status:row.status,
     createdAt:row.created_at,
@@ -73,8 +72,47 @@ async function getEscalation(env,id){
   }:null;
 }
 
+async function createEscalation(request,env,session,id,t){
+  if(!canEscalate(session,t))return json({ok:false,error:'You are not authorized to escalate this conversation.'},{status:403});
+  const body=await readBody(request);
+  const targetRole=String(body?.targetRole||'').trim();
+  const reason=String(body?.reason||'').trim();
+  if(!['Lead Supervisor','Supervisor','Founder'].includes(targetRole))return json({ok:false,error:'Choose Lead Supervisor, Supervisor, or Founder.'},{status:400});
+  if(!reason)return json({ok:false,error:'Enter a short reason for the escalation.'},{status:400});
+  if(reason.length>500)return json({ok:false,error:'Escalation reason must be 500 characters or fewer.'},{status:400});
+
+  const now=new Date().toISOString();
+  const escalationId=uuid('ESC');
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE live_support_escalations SET status='resolved',resolved_at=?,resolved_by_user_id=? WHERE ticket_id=? AND status='active'`).bind(now,session.user_id,id),
+    env.DB.prepare(`INSERT INTO live_support_escalations (id,ticket_id,escalated_by_user_id,target_user_id,target_role,reason,status,created_at) VALUES (?,?,?,NULL,?,?,'active',?)`).bind(escalationId,id,session.user_id,targetRole,reason,now)
+  ]);
+  try{await audit(env,session,id,'live_support_escalated',{escalationId,targetRole,awaitingPickup:true,reason});}catch(error){console.error('Live support escalation audit failed',error);}
+  return json({ok:true,escalation:{id:escalationId,targetRole,targetUserId:null,targetName:null,awaitingPickup:true,pickedUpByUserId:null,pickedUpByName:null,pickedUpAt:null,reason,status:'active',createdAt:now,escalatedBy:session.display_name||session.email||'Staff'}},{status:201});
+}
+
+async function pickupEscalation(env,session,id,t){
+  if(t.status==='Closed')return json({ok:false,error:'This conversation is already closed.'},{status:409});
+  const escalation=await getEscalation(env,id);
+  if(!escalation)return json({ok:false,error:'There is no active escalation to pick up.'},{status:404});
+  if(!escalation.awaitingPickup)return json({ok:false,error:'This escalation has already been picked up.'},{status:409});
+  if(!roleMatchesTarget(session.role_name,escalation.targetRole))return json({ok:false,error:`This escalation requires the ${escalation.targetRole} role.`},{status:403});
+
+  const now=new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE live_support_escalations SET target_user_id=?,picked_up_by_user_id=?,picked_up_at=? WHERE id=? AND status='active' AND picked_up_at IS NULL`).bind(session.user_id,session.user_id,now,escalation.id),
+    env.DB.prepare(`UPDATE tickets SET assigned_to_user_id=?,status='In Progress',updated_at=? WHERE id=? AND status!='Closed'`).bind(session.user_id,now,id),
+    env.DB.prepare(`DELETE FROM live_support_typing WHERE ticket_id=?`).bind(id)
+  ]);
+  try{await audit(env,session,id,'live_support_escalation_picked_up',{escalationId:escalation.id,targetRole:escalation.targetRole,pickedUpByUserId:session.user_id,pickedUpByName:firstName(session.display_name||session.email)});}catch(error){console.error('Live support escalation pickup audit failed',error);}
+  return json({ok:true,escalation:await getEscalation(env,id)},{status:200});
+}
+
 export async function handleLiveSupportEscalationRoute(request,env){
-  const match=new URL(request.url).pathname.match(/^\/api\/staff\/live-support\/tickets\/([^/]+)\/escalation$/);
+  const pathname=new URL(request.url).pathname;
+  const pickupMatch=pathname.match(/^\/api\/staff\/live-support\/tickets\/([^/]+)\/escalation\/pickup$/);
+  const escalationMatch=pathname.match(/^\/api\/staff\/live-support\/tickets\/([^/]+)\/escalation$/);
+  const match=pickupMatch||escalationMatch;
   if(!match)return null;
   if(!env.DB)return json({ok:false,error:'The Aria database is not connected.'},{status:503});
   const session=await currentStaff(request,env);
@@ -83,31 +121,12 @@ export async function handleLiveSupportEscalationRoute(request,env){
   const t=await ticket(env,id);
   if(!t)return json({ok:false,error:'Member Communication item not found.'},{status:404});
 
-  if(request.method==='GET')return json({ok:true,escalation:await getEscalation(env,id)});
-  if(request.method!=='POST')return json({ok:false,error:'Method not allowed.'},{status:405});
-  if(!canEscalate(session,t))return json({ok:false,error:'You are not authorized to escalate this conversation.'},{status:403});
-
-  const body=await readBody(request);
-  const targetRole=String(body?.targetRole||'').trim();
-  const reason=String(body?.reason||'').trim();
-  if(!['Lead Supervisor','Supervisor','Founder'].includes(targetRole))return json({ok:false,error:'Choose Lead Supervisor, Supervisor, or Founder.'},{status:400});
-  if(!reason)return json({ok:false,error:'Enter a short reason for the escalation.'},{status:400});
-  if(reason.length>500)return json({ok:false,error:'Escalation reason must be 500 characters or fewer.'},{status:400});
-
-  const target=await resolveTargetStaff(env,targetRole,t.assigned_to_user_id||session.user_id);
-  const now=new Date().toISOString();
-  const escalationId=uuid('ESC');
-  const statements=[
-    env.DB.prepare(`UPDATE live_support_escalations SET status='resolved',resolved_at=?,resolved_by_user_id=? WHERE ticket_id=? AND status='active'`).bind(now,session.user_id,id),
-    env.DB.prepare(`INSERT INTO live_support_escalations (id,ticket_id,escalated_by_user_id,target_user_id,target_role,reason,status,created_at) VALUES (?,?,?,?,?,?,'active',?)`).bind(escalationId,id,session.user_id,target?.id||null,targetRole,reason,now)
-  ];
-  if(target){
-    statements.push(env.DB.prepare(`UPDATE tickets SET assigned_to_user_id=?,status='In Progress',updated_at=? WHERE id=? AND status!='Closed'`).bind(target.id,now,id));
-    statements.push(env.DB.prepare(`DELETE FROM live_support_typing WHERE ticket_id=?`).bind(id));
+  if(pickupMatch){
+    if(request.method!=='POST')return json({ok:false,error:'Method not allowed.'},{status:405});
+    return pickupEscalation(env,session,id,t);
   }
-  await env.DB.batch(statements);
 
-  const targetName=target?firstName(target.display_name||target.email):null;
-  try{await audit(env,session,id,'live_support_escalated',{escalationId,targetRole,targetUserId:target?.id||null,targetName,awaitingPickup:!target,reason});}catch(error){console.error('Live support escalation audit failed',error);}
-  return json({ok:true,escalation:{id:escalationId,targetRole,targetUserId:target?.id||null,targetName,awaitingPickup:!target,reason,status:'active',createdAt:now,escalatedBy:session.display_name||session.email||'Staff'}},{status:201});
+  if(request.method==='GET')return json({ok:true,escalation:await getEscalation(env,id)});
+  if(request.method==='POST')return createEscalation(request,env,session,id,t);
+  return json({ok:false,error:'Method not allowed.'},{status:405});
 }
