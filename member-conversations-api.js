@@ -65,7 +65,7 @@ export async function ensureOpenConversation(env,userId){
   return {id,member_user_id:userId,status:'open',started_at:now,last_message_at:now};
 }
 
-export async function appendConversationMessage(env,{conversationId,userId,role,content,source,riskLevel=null}){
+export async function appendConversationMessage(env,{conversationId,userId,role,content,source,riskLevel=null,staffUserId=null}){
   const text=String(content||'').trim();
   if(!text)return null;
 
@@ -79,14 +79,14 @@ export async function appendConversationMessage(env,{conversationId,userId,role,
   if(ownedConversation.status!=='open')throw new Error('conversation_closed');
 
   const latest=await env.DB.prepare(`
-    SELECT id,role,content,source,risk_level,created_at
+    SELECT id,role,content,source,risk_level,staff_user_id,created_at
     FROM member_conversation_messages
     WHERE conversation_id=? AND member_user_id=?
     ORDER BY created_at DESC
     LIMIT 1
   `).bind(conversationId,userId).first();
 
-  if(latest&&latest.role===role&&latest.source===source&&latest.content===text){
+  if(latest&&latest.role===role&&latest.source===source&&latest.content===text&&(latest.staff_user_id||null)===(staffUserId||null)){
     const age=Date.now()-new Date(latest.created_at).getTime();
     if(Number.isFinite(age)&&age>=0&&age<=5000){
       return {
@@ -96,6 +96,7 @@ export async function appendConversationMessage(env,{conversationId,userId,role,
         content:latest.content,
         source:latest.source,
         riskLevel:latest.risk_level||null,
+        staffUserId:latest.staff_user_id||null,
         createdAt:latest.created_at,
         duplicate:true
       };
@@ -107,15 +108,15 @@ export async function appendConversationMessage(env,{conversationId,userId,role,
   await env.DB.batch([
     env.DB.prepare(`
       INSERT INTO member_conversation_messages(
-        id,conversation_id,member_user_id,role,content,source,risk_level,created_at
-      ) VALUES(?,?,?,?,?,?,?,?)
-    `).bind(id,conversationId,userId,role,text,source,riskLevel||null,now),
+        id,conversation_id,member_user_id,role,content,source,risk_level,staff_user_id,created_at
+      ) VALUES(?,?,?,?,?,?,?,?,?)
+    `).bind(id,conversationId,userId,role,text,source,riskLevel||null,staffUserId||null,now),
     env.DB.prepare(`
       UPDATE member_conversations SET last_message_at=?
       WHERE id=? AND member_user_id=?
     `).bind(now,conversationId,userId)
   ]);
-  return {id,conversationId,role,content:text,source,riskLevel:riskLevel||null,createdAt:now,duplicate:false};
+  return {id,conversationId,role,content:text,source,riskLevel:riskLevel||null,staffUserId:staffUserId||null,createdAt:now,duplicate:false};
 }
 
 export async function loadConversationMessages(env,userId,conversationId=null,limit=30){
@@ -140,12 +141,13 @@ export async function loadConversationMessages(env,userId,conversationId=null,li
   if(!conversation)return {conversation:null,messages:[]};
   const safeLimit=Math.max(1,Math.min(Number(limit)||30,100));
   const result=await env.DB.prepare(`
-    SELECT id,role,content,source,risk_level,created_at
-    FROM (
-      SELECT id,role,content,source,risk_level,created_at
-      FROM member_conversation_messages
-      WHERE conversation_id=? AND member_user_id=?
-      ORDER BY created_at DESC
+    SELECT * FROM (
+      SELECT m.id,m.role,m.content,m.source,m.risk_level,m.staff_user_id,m.created_at,
+        staff.display_name AS staff_name,staff.email AS staff_email
+      FROM member_conversation_messages m
+      LEFT JOIN users staff ON staff.id=m.staff_user_id
+      WHERE m.conversation_id=? AND m.member_user_id=?
+      ORDER BY m.created_at DESC
       LIMIT ?
     ) recent
     ORDER BY created_at ASC
@@ -165,6 +167,8 @@ export async function loadConversationMessages(env,userId,conversationId=null,li
       content:row.content,
       source:row.source,
       riskLevel:row.risk_level||null,
+      staffUserId:row.staff_user_id||null,
+      staffName:row.staff_name||row.staff_email||null,
       createdAt:row.created_at
     }))
   };
