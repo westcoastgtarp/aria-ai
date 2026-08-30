@@ -1,6 +1,6 @@
 (function(){
   const ACCOUNT_LOG_ROLES=['founder / co-founder','founder','co-founder','system administrator','system admin'];
-  const AUDIT_LOG_ROLES=['founder','lead supervisor'];
+  const HISTORY_REVIEW_ROLES=['founder','lead supervisor'];
 
   function currentSession(){
     try{return JSON.parse(sessionStorage.getItem('aria-auth-session')||'null')||{};}catch{return {};}
@@ -13,31 +13,44 @@
 
   function isStaff(){return currentSession().role==='staff';}
   function canAccessRestrictedLogs(){return isStaff()&&ACCOUNT_LOG_ROLES.includes(currentStaffRole().toLowerCase());}
-  function canAccessAuditLogs(){return isStaff()&&AUDIT_LOG_ROLES.includes(currentStaffRole().toLowerCase());}
+  function canAccessHistoryReview(){return isStaff()&&HISTORY_REVIEW_ROLES.includes(currentStaffRole().toLowerCase());}
+  function canAccessAuditLogs(){return canAccessHistoryReview();}
 
   function enforceLogVisibility(){
-    const auditAllowed=canAccessAuditLogs();
-    document.querySelectorAll('[data-page="audit"]').forEach(button=>{button.style.display=auditAllowed?'':'none';});
+    const historyAllowed=canAccessHistoryReview();
+    document.querySelectorAll('[data-page="audit"]').forEach(button=>{button.style.display=historyAllowed?'':'none';});
+    document.querySelectorAll('[data-page="ariachat"]').forEach(button=>{button.style.display=historyAllowed?'':'none';});
+
     const auditPage=document.getElementById('audit-page');
-    if(auditPage&&!auditAllowed){
+    if(auditPage&&!historyAllowed){
       auditPage.classList.remove('active');
       auditPage.setAttribute('aria-hidden','true');
     }else if(auditPage){
       auditPage.removeAttribute('aria-hidden');
     }
-    document.documentElement.dataset.auditLogAccess=auditAllowed?'allowed':'denied';
+
+    const chatArchivePage=document.getElementById('ariachat-page');
+    if(chatArchivePage&&!historyAllowed){
+      chatArchivePage.classList.remove('active');
+      chatArchivePage.setAttribute('aria-hidden','true');
+    }else if(chatArchivePage){
+      chatArchivePage.removeAttribute('aria-hidden');
+    }
+
+    document.documentElement.dataset.auditLogAccess=historyAllowed?'allowed':'denied';
+    document.documentElement.dataset.chatHistoryAccess=historyAllowed?'allowed':'denied';
     document.documentElement.dataset.accountLogAccess=canAccessRestrictedLogs()?'allowed':'denied';
   }
 
   document.addEventListener('click',event=>{
-    const target=event.target.closest('[data-page="audit"]');
-    if(!target||canAccessAuditLogs())return;
+    const target=event.target.closest('[data-page="audit"],[data-page="ariachat"]');
+    if(!target||canAccessHistoryReview())return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if(typeof showPage==='function')showPage('dashboard');
-    alert('Full Audit Log access is restricted to Founder and Lead Supervisor.');
+    alert('Full conversation and audit history is restricted to Founder and Lead Supervisor.');
   },true);
 
-  window.AriaStaffAccess={currentStaffRole,canAccessRestrictedLogs,canAccessAuditLogs,enforceLogVisibility};
+  window.AriaStaffAccess={currentStaffRole,canAccessRestrictedLogs,canAccessAuditLogs,canAccessHistoryReview,enforceLogVisibility};
   enforceLogVisibility();
 })();
