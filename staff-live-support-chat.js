@@ -18,6 +18,29 @@
     return (meta.split('•')[0]||'').trim();
   }
 
+  async function parseApiResponse(response,fallback){
+    const contentType=String(response.headers.get('content-type')||'').toLowerCase();
+    const raw=await response.text();
+    if(!contentType.includes('application/json')){
+      const error=new Error(`${fallback} The server returned a non-API response.`);
+      error.status=response.status;
+      error.responseType=contentType||'unknown';
+      throw error;
+    }
+    let data={};
+    try{data=raw?JSON.parse(raw):{};}catch{
+      const error=new Error(`${fallback} The server returned invalid JSON.`);
+      error.status=response.status;
+      throw error;
+    }
+    if(!response.ok||!data.ok){
+      const error=new Error(data.error||data.message||fallback);
+      error.status=response.status;
+      throw error;
+    }
+    return data;
+  }
+
   async function sendTyping(typing,{force=false}={}){
     if(!currentTicketId||!canSend)return;
     const now=Date.now();
@@ -25,7 +48,7 @@
     if(typing)lastTypingPing=now;
     try{
       await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/typing`,{
-        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({typing})
+        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({typing})
       });
     }catch(error){console.error('Live Support typing update failed',error);}
   }
@@ -154,14 +177,8 @@
 
     try{
       const suffix=poll?'?poll=1':'';
-      const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/conversation${suffix}`,{credentials:'same-origin',cache:'no-store'});
-      const raw=await response.text();
-      let data={};
-      try{data=raw?JSON.parse(raw):{};}catch{}
-      if(!response.ok||!data.ok){
-        const message=data.error||data.message||raw.slice(0,180)||'Conversation could not be loaded.';
-        throw Object.assign(new Error(message),{status:response.status});
-      }
+      const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/conversation${suffix}`,{credentials:'same-origin',cache:'no-store',headers:{'accept':'application/json'}});
+      const data=await parseApiResponse(response,'Conversation could not be loaded.');
       render(data);
     }catch(error){
       console.error('Live Support conversation load failed',error);
@@ -212,14 +229,15 @@
     const button=form.querySelector('button');if(button)button.disabled=true;
     try{
       const response=await fetch(`/api/staff/live-support/tickets/${encodeURIComponent(currentTicketId)}/messages`,{
-        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({content})
+        method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','accept':'application/json'},body:JSON.stringify({content})
       });
-      const raw=await response.text();
-      let data={};try{data=raw?JSON.parse(raw):{};}catch{}
-      if(!response.ok||!data.ok)throw new Error(data.error||raw.slice(0,180)||'Message could not be sent.');
+      await parseApiResponse(response,'Message could not be sent.');
       input.value='';
       await load({poll:true});
-    }catch(error){alert(error.message||'Message could not be sent.');}
+    }catch(error){
+      console.error('Live Support message send failed',error);
+      alert(`${error.message||'Message could not be sent.'}${error.status?` (HTTP ${error.status})`:''}`);
+    }
     finally{if(button)button.disabled=false;}
   }
 
