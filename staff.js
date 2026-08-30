@@ -24,6 +24,13 @@
       chatStyles.dataset.liveSupportChat='true';
       document.head.appendChild(chatStyles);
     }
+    if(!document.querySelector('link[data-live-support-escalation]')){
+      const escalationStyles=document.createElement('link');
+      escalationStyles.rel='stylesheet';
+      escalationStyles.href='live-support-escalation.css?v=20260829-1';
+      escalationStyles.dataset.liveSupportEscalation='true';
+      document.head.appendChild(escalationStyles);
+    }
     if(!document.querySelector('link[data-aria-chat-archive-lock]')){
       const archiveLock=document.createElement('link');
       archiveLock.rel='stylesheet';
@@ -121,7 +128,7 @@
     document.body.appendChild(chat);
 
     const escalation=document.createElement('script');
-    escalation.src='live-support-escalation-ui.js?v=20260829-6';
+    escalation.src='live-support-escalation-ui.js?v=20260829-7';
     document.body.appendChild(escalation);
 
     const queueWatch=document.createElement('script');
