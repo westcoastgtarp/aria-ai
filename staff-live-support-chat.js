@@ -104,12 +104,20 @@
 
     const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
     if(transcript){
+      const hadRendered=transcript.dataset.rendered==='true';
+      const distanceFromBottom=transcript.scrollHeight-transcript.scrollTop-transcript.clientHeight;
+      const wasNearBottom=!hadRendered||distanceFromBottom<48;
+      const previousScrollTop=transcript.scrollTop;
+
       transcript.innerHTML=(data.messages||[]).map(message=>{
         const role=message.role==='member'?'member':message.role==='staff'?'staff':'aria';
         const label=message.role==='member'?'Member':message.role==='staff'?'Support':'Aria';
         return `<div class="live-chat-line ${role}"><div class="live-chat-label">${label}<span>${esc(fmt(message.createdAt))}</span></div><div class="live-chat-bubble">${esc(message.content).replace(/\n/g,'<br>')}</div></div>`;
       }).join('')||'<div class="empty-queue">No conversation messages were found for this member yet.</div>';
-      transcript.scrollTop=transcript.scrollHeight;
+
+      transcript.dataset.rendered='true';
+      if(wasNearBottom)transcript.scrollTop=transcript.scrollHeight;
+      else transcript.scrollTop=previousScrollTop;
     }
 
     panel.querySelector('#liveSupportWorkspaceCompose')?.classList.toggle('hidden',!canSend);
@@ -136,7 +144,10 @@
     panel.hidden=false;
     if(!poll){
       const transcript=panel.querySelector('#liveSupportWorkspaceTranscript');
-      if(transcript)transcript.innerHTML='<div class="empty-queue">Loading conversation…</div>';
+      if(transcript){
+        transcript.dataset.rendered='false';
+        transcript.innerHTML='<div class="empty-queue">Loading conversation…</div>';
+      }
       const status=panel.querySelector('#liveSupportWorkspaceStatus');
       if(status){status.className='live-chat-inline-status';status.textContent='Connecting…';}
     }
