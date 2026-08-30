@@ -122,7 +122,12 @@
       body:JSON.stringify({message:text,riskLevel})
     });
     const data=await response.json().catch(()=>({}));
-    if(!response.ok||!data.ok)throw new Error(data.error||'Aria Assistant is unavailable right now.');
+    if(!response.ok||!data.ok){
+      const error=new Error(data.error||'Aria Assistant is unavailable right now.');
+      error.code=String(data.code||'');
+      error.status=response.status;
+      throw error;
+    }
     return String(data.answer||'').trim();
   }
 
@@ -231,7 +236,7 @@
   async function send(event){
     event?.preventDefault();
     event?.stopImmediatePropagation();
-    if(sending)return;
+    if(sending||window.__ariaHumanSupportActive)return;
 
     const input=document.getElementById('ariaBubbleInput');
     const button=document.getElementById('ariaBubbleSend');
@@ -280,11 +285,13 @@
 
     try{
       const answer=await askAssistant(text,risk.level);
+      if(window.__ariaHumanSupportActive)return;
       add('aria',answer);
       history.push({role:'user',content:text},{role:'assistant',content:answer});
       history=history.slice(-12);
       if(shouldOfferSupport)offerLiveSupport(risk.level,supportTrigger);
     }catch(error){
+      if(error?.code==='human_support_active'||error?.status===409)return;
       add('aria',error?.message||'Aria Assistant is unavailable right now. Please try again.');
       if(shouldOfferSupport)offerLiveSupport(risk.level,supportTrigger);
     }finally{
