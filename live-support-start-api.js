@@ -33,7 +33,7 @@ async function startTicket(env,session,id){
     const incident=await env.DB.prepare(`SELECT id,member_user_id,current_risk_level FROM lifeline_incidents WHERE related_ticket_id=? AND status!='closed' ORDER BY updated_at DESC LIMIT 1`).bind(id).first();
     if(incident){
       await env.DB.batch([
-        env.DB.prepare(`UPDATE lifeline_incidents SET status='human_support_assigned',updated_at=? WHERE id=?`).bind(now,incident.id),
+        env.DB.prepare(`UPDATE lifeline_incidents SET status='in_progress',assigned_staff_user_id=?,claimed_at=COALESCE(claimed_at,?),updated_at=? WHERE id=?`).bind(session.user_id,now,now,incident.id),
         env.DB.prepare(`INSERT INTO lifeline_events (id,incident_id,member_user_id,event_type,risk_level,actor_type,actor_user_id,details_json,occurred_at,recorded_at) VALUES (?,?,?,?,?,'staff',?,?,?,?)`).bind(uuid('LFLE'),incident.id,incident.member_user_id,'human_support_assigned',incident.current_risk_level||null,session.user_id,JSON.stringify({ticketId:id,responseSeconds,responseTargetSeconds:120,responseWithinTarget:responseSeconds<=120}),now,now)
       ]);
     }
