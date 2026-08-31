@@ -17,6 +17,13 @@
       theme.dataset.staffTheme='true';
       document.head.appendChild(theme);
     }
+    if(!document.querySelector('link[data-staff-theme-overrides]')){
+      const overrides=document.createElement('link');
+      overrides.rel='stylesheet';
+      overrides.href='staff-theme-overrides.css?v=20260830-1';
+      overrides.dataset.staffThemeOverrides='true';
+      document.head.appendChild(overrides);
+    }
     if(!document.querySelector('link[data-staff-note-fix]')){
       const noteFix=document.createElement('link');
       noteFix.rel='stylesheet';
