@@ -116,6 +116,37 @@ body[data-staff-theme="dark"] .modal{background:#182234!important;border-color:#
 body[data-staff-theme="night"] .modal-backdrop .modal,
 body[data-staff-theme="night"] .modal{background:#0b1019!important;border-color:#1d2634!important;color:#dbe6f5!important}
 
+/* Live Support workspace */
+body[data-staff-theme="dark"] .live-chat-inline,
+body[data-staff-theme="dark"] .live-chat-inline-head,
+body[data-staff-theme="dark"] .live-chat-compose,
+body[data-staff-theme="dark"] .live-chat-readonly,
+body[data-staff-theme="dark"] .live-support-escalation-panel,
+body[data-staff-theme="dark"] .live-support-escalation-card{background:#182234!important;border-color:#2c3950!important;color:#e8eef8!important}
+body[data-staff-theme="dark"] .live-chat-transcript{background:#131c2c!important;border-color:#2c3950!important}
+body[data-staff-theme="dark"] .live-chat-inline-head h3,
+body[data-staff-theme="dark"] .live-chat-label{color:#edf2fb!important}
+body[data-staff-theme="dark"] .live-chat-label span{color:#9aa8bc!important}
+body[data-staff-theme="dark"] .live-chat-line.member .live-chat-bubble{background:#6269e5!important;border-color:#6269e5!important;color:#fff!important}
+body[data-staff-theme="dark"] .live-chat-line.staff .live-chat-bubble,
+body[data-staff-theme="dark"] .live-chat-line.aria .live-chat-bubble{background:#202d41!important;border-color:#35435a!important;color:#eef3fb!important}
+body[data-staff-theme="dark"] .live-chat-compose textarea{background:#111a29!important;border-color:#35435a!important;color:#eef3fb!important}
+
+body[data-staff-theme="night"] .live-chat-inline,
+body[data-staff-theme="night"] .live-chat-inline-head,
+body[data-staff-theme="night"] .live-chat-compose,
+body[data-staff-theme="night"] .live-chat-readonly,
+body[data-staff-theme="night"] .live-support-escalation-panel,
+body[data-staff-theme="night"] .live-support-escalation-card{background:#0b1019!important;border-color:#1d2634!important;color:#dbe6f5!important}
+body[data-staff-theme="night"] .live-chat-transcript{background:#070b12!important;border-color:#1d2634!important}
+body[data-staff-theme="night"] .live-chat-inline-head h3,
+body[data-staff-theme="night"] .live-chat-label{color:#e7eef9!important}
+body[data-staff-theme="night"] .live-chat-label span{color:#8291a6!important}
+body[data-staff-theme="night"] .live-chat-line.member .live-chat-bubble{background:#5960cf!important;border-color:#5960cf!important;color:#fff!important}
+body[data-staff-theme="night"] .live-chat-line.staff .live-chat-bubble,
+body[data-staff-theme="night"] .live-chat-line.aria .live-chat-bubble{background:#111927!important;border-color:#263244!important;color:#dfe8f4!important}
+body[data-staff-theme="night"] .live-chat-compose textarea{background:#05080e!important;border-color:#263244!important;color:#e5edf8!important}
+
 /* Ensure no large hard-coded white section survives the two dark themes. */
 body[data-staff-theme="dark"] .staff-main section.page > article,
 body[data-staff-theme="dark"] .staff-main section.page > div:not(.section-head):not(.queue-summary),
