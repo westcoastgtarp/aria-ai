@@ -20,7 +20,7 @@
     if(!document.querySelector('link[data-staff-theme-overrides]')){
       const overrides=document.createElement('link');
       overrides.rel='stylesheet';
-      overrides.href='staff-theme-overrides.css?v=20260830-1';
+      overrides.href='staff-theme-overrides.css?v=20260830-2';
       overrides.dataset.staffThemeOverrides='true';
       document.head.appendChild(overrides);
     }
@@ -142,7 +142,7 @@
     document.body.appendChild(chat);
 
     const escalation=document.createElement('script');
-    escalation.src='live-support-escalation-ui.js?v=20260830-2';
+    escalation.src='live-support-escalation-ui.js?v=20260830-3';
     document.body.appendChild(escalation);
 
     const queueWatch=document.createElement('script');
