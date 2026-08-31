@@ -41,7 +41,7 @@ function withAriaFormSystem(response,pathname) {
         element.append('<link rel="stylesheet" href="/member-overview-reminders.css?v=20260826-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-notification-preferences.css?v=20260827-1" />', { html: true });
         element.append('<link rel="stylesheet" href="/member-assistant-support-choice.css?v=20260827-1" />', { html: true });
-        element.append('<link rel="stylesheet" href="/live-support-chat.css?v=20260829-1" />', { html: true });
+        element.append('<link rel="stylesheet" href="/live-support-chat.css?v=20260830-2" />', { html: true });
         element.append('<link rel="stylesheet" href="/aria-chat-expand.css?v=20260829-1" />', { html: true });
         if (pathname === '/' || pathname === '/index.html') {
           element.append('<link rel="stylesheet" href="/member-theme.css?v=20260830-1" />', { html: true });
