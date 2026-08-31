@@ -61,36 +61,46 @@
     typingStopTimer=setTimeout(()=>sendTyping(false,{force:true}),3200);
   }
 
+  function workspaceQueue(){
+    const ariaPage=document.getElementById('ariachat-page');
+    const ariaQueue=document.getElementById('ariaChatQueue');
+    if(ariaPage?.classList.contains('active')&&ariaQueue)return ariaQueue;
+    return document.getElementById('operationsQueue')||ariaQueue||null;
+  }
+
   function ensureWorkspace(){
-    if(workspace&&document.body.contains(workspace))return workspace;
-    const operations=document.getElementById('operations-page');
-    const queue=document.getElementById('operationsQueue');
-    if(!operations||!queue)return null;
+    const queue=workspaceQueue();
+    if(!queue)return null;
 
-    workspace=document.createElement('section');
-    workspace.id='liveSupportWorkspace';
-    workspace.className='live-chat-inline';
-    workspace.hidden=true;
-    workspace.innerHTML=`
-      <header class="live-chat-inline-head">
-        <div>
-          <div class="eyebrow">ARIA LIVE SUPPORT</div>
-          <h3 id="liveSupportWorkspaceTitle">Member conversation</h3>
-          <span class="live-chat-inline-status" id="liveSupportWorkspaceStatus">Not connected</span>
-        </div>
-        <button type="button" class="status-btn" id="liveSupportWorkspaceClose">Hide chat</button>
-      </header>
-      <div class="live-chat-transcript" id="liveSupportWorkspaceTranscript"><div class="empty-queue">Choose a conversation to open.</div></div>
-      <form class="live-chat-compose hidden" id="liveSupportWorkspaceCompose">
-        <textarea maxlength="4000" placeholder="Message the member..."></textarea>
-        <button class="primary" type="submit">Send</button>
-      </form>
-      <div class="live-chat-readonly hidden" id="liveSupportWorkspaceReadonly">Read-only conversation review</div>`;
+    if(!workspace||!document.body.contains(workspace)){
+      workspace=document.createElement('section');
+      workspace.id='liveSupportWorkspace';
+      workspace.className='live-chat-inline';
+      workspace.hidden=true;
+      workspace.innerHTML=`
+        <header class="live-chat-inline-head">
+          <div>
+            <div class="eyebrow">ARIA LIVE SUPPORT</div>
+            <h3 id="liveSupportWorkspaceTitle">Member conversation</h3>
+            <span class="live-chat-inline-status" id="liveSupportWorkspaceStatus">Not connected</span>
+          </div>
+          <button type="button" class="status-btn" id="liveSupportWorkspaceClose">Hide chat</button>
+        </header>
+        <div class="live-chat-transcript" id="liveSupportWorkspaceTranscript"><div class="empty-queue">Choose a conversation to open.</div></div>
+        <form class="live-chat-compose hidden" id="liveSupportWorkspaceCompose">
+          <textarea maxlength="4000" placeholder="Message the member..."></textarea>
+          <button class="primary" type="submit">Send</button>
+        </form>
+        <div class="live-chat-readonly hidden" id="liveSupportWorkspaceReadonly">Read-only conversation review</div>`;
 
-    queue.parentNode.insertBefore(workspace,queue);
-    workspace.querySelector('#liveSupportWorkspaceClose')?.addEventListener('click',close);
-    workspace.querySelector('#liveSupportWorkspaceCompose')?.addEventListener('submit',send);
-    workspace.querySelector('#liveSupportWorkspaceCompose textarea')?.addEventListener('input',typingInput);
+      workspace.querySelector('#liveSupportWorkspaceClose')?.addEventListener('click',close);
+      workspace.querySelector('#liveSupportWorkspaceCompose')?.addEventListener('submit',send);
+      workspace.querySelector('#liveSupportWorkspaceCompose textarea')?.addEventListener('input',typingInput);
+    }
+
+    if(workspace.nextElementSibling!==queue||workspace.parentNode!==queue.parentNode){
+      queue.parentNode.insertBefore(workspace,queue);
+    }
     return workspace;
   }
 
