@@ -30,7 +30,7 @@ function canOperateLiveSupport(session){
 async function closeLiveSupportTicket(request,env,ticketId,session,ticket){
   if(!canOperateLiveSupport(session))return json({ok:false,error:'You do not have access to this ticket.'},{status:403});
   let body={};
-  try{body=await request.json();}catch{}
+  try{body=await request.clone().json();}catch{}
   const wantsClosed=String(body?.status||'').toLowerCase()==='closed'||Number(body?.progress)===100;
   if(!wantsClosed)return null;
 
