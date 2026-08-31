@@ -10,6 +10,13 @@
       link.dataset.staffPolish='true';
       document.head.appendChild(link);
     }
+    if(!document.querySelector('link[data-staff-theme]')){
+      const theme=document.createElement('link');
+      theme.rel='stylesheet';
+      theme.href='staff-theme.css?v=20260830-1';
+      theme.dataset.staffTheme='true';
+      document.head.appendChild(theme);
+    }
     if(!document.querySelector('link[data-staff-note-fix]')){
       const noteFix=document.createElement('link');
       noteFix.rel='stylesheet';
@@ -139,6 +146,10 @@
     core.src='staff-core.js';
     core.onload=()=>{
       applyStaffIdentity();
+
+      const theme=document.createElement('script');
+      theme.src='staff-theme.js?v=20260830-1';
+      document.body.appendChild(theme);
 
       const workflow=document.createElement('script');
       workflow.src='live-support-ticket-workflow.js?v=20260829-2';
