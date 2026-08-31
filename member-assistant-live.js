@@ -237,6 +237,24 @@
       .length;
   }
 
+  async function handleExplicitSupportRequest(text){
+    const acknowledgment='I hear you. Would you like to speak with someone now?';
+    add('aria',acknowledgment);
+    offerLiveSupport('concern','explicit_support_request');
+    history.push({role:'user',content:text},{role:'assistant',content:acknowledgment});
+    history=history.slice(-12);
+
+    try{
+      await Promise.all([
+        saveDeterministicMessage('member',text,'concern'),
+        saveDeterministicMessage('assistant',acknowledgment,'concern'),
+        assessRisk(text).catch(error=>{console.error('Lifeline risk assessment failed after explicit support request',error);return null;})
+      ]);
+    }catch(error){
+      console.error('Explicit support request persistence failed',error);
+    }
+  }
+
   async function send(event){
     event?.preventDefault();
     event?.stopImmediatePropagation();
@@ -249,8 +267,20 @@
 
     add('user',text);
     input.value='';
-    const explicitSupportRequest=isExplicitSupportRequest(text);
-    if(explicitSupportRequest)offerLiveSupport('concern','explicit_support_request');
+
+    if(isExplicitSupportRequest(text)){
+      sending=true;
+      button.disabled=true;
+      const oldText=button.textContent;
+      button.textContent='…';
+      try{await handleExplicitSupportRequest(text);}finally{
+        sending=false;
+        button.disabled=false;
+        button.textContent=oldText;
+      }
+      return;
+    }
+
     sending=true;
     button.disabled=true;
     const oldText=button.textContent;
@@ -269,8 +299,8 @@
     const durableConcernCount=durableRecentConcernCount(text);
     const immediateOffer=risk.level==='high'||risk.level==='critical';
     const repeatedConcern=(risk.level==='concern'&&streak>=3)||durableConcernCount>=3;
-    const shouldOfferSupport=explicitSupportRequest||immediateOffer||repeatedConcern;
-    const supportTrigger=explicitSupportRequest?'explicit_support_request':repeatedConcern?'repeated_distress_signals':'high_severity_distress';
+    const shouldOfferSupport=immediateOffer||repeatedConcern;
+    const supportTrigger=repeatedConcern?'repeated_distress_signals':'high_severity_distress';
 
     if(typeof window.findMedicationStatus==='function'&&risk.level==='normal'){
       const lookup=window.findMedicationStatus(text);
