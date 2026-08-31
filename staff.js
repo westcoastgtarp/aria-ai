@@ -124,7 +124,7 @@
     document.body.appendChild(logout);
 
     const chat=document.createElement('script');
-    chat.src='staff-live-support-chat.js?v=20260830-2';
+    chat.src='staff-live-support-chat.js?v=20260830-3';
     document.body.appendChild(chat);
 
     const escalation=document.createElement('script');
