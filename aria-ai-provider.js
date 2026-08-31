@@ -1,10 +1,10 @@
 const DEFAULT_CONVERSATION_MODEL='@cf/meta/llama-3.1-8b-instruct-fast';
 const DEFAULT_SAFETY_MODEL='@cf/meta/llama-3.1-8b-instruct-fast';
 const ALLOWED_ROLES=new Set(['system','user','assistant']);
-const MAX_PROVIDER_MESSAGE_CHARS=6000;
-const MAX_PROVIDER_MESSAGES=16;
-const DEFAULT_CONVERSATION_TIMEOUT_MS=12000;
-const DEFAULT_SAFETY_TIMEOUT_MS=4000;
+const MAX_PROVIDER_MESSAGE_CHARS=5000;
+const MAX_PROVIDER_MESSAGES=12;
+const DEFAULT_CONVERSATION_TIMEOUT_MS=7000;
+const DEFAULT_SAFETY_TIMEOUT_MS=2500;
 
 function requireWorkersAI(env){
   if(!env?.AI||typeof env.AI.run!=='function'){
@@ -34,9 +34,6 @@ function sanitizeProviderMessages(messages){
       const role=ALLOWED_ROLES.has(message?.role)?message.role:null;
       const content=String(message?.content||'').trim().slice(0,MAX_PROVIDER_MESSAGE_CHARS);
       if(!role||!content)return null;
-      // Deliberately return only the fields the model needs. Do not forward IDs,
-      // account metadata, timestamps, risk objects, staff information, database
-      // rows, or arbitrary caller fields.
       return {role,content};
     })
     .filter(Boolean);
@@ -73,7 +70,7 @@ export function ariaAiProviderInfo(env){
   };
 }
 
-export async function runAriaConversationModel(env,{messages,maxTokens=500,temperature=0.45,topP=0.9}={}){
+export async function runAriaConversationModel(env,{messages,maxTokens=260,temperature=0.45,topP=0.9}={}){
   const ai=requireWorkersAI(env);
   const model=configuredModel(env,'ARIA_CONVERSATION_MODEL',DEFAULT_CONVERSATION_MODEL);
   const timeoutMs=configuredTimeout(env,'ARIA_CONVERSATION_TIMEOUT_MS',DEFAULT_CONVERSATION_TIMEOUT_MS);
@@ -86,7 +83,7 @@ export async function runAriaConversationModel(env,{messages,maxTokens=500,tempe
   return {provider:'cloudflare-workers-ai',model,result};
 }
 
-export async function runAriaSafetyModel(env,{messages,maxTokens=180,temperature=0.05,topP=0.2}={}){
+export async function runAriaSafetyModel(env,{messages,maxTokens=100,temperature=0.05,topP=0.2}={}){
   const ai=requireWorkersAI(env);
   const model=configuredModel(env,'ARIA_SAFETY_MODEL',DEFAULT_SAFETY_MODEL);
   const timeoutMs=configuredTimeout(env,'ARIA_SAFETY_TIMEOUT_MS',DEFAULT_SAFETY_TIMEOUT_MS);
