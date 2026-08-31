@@ -155,6 +155,6 @@
     finally{busy=false;if(button){button.disabled=false;button.innerHTML='<span aria-hidden="true">↗</span>Send escalation';}}
   }
 
-  pollTimer=setInterval(refresh,2000);refresh();
+  pollTimer=setInterval(refresh,3000);refresh();
   window.addEventListener('beforeunload',()=>{if(pollTimer)clearInterval(pollTimer);},{once:true});
 })();
