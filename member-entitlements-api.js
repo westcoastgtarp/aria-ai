@@ -113,10 +113,48 @@ async function handleEntitlements(request, env) {
   });
 }
 
+function publicIncidentStatus(status) {
+  const key = String(status || '').toLowerCase();
+  if (key === 'closed') return 'Closed';
+  if (key === 'in_progress') return 'In progress';
+  if (key === 'human_support_queued') return 'Support requested';
+  return 'Open';
+}
+
+async function handleIncidentHistory(request, env) {
+  const member = await currentMember(request, env);
+  if (!member) return json({ ok: false, error: 'Member authentication required.' }, { status: 401 });
+
+  const result = await env.DB.prepare(`
+    SELECT id, status, started_at, escalated_at, claimed_at, closed_at, updated_at, related_ticket_id
+    FROM lifeline_incidents
+    WHERE member_user_id = ?
+    ORDER BY started_at DESC
+    LIMIT 100
+  `).bind(member.user_id).all();
+
+  return json({
+    ok: true,
+    incidents: (result.results || []).map(row => ({
+      id: row.id,
+      type: row.related_ticket_id ? 'Live Support Request' : 'Lifeline Event',
+      status: publicIncidentStatus(row.status),
+      startedAt: row.started_at,
+      supportRequestedAt: row.escalated_at || null,
+      connectedAt: row.claimed_at || null,
+      closedAt: row.closed_at || null,
+      updatedAt: row.updated_at
+    }))
+  });
+}
+
 export async function handleMemberEntitlementsRoute(request, env) {
   const url = new URL(request.url);
   if (url.pathname === '/api/member/entitlements' && request.method === 'GET') {
     return handleEntitlements(request, env);
+  }
+  if (url.pathname === '/api/member/incidents' && request.method === 'GET') {
+    return handleIncidentHistory(request, env);
   }
   return null;
 }
