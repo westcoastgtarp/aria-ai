@@ -4,6 +4,14 @@
 
   const validPages=new Set(['dashboard','medications','reminders','carecircle','incidents','privacy']);
 
+  function ensureIncidentHistory(){
+    if(document.querySelector('script[data-member-incident-history]'))return;
+    const script=document.createElement('script');
+    script.src='/member-incident-history.js?v=20260830-1';
+    script.dataset.memberIncidentHistory='true';
+    document.body.appendChild(script);
+  }
+
   function pageFromHash(){
     const page=String(location.hash||'').replace(/^#/,'').trim();
     return validPages.has(page)?page:null;
@@ -30,6 +38,7 @@
       document.querySelector(`[data-page="${page}"]`)?.click();
     }
     remember(page);
+    if(page==='incidents')ensureIncidentHistory();
   }
 
   const oneTime=sessionStorage.getItem('aria-return-page');
@@ -44,10 +53,13 @@
     if(!control)return;
     const page=control.dataset.page;
     if(validPages.has(page))remember(page);
+    if(page==='incidents')ensureIncidentHistory();
   });
 
   window.addEventListener('hashchange',()=>{
     const page=pageFromHash();
     if(page&&page!==currentPage())openPage(page);
   });
+
+  ensureIncidentHistory();
 })();
