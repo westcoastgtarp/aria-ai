@@ -14,7 +14,7 @@
 
   function escapeText(value=''){
     return String(value).replace(/[&<>"']/g,ch=>({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'
     }[ch]));
   }
 
@@ -223,6 +223,10 @@
     return signals.some(signal=>t.includes(signal));
   }
 
+  function isExplicitSupportRequest(text){
+    return String(text||'').toLowerCase().includes('i need to talk to someone');
+  }
+
   function durableRecentConcernCount(currentText){
     const memberMessages=history
       .filter(item=>item.role==='user')
@@ -245,6 +249,8 @@
 
     add('user',text);
     input.value='';
+    const explicitSupportRequest=isExplicitSupportRequest(text);
+    if(explicitSupportRequest)offerLiveSupport('concern','explicit_support_request');
     sending=true;
     button.disabled=true;
     const oldText=button.textContent;
@@ -263,8 +269,8 @@
     const durableConcernCount=durableRecentConcernCount(text);
     const immediateOffer=risk.level==='high'||risk.level==='critical';
     const repeatedConcern=(risk.level==='concern'&&streak>=3)||durableConcernCount>=3;
-    const shouldOfferSupport=immediateOffer||repeatedConcern;
-    const supportTrigger=repeatedConcern?'repeated_distress_signals':'high_severity_distress';
+    const shouldOfferSupport=explicitSupportRequest||immediateOffer||repeatedConcern;
+    const supportTrigger=explicitSupportRequest?'explicit_support_request':repeatedConcern?'repeated_distress_signals':'high_severity_distress';
 
     if(typeof window.findMedicationStatus==='function'&&risk.level==='normal'){
       const lookup=window.findMedicationStatus(text);
