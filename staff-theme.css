@@ -1,0 +1,157 @@
+:root{
+  color-scheme:light;
+}
+
+.staff-theme-control{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  padding:3px;
+  border:1px solid #dfe4ed;
+  border-radius:11px;
+  background:rgba(255,255,255,.86);
+}
+.staff-theme-control button{
+  appearance:none;
+  border:0;
+  min-height:29px;
+  padding:0 9px;
+  border-radius:8px;
+  background:transparent;
+  color:#748095;
+  font:inherit;
+  font-size:10px;
+  font-weight:750;
+  cursor:pointer;
+}
+.staff-theme-control button:hover{background:#f1f3f8;color:#344157}
+.staff-theme-control button.active{background:#6269e5;color:#fff;box-shadow:0 4px 10px rgba(98,105,229,.2)}
+
+body[data-staff-theme="dark"]{
+  color-scheme:dark;
+  --staff-surface:#182234;
+  --staff-surface-soft:#131c2c;
+  --staff-border:#2c3950;
+  --staff-text:#edf2fb;
+  --staff-muted:#9aa8bc;
+  background:#101827!important;
+  color:#e8eef8;
+}
+body[data-staff-theme="dark"] .staff-main{background:#101827}
+body[data-staff-theme="dark"] .staff-topbar{background:rgba(16,24,39,.92)!important;border-bottom-color:#263247!important}
+body[data-staff-theme="dark"] .staff-topbar h1,
+body[data-staff-theme="dark"] h1,
+body[data-staff-theme="dark"] h2,
+body[data-staff-theme="dark"] h3,
+body[data-staff-theme="dark"] strong{color:#edf2fb}
+body[data-staff-theme="dark"] .card,
+body[data-staff-theme="dark"] .panel,
+body[data-staff-theme="dark"] .candidate-card,
+body[data-staff-theme="dark"] .ticket-card,
+body[data-staff-theme="dark"] .employee-card,
+body[data-staff-theme="dark"] .onboarding-card,
+body[data-staff-theme="dark"] .audit-log-list,
+body[data-staff-theme="dark"] .live-chat-inline{background:#182234!important;border-color:#2c3950!important;box-shadow:none!important}
+body[data-staff-theme="dark"] .audit-event{border-color:#2a364a!important}
+body[data-staff-theme="dark"] .audit-event:hover{background:#1c283b!important}
+body[data-staff-theme="dark"] .audit-event-time{color:#b3c0d2!important;font-weight:650}
+body[data-staff-theme="dark"] .audit-event-topline>strong{color:#f4f7fc!important}
+body[data-staff-theme="dark"] .audit-event-actor{color:#c2ccdb!important}
+body[data-staff-theme="dark"] .audit-event-actor span,
+body[data-staff-theme="dark"] .audit-event-context,
+body[data-staff-theme="dark"] .audit-event-id{color:#8fa0b7!important}
+body[data-staff-theme="dark"] .audit-category{background:#252b59!important;color:#b9beff!important}
+body[data-staff-theme="dark"] .audit-access-note,
+body[data-staff-theme="dark"] .audit-details-grid,
+body[data-staff-theme="dark"] .summary-chip,
+body[data-staff-theme="dark"] .audit-summary-chip,
+body[data-staff-theme="dark"] .audit-count{background:#131c2c!important;border-color:#2c3950!important;color:#aebbd0!important}
+body[data-staff-theme="dark"] .audit-details-grid strong,
+body[data-staff-theme="dark"] .audit-summary-chip strong{color:#e3eaf5!important}
+body[data-staff-theme="dark"] .audit-filter-row input,
+body[data-staff-theme="dark"] .audit-filter-row select,
+body[data-staff-theme="dark"] input,
+body[data-staff-theme="dark"] select,
+body[data-staff-theme="dark"] textarea{background:#111a29!important;border-color:#35435a!important;color:#eef3fb!important}
+body[data-staff-theme="dark"] input::placeholder,
+body[data-staff-theme="dark"] textarea::placeholder{color:#8190a6!important}
+body[data-staff-theme="dark"] .secondary,
+body[data-staff-theme="dark"] .status-btn,
+body[data-staff-theme="dark"] .portal-logout-btn,
+body[data-staff-theme="dark"] .audit-refresh{background:#182234!important;border-color:#35435a!important;color:#c9d3e2!important}
+body[data-staff-theme="dark"] .user-chip{background:#252b59!important;border-color:#3b447d!important;color:#c7cbff!important}
+body[data-staff-theme="dark"] .staff-theme-control{background:#151f30;border-color:#35435a}
+body[data-staff-theme="dark"] .staff-theme-control button{color:#9fadbf}
+body[data-staff-theme="dark"] .staff-theme-control button:hover{background:#202d41;color:#eef3fb}
+body[data-staff-theme="dark"] .staff-theme-control button.active{background:#7077eb;color:#fff}
+body[data-staff-theme="dark"] .live-chat-transcript,
+body[data-staff-theme="dark"] .live-chat-compose,
+body[data-staff-theme="dark"] .live-chat-inline-head{border-color:#2c3950!important}
+body[data-staff-theme="dark"] .live-chat-line .live-chat-bubble{background:#202d41!important;border-color:#34445d!important;color:#e7edf7!important}
+
+body[data-staff-theme="night"]{
+  color-scheme:dark;
+  --staff-surface:#0b1019;
+  --staff-surface-soft:#070b12;
+  --staff-border:#1d2634;
+  --staff-text:#dbe6f5;
+  --staff-muted:#8291a6;
+  background:#05080e!important;
+  color:#dbe6f5;
+}
+body[data-staff-theme="night"] .staff-main{background:#05080e}
+body[data-staff-theme="night"] .staff-sidebar{background:#03060b!important;border-right-color:#151d29!important}
+body[data-staff-theme="night"] .staff-topbar{background:rgba(5,8,14,.95)!important;border-bottom-color:#182230!important}
+body[data-staff-theme="night"] .staff-topbar h1,
+body[data-staff-theme="night"] h1,
+body[data-staff-theme="night"] h2,
+body[data-staff-theme="night"] h3,
+body[data-staff-theme="night"] strong{color:#e7eef9}
+body[data-staff-theme="night"] .card,
+body[data-staff-theme="night"] .panel,
+body[data-staff-theme="night"] .candidate-card,
+body[data-staff-theme="night"] .ticket-card,
+body[data-staff-theme="night"] .employee-card,
+body[data-staff-theme="night"] .onboarding-card,
+body[data-staff-theme="night"] .audit-log-list,
+body[data-staff-theme="night"] .live-chat-inline{background:#0b1019!important;border-color:#1d2634!important;box-shadow:none!important}
+body[data-staff-theme="night"] .audit-event{border-color:#182230!important}
+body[data-staff-theme="night"] .audit-event:hover{background:#0f1622!important}
+body[data-staff-theme="night"] .audit-event-time{color:#a8b7ca!important;font-weight:700}
+body[data-staff-theme="night"] .audit-event-topline>strong{color:#edf3fc!important}
+body[data-staff-theme="night"] .audit-event-actor{color:#b6c3d4!important}
+body[data-staff-theme="night"] .audit-event-actor span,
+body[data-staff-theme="night"] .audit-event-context,
+body[data-staff-theme="night"] .audit-event-id{color:#77899f!important}
+body[data-staff-theme="night"] .audit-category{background:#171d43!important;color:#aeb5ff!important}
+body[data-staff-theme="night"] .audit-access-note,
+body[data-staff-theme="night"] .audit-details-grid,
+body[data-staff-theme="night"] .summary-chip,
+body[data-staff-theme="night"] .audit-summary-chip,
+body[data-staff-theme="night"] .audit-count{background:#070b12!important;border-color:#1d2634!important;color:#95a5bb!important}
+body[data-staff-theme="night"] .audit-details-grid strong,
+body[data-staff-theme="night"] .audit-summary-chip strong{color:#dce6f4!important}
+body[data-staff-theme="night"] .audit-filter-row input,
+body[data-staff-theme="night"] .audit-filter-row select,
+body[data-staff-theme="night"] input,
+body[data-staff-theme="night"] select,
+body[data-staff-theme="night"] textarea{background:#070b12!important;border-color:#263244!important;color:#e5edf8!important}
+body[data-staff-theme="night"] input::placeholder,
+body[data-staff-theme="night"] textarea::placeholder{color:#6f8096!important}
+body[data-staff-theme="night"] .secondary,
+body[data-staff-theme="night"] .status-btn,
+body[data-staff-theme="night"] .portal-logout-btn,
+body[data-staff-theme="night"] .audit-refresh{background:#0b1019!important;border-color:#263244!important;color:#aebcd0!important}
+body[data-staff-theme="night"] .user-chip{background:#151a3b!important;border-color:#303967!important;color:#b9c0ff!important}
+body[data-staff-theme="night"] .staff-theme-control{background:#080d15;border-color:#263244}
+body[data-staff-theme="night"] .staff-theme-control button{color:#8393a8}
+body[data-staff-theme="night"] .staff-theme-control button:hover{background:#111927;color:#dce5f2}
+body[data-staff-theme="night"] .staff-theme-control button.active{background:#5960cf;color:#fff}
+body[data-staff-theme="night"] .live-chat-transcript,
+body[data-staff-theme="night"] .live-chat-compose,
+body[data-staff-theme="night"] .live-chat-inline-head{border-color:#1d2634!important}
+body[data-staff-theme="night"] .live-chat-line .live-chat-bubble{background:#111927!important;border-color:#263244!important;color:#dfe8f4!important}
+
+@media(max-width:900px){
+  .staff-theme-control button{padding:0 7px;font-size:9px}
+}
