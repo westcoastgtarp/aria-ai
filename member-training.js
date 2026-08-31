@@ -5,7 +5,7 @@
   if(!document.querySelector('link[data-aria-training-css]')){
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/member-training.css?v=20260825-1';
+    link.href='/member-training.css?v=20260830-2';
     link.dataset.ariaTrainingCss='true';
     document.head.appendChild(link);
   }
