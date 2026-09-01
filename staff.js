@@ -59,6 +59,13 @@
       premium.dataset.staffPremiumTheme='true';
       document.head.appendChild(premium);
     }
+    if(!document.querySelector('link[data-aria-unified-theme]')){
+      const unified=document.createElement('link');
+      unified.rel='stylesheet';
+      unified.href='aria-unified-premium-theme.css?v=20260901-1';
+      unified.dataset.ariaUnifiedTheme='true';
+      document.head.appendChild(unified);
+    }
   }
 
   function firstName(value=''){
