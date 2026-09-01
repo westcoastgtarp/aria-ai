@@ -52,6 +52,13 @@
       archiveLock.dataset.ariaChatArchiveLock='true';
       document.head.appendChild(archiveLock);
     }
+    if(!document.querySelector('link[data-staff-premium-theme]')){
+      const premium=document.createElement('link');
+      premium.rel='stylesheet';
+      premium.href='staff-premium-theme.css?v=20260901-1';
+      premium.dataset.staffPremiumTheme='true';
+      document.head.appendChild(premium);
+    }
   }
 
   function firstName(value=''){
