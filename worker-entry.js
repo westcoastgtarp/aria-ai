@@ -47,6 +47,7 @@ function withAriaFormSystem(response,pathname) {
           element.append('<link rel="stylesheet" href="/member-theme.css?v=20260830-1" />', { html: true });
           element.append('<link rel="stylesheet" href="/care-circle-controls.css?v=20260901-2" />', { html: true });
           element.append('<link rel="stylesheet" href="/care-circle-premium.css?v=20260901-1" />', { html: true });
+          element.append('<link rel="stylesheet" href="/aria-unified-premium-theme.css?v=20260901-1" />', { html: true });
         }
       }
     });
