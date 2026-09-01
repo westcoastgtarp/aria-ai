@@ -84,12 +84,34 @@ function normalizePhone(value = '') {
   return cleaned.replace(/\D/g, '');
 }
 
+function disclosureFromBody(body) {
+  return {
+    shareSupportEvent: body?.shareSupportEvent !== false,
+    shareLimitedStatus: body?.shareLimitedStatus !== false,
+    shareLocation: body?.shareLocation === true,
+    shareMedicationSummary: body?.shareMedicationSummary === true,
+    shareChatTranscript: body?.shareChatTranscript === true
+  };
+}
+
+function disclosureAudit(disclosure) {
+  return {
+    supportEvent: Boolean(disclosure.shareSupportEvent),
+    limitedStatus: Boolean(disclosure.shareLimitedStatus),
+    location: Boolean(disclosure.shareLocation),
+    medicationSummary: Boolean(disclosure.shareMedicationSummary),
+    chatTranscript: Boolean(disclosure.shareChatTranscript),
+    scopeVersion: '2026-09-01'
+  };
+}
+
 function validateContact(body) {
   const displayName = String(body?.displayName || '').trim();
   const relationship = String(body?.relationship || '').trim();
   const phone = normalizePhone(body?.phone);
   const priority = Number(body?.priority || 1);
   const consentConfirmed = body?.consentConfirmed === true;
+  const disclosure = disclosureFromBody(body);
 
   if (!displayName || displayName.length > 120) return { error: 'Contact name is required and must be 120 characters or fewer.' };
   if (relationship.length > 80) return { error: 'Relationship must be 80 characters or fewer.' };
@@ -98,7 +120,7 @@ function validateContact(body) {
   if (!Number.isInteger(priority) || priority < 1 || priority > 10) return { error: 'Priority must be between 1 and 10.' };
   if (!consentConfirmed) return { error: 'Confirm that this person agreed to be an approved Aria contact.' };
 
-  return { displayName, relationship: relationship || null, phone, priority, consentConfirmed };
+  return { displayName, relationship: relationship || null, phone, priority, consentConfirmed, disclosure };
 }
 
 async function listContacts(request, env) {
@@ -106,7 +128,10 @@ async function listContacts(request, env) {
   if (auth.error) return auth.error;
 
   const result = await env.DB.prepare(`
-    SELECT id, display_name, relationship, phone, priority, consent_confirmed, status, created_at, updated_at
+    SELECT id, display_name, relationship, phone, priority, consent_confirmed, status,
+      share_support_event, share_limited_status, share_location, share_medication_summary,
+      share_chat_transcript, consent_scope_version, consent_granted_at, consent_updated_at,
+      consent_revoked_at, created_at, updated_at
     FROM care_circle_contacts
     WHERE user_id = ? AND status = 'active'
     ORDER BY priority ASC, created_at ASC
@@ -131,10 +156,14 @@ async function createContact(request, env) {
 
   const now = new Date().toISOString();
   const id = uuid('CC');
+  const d = validated.disclosure;
   await env.DB.prepare(`
     INSERT INTO care_circle_contacts
-    (id, user_id, display_name, relationship, phone, priority, consent_confirmed, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, 1, 'active', ?, ?)
+    (id, user_id, display_name, relationship, phone, priority, consent_confirmed, status,
+      share_support_event, share_limited_status, share_location, share_medication_summary,
+      share_chat_transcript, consent_scope_version, consent_granted_at, consent_updated_at,
+      created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, 1, 'active', ?, ?, ?, ?, ?, '2026-09-01', ?, ?, ?, ?)
   `).bind(
     id,
     auth.member.user_id,
@@ -142,18 +171,25 @@ async function createContact(request, env) {
     validated.relationship,
     validated.phone,
     validated.priority,
+    d.shareSupportEvent ? 1 : 0,
+    d.shareLimitedStatus ? 1 : 0,
+    d.shareLocation ? 1 : 0,
+    d.shareMedicationSummary ? 1 : 0,
+    d.shareChatTranscript ? 1 : 0,
+    now,
+    now,
     now,
     now
   ).run();
 
   await recordAudit(env, {
-    eventType: 'approved_contact_added',
+    eventType: 'care_circle_consent_granted',
     actorUserId: auth.member.user_id,
     subjectId: id,
-    details: { priority: validated.priority, consentConfirmed: true }
+    details: { priority: validated.priority, contactConsentConfirmed: true, disclosure: disclosureAudit(d) }
   });
 
-  return json({ ok: true, contact: { id, ...validated, status: 'active', createdAt: now, updatedAt: now } }, { status: 201 });
+  return json({ ok: true, id, status: 'active', createdAt: now }, { status: 201 });
 }
 
 async function updateContact(request, env, id) {
@@ -161,7 +197,9 @@ async function updateContact(request, env, id) {
   if (auth.error) return auth.error;
 
   const existing = await env.DB.prepare(`
-    SELECT id FROM care_circle_contacts
+    SELECT id, share_support_event, share_limited_status, share_location,
+      share_medication_summary, share_chat_transcript
+    FROM care_circle_contacts
     WHERE id = ? AND user_id = ? AND status = 'active'
     LIMIT 1
   `).bind(id, auth.member.user_id).first();
@@ -170,26 +208,49 @@ async function updateContact(request, env, id) {
   const validated = validateContact(await readBody(request));
   if (validated.error) return json({ ok: false, error: validated.error }, { status: 400 });
   const now = new Date().toISOString();
+  const d = validated.disclosure;
 
   await env.DB.prepare(`
     UPDATE care_circle_contacts
-    SET display_name = ?, relationship = ?, phone = ?, priority = ?, consent_confirmed = 1, updated_at = ?
+    SET display_name = ?, relationship = ?, phone = ?, priority = ?, consent_confirmed = 1,
+      share_support_event = ?, share_limited_status = ?, share_location = ?,
+      share_medication_summary = ?, share_chat_transcript = ?, consent_scope_version = '2026-09-01',
+      consent_updated_at = ?, updated_at = ?
     WHERE id = ? AND user_id = ?
   `).bind(
     validated.displayName,
     validated.relationship,
     validated.phone,
     validated.priority,
+    d.shareSupportEvent ? 1 : 0,
+    d.shareLimitedStatus ? 1 : 0,
+    d.shareLocation ? 1 : 0,
+    d.shareMedicationSummary ? 1 : 0,
+    d.shareChatTranscript ? 1 : 0,
+    now,
     now,
     id,
     auth.member.user_id
   ).run();
 
+  const before = {
+    shareSupportEvent: Boolean(existing.share_support_event),
+    shareLimitedStatus: Boolean(existing.share_limited_status),
+    shareLocation: Boolean(existing.share_location),
+    shareMedicationSummary: Boolean(existing.share_medication_summary),
+    shareChatTranscript: Boolean(existing.share_chat_transcript)
+  };
+
   await recordAudit(env, {
-    eventType: 'approved_contact_updated',
+    eventType: 'care_circle_consent_updated',
     actorUserId: auth.member.user_id,
     subjectId: id,
-    details: { priority: validated.priority, consentConfirmed: true }
+    details: {
+      priority: validated.priority,
+      contactConsentConfirmed: true,
+      previousDisclosure: disclosureAudit(before),
+      disclosure: disclosureAudit(d)
+    }
   });
 
   return json({ ok: true, id, updatedAt: now });
@@ -200,22 +261,37 @@ async function removeContact(request, env, id) {
   if (auth.error) return auth.error;
   const now = new Date().toISOString();
 
-  const result = await env.DB.prepare(`
-    UPDATE care_circle_contacts
-    SET status = 'disabled', updated_at = ?
+  const existing = await env.DB.prepare(`
+    SELECT id, share_support_event, share_limited_status, share_location,
+      share_medication_summary, share_chat_transcript
+    FROM care_circle_contacts
     WHERE id = ? AND user_id = ? AND status = 'active'
-  `).bind(now, id, auth.member.user_id).run();
+    LIMIT 1
+  `).bind(id, auth.member.user_id).first();
+  if (!existing) return json({ ok: false, error: 'Approved contact not found.' }, { status: 404 });
 
-  if (!result.meta?.changes) return json({ ok: false, error: 'Approved contact not found.' }, { status: 404 });
+  await env.DB.prepare(`
+    UPDATE care_circle_contacts
+    SET status = 'disabled', consent_revoked_at = ?, updated_at = ?
+    WHERE id = ? AND user_id = ? AND status = 'active'
+  `).bind(now, now, id, auth.member.user_id).run();
 
   await recordAudit(env, {
-    eventType: 'approved_contact_removed',
+    eventType: 'care_circle_consent_revoked',
     actorUserId: auth.member.user_id,
     subjectId: id,
-    details: {}
+    details: {
+      previousDisclosure: disclosureAudit({
+        shareSupportEvent: Boolean(existing.share_support_event),
+        shareLimitedStatus: Boolean(existing.share_limited_status),
+        shareLocation: Boolean(existing.share_location),
+        shareMedicationSummary: Boolean(existing.share_medication_summary),
+        shareChatTranscript: Boolean(existing.share_chat_transcript)
+      })
+    }
   });
 
-  return json({ ok: true, removed: true });
+  return json({ ok: true, removed: true, revokedAt: now });
 }
 
 export async function handleCareCircleRoute(request, env) {
