@@ -1,0 +1,60 @@
+/* Aria premium staff workspace — presentation layer only */
+.staff-shell{min-height:100vh}
+.staff-sidebar{position:relative;overflow:hidden}
+.staff-sidebar::before{content:"";position:absolute;inset:-160px auto auto -120px;width:310px;height:310px;border-radius:50%;background:radial-gradient(circle,rgba(46,124,255,.22),rgba(91,56,255,.08) 45%,transparent 72%);pointer-events:none}
+.staff-sidebar::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,#2d8cff,#7b5cff,transparent);opacity:.7;pointer-events:none}
+.brand-block{position:relative;z-index:1;padding:22px 20px!important}
+.brand-block .brand-mark{width:50px!important;height:50px!important;border-radius:16px!important;display:grid!important;place-items:center!important;background:radial-gradient(circle at 34% 30%,#2fd8ff 0,#1268ff 31%,#5d35e8 68%,#09132b 100%)!important;border:1px solid rgba(82,155,255,.64)!important;color:#fff!important;font-weight:900!important;font-size:22px!important;box-shadow:0 0 0 1px rgba(98,95,255,.2),0 0 24px rgba(36,112,255,.38),0 10px 28px rgba(0,0,0,.28)!important;text-shadow:0 0 12px rgba(255,255,255,.55)}
+.brand-block strong{font-size:16px!important;letter-spacing:.01em}.brand-block span{font-size:10px!important;letter-spacing:.12em;text-transform:uppercase}
+.staff-sidebar nav,.footer-links{position:relative;z-index:1}
+.staff-sidebar .nav-btn,.staff-sidebar .footer-links button{position:relative;border:1px solid transparent!important;border-radius:12px!important;transition:background .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease!important}
+.staff-sidebar .nav-btn:hover,.staff-sidebar .footer-links button:hover{transform:translateX(2px)}
+.staff-sidebar .nav-btn.active{box-shadow:inset 3px 0 0 #6c5cff,0 8px 24px rgba(46,80,216,.12)!important}
+.staff-topbar{backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.staff-topbar .eyebrow{letter-spacing:.16em!important}
+.staff-topbar h1{letter-spacing:-.025em!important}
+.user-chip{border-radius:999px!important;padding:8px 12px!important;font-size:10px!important;font-weight:800!important;letter-spacing:.04em}
+.staff-theme-control{border-radius:12px!important}
+.card,.panel,.candidate-card,.ticket-card,.employee-card,.onboarding-card,.live-chat-inline,.audit-log-list{border-radius:17px!important;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.card:hover,.ticket-card:hover,.candidate-card:hover,.employee-card:hover{transform:translateY(-1px)}
+.icon-action,.primary,.button-link{border-radius:11px!important;box-shadow:0 8px 22px rgba(75,78,230,.18)}
+.section-head h2,.panel h2,.panel h3{letter-spacing:-.015em}
+.queue-summary{gap:8px!important}.queue-summary>*{border-radius:999px!important}
+input,select,textarea{border-radius:10px!important}
+.modal,.dialog,.staff-modal{border-radius:20px!important}
+
+body[data-staff-theme="dark"]{background:#090f1d!important;background-image:radial-gradient(circle at 76% -10%,rgba(59,92,255,.13),transparent 34%),radial-gradient(circle at 20% 110%,rgba(123,69,255,.08),transparent 36%)!important}
+body[data-staff-theme="dark"] .staff-sidebar{background:linear-gradient(180deg,#08111f 0%,#0b1221 60%,#080d18 100%)!important;border-right:1px solid #1e3150!important;box-shadow:22px 0 60px rgba(0,0,0,.14)}
+body[data-staff-theme="dark"] .staff-main{background:transparent!important}
+body[data-staff-theme="dark"] .staff-topbar{background:rgba(9,15,29,.78)!important;border-bottom:1px solid #1e2e49!important;box-shadow:0 12px 32px rgba(0,0,0,.08)}
+body[data-staff-theme="dark"] .staff-sidebar .nav-btn,body[data-staff-theme="dark"] .staff-sidebar .footer-links button{color:#93a5c0!important;background:transparent!important}
+body[data-staff-theme="dark"] .staff-sidebar .nav-btn:hover,body[data-staff-theme="dark"] .staff-sidebar .footer-links button:hover{background:#111d33!important;border-color:#263b5f!important;color:#e7effb!important}
+body[data-staff-theme="dark"] .staff-sidebar .nav-btn.active{background:linear-gradient(100deg,rgba(50,83,224,.27),rgba(89,55,214,.16))!important;border-color:#31549a!important;color:#f3f6ff!important}
+body[data-staff-theme="dark"] .card,body[data-staff-theme="dark"] .panel,body[data-staff-theme="dark"] .candidate-card,body[data-staff-theme="dark"] .ticket-card,body[data-staff-theme="dark"] .employee-card,body[data-staff-theme="dark"] .onboarding-card,body[data-staff-theme="dark"] .audit-log-list,body[data-staff-theme="dark"] .live-chat-inline{background:linear-gradient(145deg,rgba(20,31,50,.97),rgba(13,24,41,.97))!important;border:1px solid #263b5a!important;box-shadow:0 16px 42px rgba(0,0,0,.16)!important}
+body[data-staff-theme="dark"] .card:hover,body[data-staff-theme="dark"] .ticket-card:hover{border-color:#365f9b!important;box-shadow:0 18px 46px rgba(0,0,0,.19),0 0 0 1px rgba(76,126,255,.08)!important}
+body[data-staff-theme="dark"] .primary,body[data-staff-theme="dark"] .icon-action{background:linear-gradient(120deg,#5f57e8,#347ce8)!important;border-color:#6b7ff5!important;color:#fff!important}
+body[data-staff-theme="dark"] .eyebrow{color:#78a8ff!important}
+
+body[data-staff-theme="night"]{background:#02050b!important;background-image:radial-gradient(circle at 78% -12%,rgba(23,91,255,.16),transparent 30%),radial-gradient(circle at 18% 112%,rgba(99,48,255,.11),transparent 35%)!important}
+body[data-staff-theme="night"] .staff-sidebar{background:linear-gradient(180deg,#030812 0%,#050a14 58%,#02050a 100%)!important;border-right:1px solid #132744!important;box-shadow:24px 0 70px rgba(0,0,0,.3)}
+body[data-staff-theme="night"] .staff-main{background:transparent!important}
+body[data-staff-theme="night"] .staff-topbar{background:rgba(2,5,11,.76)!important;border-bottom:1px solid #13233b!important;box-shadow:0 12px 38px rgba(0,0,0,.2)}
+body[data-staff-theme="night"] .staff-sidebar .nav-btn,body[data-staff-theme="night"] .staff-sidebar .footer-links button{color:#8495b1!important;background:transparent!important}
+body[data-staff-theme="night"] .staff-sidebar .nav-btn:hover,body[data-staff-theme="night"] .staff-sidebar .footer-links button:hover{background:#091426!important;border-color:#18365e!important;color:#e3edff!important}
+body[data-staff-theme="night"] .staff-sidebar .nav-btn.active{background:linear-gradient(100deg,rgba(26,83,224,.34),rgba(90,45,219,.23))!important;border-color:#235bb2!important;color:#f8faff!important;box-shadow:inset 3px 0 0 #7966ff,0 0 30px rgba(34,91,255,.13)!important}
+body[data-staff-theme="night"] .card,body[data-staff-theme="night"] .panel,body[data-staff-theme="night"] .candidate-card,body[data-staff-theme="night"] .ticket-card,body[data-staff-theme="night"] .employee-card,body[data-staff-theme="night"] .onboarding-card,body[data-staff-theme="night"] .audit-log-list,body[data-staff-theme="night"] .live-chat-inline{background:linear-gradient(145deg,rgba(9,17,31,.98),rgba(5,11,21,.98))!important;border:1px solid #182a45!important;box-shadow:0 18px 46px rgba(0,0,0,.26)!important}
+body[data-staff-theme="night"] .card:hover,body[data-staff-theme="night"] .ticket-card:hover,body[data-staff-theme="night"] .candidate-card:hover{border-color:#244f89!important;box-shadow:0 20px 52px rgba(0,0,0,.32),0 0 24px rgba(30,104,255,.05)!important}
+body[data-staff-theme="night"] .primary,body[data-staff-theme="night"] .icon-action{background:linear-gradient(120deg,#6e4cff,#168cff)!important;border-color:#527dff!important;color:#fff!important;box-shadow:0 8px 24px rgba(35,92,255,.24),0 0 18px rgba(91,63,255,.12)!important}
+body[data-staff-theme="night"] .eyebrow{color:#72a8ff!important;text-shadow:0 0 18px rgba(55,121,255,.12)}
+body[data-staff-theme="night"] input,body[data-staff-theme="night"] select,body[data-staff-theme="night"] textarea{background:#050b15!important;border-color:#203651!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.015)}
+body[data-staff-theme="night"] .audit-event{background:transparent!important;border-color:#14243a!important}
+body[data-staff-theme="night"] .audit-event:hover{background:#08111f!important}
+body[data-staff-theme="night"] .audit-category{border:1px solid #273568!important;box-shadow:0 0 14px rgba(66,72,255,.08)}
+body[data-staff-theme="night"] .live-chat-line .live-chat-bubble{background:linear-gradient(145deg,#0c1728,#091220)!important;border-color:#1c3554!important}
+
+/* Light keeps the same geometry and branding without forcing a dark workspace. */
+body[data-staff-theme="light"] .staff-sidebar{background:linear-gradient(180deg,#fbfcff,#f5f7fd)!important;border-right:1px solid #dce4f2!important}
+body[data-staff-theme="light"] .staff-sidebar .nav-btn.active{background:linear-gradient(100deg,#eef3ff,#f2edff)!important;border-color:#ccd9ff!important;color:#31428d!important}
+body[data-staff-theme="light"] .card,body[data-staff-theme="light"] .panel,body[data-staff-theme="light"] .candidate-card,body[data-staff-theme="light"] .ticket-card,body[data-staff-theme="light"] .employee-card{border:1px solid #e1e7f1!important;box-shadow:0 14px 38px rgba(38,53,87,.06)!important}
+
+@media(max-width:900px){.brand-block{padding:16px 12px!important}.brand-block .brand-mark{width:42px!important;height:42px!important;border-radius:13px!important}.staff-sidebar::before{display:none}}
