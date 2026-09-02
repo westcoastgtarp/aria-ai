@@ -66,6 +66,13 @@
       unified.dataset.ariaUnifiedTheme='true';
       document.head.appendChild(unified);
     }
+    if(!document.querySelector('link[data-staff-footer-premium-fix]')){
+      const footerFix=document.createElement('link');
+      footerFix.rel='stylesheet';
+      footerFix.href='staff-footer-premium-fix.css?v=20260901-1';
+      footerFix.dataset.staffFooterPremiumFix='true';
+      document.head.appendChild(footerFix);
+    }
   }
 
   function firstName(value=''){
