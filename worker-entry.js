@@ -10,6 +10,7 @@ import { handleHrRoute } from './hr-api.js';
 import { handleAuditRoute } from './audit-api.js';
 import { handleMemberEntitlementsRoute } from './member-entitlements-api.js';
 import { handleCareCircleRoute } from './care-circle-api.js';
+import { handleCareCircleOutreachRoute } from './care-circle-outreach-api.js';
 import { handleMemberAssistantRoute } from './member-assistant-api.js';
 import { handleMemberConversationsRoute } from './member-conversations-api.js';
 import { handleMemberMembershipOptionsRoute } from './member-membership-options-api.js';
@@ -47,6 +48,7 @@ function withAriaFormSystem(response,pathname) {
           element.append('<link rel="stylesheet" href="/member-theme.css?v=20260830-1" />', { html: true });
           element.append('<link rel="stylesheet" href="/care-circle-controls.css?v=20260901-2" />', { html: true });
           element.append('<link rel="stylesheet" href="/care-circle-premium.css?v=20260901-1" />', { html: true });
+          element.append('<link rel="stylesheet" href="/care-circle-outreach.css?v=20260902-1" />', { html: true });
           element.append('<link rel="stylesheet" href="/aria-unified-premium-theme.css?v=20260901-1" />', { html: true });
         }
       }
@@ -56,7 +58,7 @@ function withAriaFormSystem(response,pathname) {
     rewriter.on('body', {
       element(element) {
         element.prepend('<script src="/member-theme.js?v=20260830-1"></script><script src="/member-account-guard.js?v=20260901-1"></script><script src="/member-medication-structured-form.js?v=20260826-3"></script>', { html: true });
-        element.append('<script src="/portal-logout.js?v=20260901-3"></script><script src="/member-live-support-chat.js?v=20260830-3"></script><script src="/member-assistant-live.js?v=20260830-3"></script><script src="/member-live-support-header.js?v=20260828-2"></script><script src="/aria-chat-expand.js?v=20260829-1"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-4"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script><script src="/care-circle-controls.js?v=20260901-2"></script><script src="/care-circle-premium.js?v=20260901-1"></script>', { html: true });
+        element.append('<script src="/portal-logout.js?v=20260901-3"></script><script src="/member-live-support-chat.js?v=20260830-3"></script><script src="/member-assistant-live.js?v=20260830-3"></script><script src="/member-live-support-header.js?v=20260828-2"></script><script src="/aria-chat-expand.js?v=20260829-1"></script><script src="/member-medication-delete.js?v=20260826-1"></script><script src="/member-reminders-live.js?v=20260827-1"></script><script src="/member-notification-preferences.js?v=20260827-4"></script><script src="/member-overview-reminders.js?v=20260826-1"></script><script src="/member-navigation-state.js?v=20260826-1"></script><script src="/care-circle-controls.js?v=20260901-2"></script><script src="/care-circle-premium.js?v=20260901-1"></script><script src="/care-circle-outreach.js?v=20260902-1"></script>', { html: true });
       }
     });
   }
@@ -101,6 +103,9 @@ export default {
 
     const membershipOptionsResponse = await handleMemberMembershipOptionsRoute(request, env);
     if (membershipOptionsResponse) return membershipOptionsResponse;
+
+    const careCircleOutreachResponse = await handleCareCircleOutreachRoute(request, env);
+    if (careCircleOutreachResponse) return careCircleOutreachResponse;
 
     const careCircleResponse = await handleCareCircleRoute(request, env);
     if (careCircleResponse) return careCircleResponse;
