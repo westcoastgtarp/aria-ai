@@ -32,53 +32,62 @@
     return actions;
   }
 
-  function createLogoutButton(staffTarget){
+  async function performLogout(button,isStaff){
+    if(button.disabled)return;
+    button.disabled=true;
+    button.textContent='Signing out…';
+
+    if(!isStaff){
+      try{
+        await fetch('/api/member/conversations/close',{
+          method:'POST',
+          credentials:'same-origin',
+          cache:'no-store',
+          headers:{'content-type':'application/json'}
+        });
+      }catch(error){
+        console.error('Member conversation close on logout failed',error);
+      }
+    }
+
+    try{
+      await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
+    }catch{}
+
+    sessionStorage.removeItem('aria-auth-session');
+    sessionStorage.removeItem('aria-member-name');
+    window.location.replace('login.html');
+  }
+
+  function bindLogoutButton(button,isStaff){
+    if(!button||button.dataset.logoutBound==='true')return button;
+    button.dataset.logoutBound='true';
+    button.addEventListener('click',()=>performLogout(button,isStaff));
+    return button;
+  }
+
+  function createLogoutButton(isStaff){
     const button=document.createElement('button');
     button.id='portalLogoutButton';
     button.type='button';
     button.textContent='Sign out';
-    button.className=staffTarget?'portal-logout-btn':'ghost-btn portal-member-logout-btn';
+    button.className=isStaff?'portal-logout-btn':'ghost-btn portal-member-logout-btn';
     button.setAttribute('aria-label','Sign out of Aria');
-
-    button.addEventListener('click',async()=>{
-      if(button.disabled)return;
-      button.disabled=true;
-      button.textContent='Signing out…';
-
-      if(!staffTarget){
-        try{
-          await fetch('/api/member/conversations/close',{
-            method:'POST',
-            credentials:'same-origin',
-            cache:'no-store',
-            headers:{'content-type':'application/json'}
-          });
-        }catch(error){
-          console.error('Member conversation close on logout failed',error);
-        }
-      }
-
-      try{
-        await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
-      }catch{}
-      sessionStorage.removeItem('aria-auth-session');
-      sessionStorage.removeItem('aria-member-name');
-      window.location.replace('login.html');
-    });
-
-    return button;
+    return bindLogoutButton(button,isStaff);
   }
 
   function addLogoutButton(){
     const staffTarget=document.querySelector('.staff-topbar');
-    const target=staffTarget?ensureStaffActions(staffTarget):ensureMemberActions();
+    const isStaff=Boolean(staffTarget);
+    const target=isStaff?ensureStaffActions(staffTarget):ensureMemberActions();
     if(!target)return;
 
     let button=document.getElementById('portalLogoutButton');
-    if(!button)button=createLogoutButton(staffTarget);
+    if(!button)button=createLogoutButton(isStaff);
+    else bindLogoutButton(button,isStaff);
 
     if(button.parentElement!==target){
-      const avatar=!staffTarget?target.querySelector('.avatar'):null;
+      const avatar=!isStaff?target.querySelector('.avatar'):null;
       if(avatar)target.insertBefore(button,avatar);
       else target.appendChild(button);
     }
