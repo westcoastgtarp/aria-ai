@@ -1,0 +1,99 @@
+/* Shared transparent header-logo treatment for the member and staff portals. */
+.portal-brand {
+  padding: 0 4px 22px;
+}
+
+.portal-brand--staff {
+  display: block;
+}
+
+.portal-brand-logo {
+  display: block;
+  width: min(100%, 214px);
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.portal-brand--member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-brand-symbol {
+  position: relative;
+  display: block;
+  flex: 0 0 102px;
+  width: 102px;
+  height: 82px;
+  overflow: hidden;
+}
+
+.portal-brand-symbol img {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: block;
+  width: auto;
+  height: 82px;
+  max-width: none;
+}
+
+.portal-brand-copy,
+.portal-brand-name,
+.portal-brand-subtitle {
+  display: block;
+}
+
+.portal-brand-copy {
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.portal-brand-name {
+  color: #f8fbff;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  white-space: nowrap;
+}
+
+.portal-brand-name span {
+  color: #2d8cff;
+}
+
+.portal-brand-subtitle {
+  margin-top: 7px;
+  color: #c0cee3;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .portal-brand {
+    padding: 0 4px 10px;
+  }
+
+  .portal-brand-logo {
+    width: 156px;
+  }
+
+  .portal-brand-symbol {
+    flex-basis: 66px;
+    width: 66px;
+    height: 54px;
+  }
+
+  .portal-brand-symbol img {
+    height: 54px;
+  }
+
+  .portal-brand-name {
+    font-size: 17px;
+  }
+
+  .portal-brand-subtitle {
+    margin-top: 4px;
+    font-size: 10px;
+  }
+}
