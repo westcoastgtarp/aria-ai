@@ -13,10 +13,28 @@
     return actions;
   }
 
+  function ensureMemberActions(){
+    let actions=document.querySelector('.topbar-actions');
+    if(actions)return actions;
+
+    const topbar=document.querySelector('.topbar');
+    if(!topbar)return null;
+
+    actions=document.createElement('div');
+    actions.className='topbar-actions';
+
+    const theme=document.querySelector('.member-theme-control');
+    const avatar=[...topbar.children].find(node=>node!==actions&&node!==theme&&(/avatar|user|chip/i.test(String(node.className||''))||String(node.textContent||'').trim()==='DM'));
+    if(theme&&theme.parentElement===topbar)actions.appendChild(theme);
+    if(avatar&&avatar.parentElement===topbar)actions.appendChild(avatar);
+
+    topbar.appendChild(actions);
+    return actions;
+  }
+
   function addLogoutButton(){
     const staffTarget=document.querySelector('.staff-topbar');
-    const memberTarget=document.querySelector('.topbar-actions');
-    const target=staffTarget?ensureStaffActions(staffTarget):memberTarget;
+    const target=staffTarget?ensureStaffActions(staffTarget):ensureMemberActions();
     if(!target||document.getElementById('portalLogoutButton'))return;
 
     const button=document.createElement('button');
