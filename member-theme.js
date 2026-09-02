@@ -6,6 +6,16 @@
   const saved=localStorage.getItem(KEY);
   const initial=VALID.has(saved)?saved:'light';
 
+  function mountBrand(){
+    const brand=document.querySelector('.sidebar .brand');
+    if(!brand||brand.dataset.ariaBrandMounted==='true')return;
+    brand.dataset.ariaBrandMounted='true';
+    brand.innerHTML='<img src="/aria-member-brand.svg?v=20260901-1" alt="Aria AI Member Portal" style="display:block;width:100%;max-width:210px;height:auto;border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.28),0 0 22px rgba(44,113,255,.14);" />';
+    brand.style.display='block';
+    brand.style.padding='0';
+    brand.style.margin='0 0 18px';
+  }
+
   function ensureControl(){
     const actions=document.querySelector('.topbar-actions');
     if(!actions)return null;
@@ -29,6 +39,7 @@
     document.body.dataset.memberTheme=next;
     document.documentElement.style.colorScheme=next==='light'?'light':'dark';
     if(persist)localStorage.setItem(KEY,next);
+    mountBrand();
     const control=ensureControl();
     control?.querySelectorAll('[data-member-theme-choice]').forEach(button=>{
       const active=button.dataset.memberThemeChoice===next;
