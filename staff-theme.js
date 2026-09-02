@@ -11,10 +11,21 @@
     }catch{return 'light';}
   }
 
+  function mountBrand(){
+    const brand=document.querySelector('.staff-sidebar .brand-block');
+    if(!brand||brand.dataset.ariaBrandMounted==='true')return;
+    brand.dataset.ariaBrandMounted='true';
+    brand.innerHTML='<img src="/aria-staff-brand.svg?v=20260901-1" alt="Aria AI Staff Operations" style="display:block;width:100%;max-width:220px;height:auto;border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.28),0 0 22px rgba(44,113,255,.14);" />';
+    brand.style.display='block';
+    brand.style.padding='0';
+    brand.style.margin='0 0 18px';
+  }
+
   function apply(theme){
     const next=THEMES.includes(theme)?theme:'light';
     document.body.dataset.staffTheme=next;
     try{localStorage.setItem(KEY,next);}catch{}
+    mountBrand();
     document.querySelectorAll('.staff-theme-control button').forEach(button=>{
       const active=button.dataset.theme===next;
       button.classList.toggle('active',active);
@@ -23,6 +34,7 @@
   }
 
   function mount(){
+    mountBrand();
     const actions=document.querySelector('.staff-topbar-actions');
     if(!actions)return false;
     if(actions.querySelector('.staff-theme-control')){apply(savedTheme());return true;}
