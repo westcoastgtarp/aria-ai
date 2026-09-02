@@ -10,10 +10,13 @@
     const brand=document.querySelector('.sidebar .brand');
     if(!brand||brand.dataset.ariaBrandMounted==='true')return;
     brand.dataset.ariaBrandMounted='true';
-    brand.innerHTML='<img src="/aria-member-brand.svg?v=20260901-1" alt="Aria AI Member Portal" style="display:block;width:100%;max-width:210px;height:auto;border-radius:14px;box-shadow:0 10px 28px rgba(0,0,0,.28),0 0 22px rgba(44,113,255,.14);" />';
+    brand.innerHTML='<img src="/aria-member-brand.svg?v=20260902-1" alt="Aria AI Member Portal" class="aria-sidebar-brand-image" style="display:block;width:100%;max-width:210px;height:auto;background:transparent;border:0;border-radius:0;box-shadow:none;mix-blend-mode:screen;filter:saturate(1.08) contrast(1.06);" />';
     brand.style.display='block';
     brand.style.padding='0';
     brand.style.margin='0 0 18px';
+    brand.style.background='transparent';
+    brand.style.border='0';
+    brand.style.boxShadow='none';
   }
 
   function ensureControl(){
