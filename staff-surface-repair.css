@@ -1,0 +1,133 @@
+/* Final staff portal surface repair — overrides legacy light and inline component styles. */
+body:has(.staff-shell){--staff-fix-surface:linear-gradient(145deg,rgba(8,18,37,.99),rgba(4,12,27,.99));--staff-fix-surface-soft:#071326;--staff-fix-border:#203a60;--staff-fix-border-strong:#2b5f9f;--staff-fix-text:#eef5ff;--staff-fix-muted:#93a9ca;--staff-fix-shadow:0 16px 42px rgba(0,0,0,.22)}
+
+/* Empty queue / application / onboarding / archive / notes states */
+body:has(.staff-shell) .empty-queue,
+body:has(.staff-shell) .finance-empty,
+body:has(.staff-shell) .empty-state,
+body:has(.staff-shell) .queue-empty,
+body:has(.staff-shell) .ticket-notes-empty,
+body:has(.staff-shell) .notes-empty,
+body:has(.staff-shell) .archive-empty,
+body:has(.staff-shell) .candidate-empty,
+body:has(.staff-shell) .onboarding-empty,
+body:has(.staff-shell) [class*="empty-queue"],
+body:has(.staff-shell) [class*="empty-state"]{
+  background:var(--staff-fix-surface)!important;
+  border:1px dashed #29486f!important;
+  color:var(--staff-fix-muted)!important;
+  box-shadow:var(--staff-fix-shadow)!important;
+  border-radius:16px!important;
+}
+
+/* Legacy security / provisioning / invitation notices */
+body:has(.staff-shell) .security-alert,
+body:has(.staff-shell) .finance-alert,
+body:has(.staff-shell) .terms-callout,
+body:has(.staff-shell) #adminProvisioningNotice,
+body:has(.staff-shell) #securityBoundaryNotice,
+body:has(.staff-shell) #memberInviteActionMessage,
+body:has(.staff-shell) #inviteServerError{
+  background:#09172d!important;
+  border:1px solid #294d7f!important;
+  color:#b8cbea!important;
+  box-shadow:none!important;
+}
+body:has(.staff-shell) .security-alert strong,
+body:has(.staff-shell) .finance-alert strong,
+body:has(.staff-shell) .terms-callout strong{color:var(--staff-fix-text)!important}
+
+/* Invitation form has hardcoded light inline styles. */
+body:has(.staff-shell) #memberInviteForm{
+  background:var(--staff-fix-surface-soft)!important;
+  border:1px solid var(--staff-fix-border)!important;
+  color:var(--staff-fix-text)!important;
+  box-shadow:var(--staff-fix-shadow)!important;
+}
+body:has(.staff-shell) #memberInviteForm label{color:#c7d5eb!important}
+body:has(.staff-shell) #memberInviteForm input{
+  background:#040c1a!important;
+  border-color:#29486f!important;
+  color:#eef5ff!important;
+}
+
+/* Generated invitation list rows and any legacy inline light surfaces. */
+body:has(.staff-shell) #memberInviteList>div{
+  border-color:#1e385c!important;
+  color:var(--staff-fix-text)!important;
+}
+body:has(.staff-shell) #memberInviteList code{color:#8ca6ff!important}
+body:has(.staff-shell) #memberInviteList span[style*="color:#7b8797"],
+body:has(.staff-shell) #memberInviteList span[style*="color:#8a95a5"]{color:var(--staff-fix-muted)!important}
+
+/* Archive ticket note bodies / dynamically inserted white internal-note blocks. */
+body:has(.staff-shell) .ticket-card [style*="background:#fff"],
+body:has(.staff-shell) .ticket-card [style*="background: #fff"],
+body:has(.staff-shell) .ticket-card [style*="background:white"],
+body:has(.staff-shell) .ticket-card [style*="background: white"],
+body:has(.staff-shell) .panel [style*="background:#fff"],
+body:has(.staff-shell) .panel [style*="background: #fff"],
+body:has(.staff-shell) .panel [style*="background:#fafbfe"],
+body:has(.staff-shell) .panel [style*="background: #fafbfe"]{
+  background:var(--staff-fix-surface-soft)!important;
+  border-color:var(--staff-fix-border)!important;
+  color:var(--staff-fix-muted)!important;
+}
+
+/* Utility footer: force every generated card, link and decorative tile dark. */
+body:has(.staff-shell) .staff-utility-footer,
+body:has(.staff-shell) .staff-footer-shell{background:transparent!important;color:var(--staff-fix-text)!important}
+body:has(.staff-shell) .staff-footer-card{
+  background:var(--staff-fix-surface)!important;
+  border:1px solid var(--staff-fix-border)!important;
+  color:var(--staff-fix-text)!important;
+  box-shadow:var(--staff-fix-shadow)!important;
+}
+body:has(.staff-shell) .staff-footer-group-title{color:var(--staff-fix-text)!important}
+body:has(.staff-shell) .staff-footer-copy,
+body:has(.staff-shell) .staff-footer-kicker,
+body:has(.staff-shell) .staff-footer-bottom{color:var(--staff-fix-muted)!important}
+body:has(.staff-shell) .staff-footer-icon{
+  background:linear-gradient(145deg,#102656,#211b58)!important;
+  border:1px solid #315eaa!important;
+  color:#8db7ff!important;
+  box-shadow:0 0 18px rgba(44,105,255,.1)!important;
+}
+body:has(.staff-shell) .staff-footer-link,
+body:has(.staff-shell) .staff-footer-contact{
+  background:#081326!important;
+  border:1px solid #29486f!important;
+  color:#dbe8ff!important;
+}
+body:has(.staff-shell) .staff-footer-link:hover,
+body:has(.staff-shell) .staff-footer-contact:hover{background:#0d1d38!important;border-color:#3971ba!important;color:#fff!important}
+body:has(.staff-shell) .staff-footer-bottom{border-color:#1e385c!important}
+
+/* Tables and generated result containers that still carry a light fill. */
+body:has(.staff-shell) table,
+body:has(.staff-shell) thead,
+body:has(.staff-shell) tbody,
+body:has(.staff-shell) tr,
+body:has(.staff-shell) td,
+body:has(.staff-shell) th{border-color:#203958!important}
+body:has(.staff-shell) tbody tr:hover{background:#08172b!important}
+
+/* Last-resort white-background catcher, deliberately scoped to staff content only. */
+body:has(.staff-shell) .staff-main [style*="background:#fff"],
+body:has(.staff-shell) .staff-main [style*="background: #fff"],
+body:has(.staff-shell) .staff-main [style*="background:white"],
+body:has(.staff-shell) .staff-main [style*="background: white"],
+body:has(.staff-shell) .staff-main [style*="background:#fafbfe"],
+body:has(.staff-shell) .staff-main [style*="background: #fafbfe"],
+body:has(.staff-shell) .staff-main [style*="background:#f6f8ff"],
+body:has(.staff-shell) .staff-main [style*="background: #f6f8ff"]{
+  background:var(--staff-fix-surface-soft)!important;
+  color:var(--staff-fix-text)!important;
+  border-color:var(--staff-fix-border)!important;
+}
+
+/* Light-mode still uses the Aria dark family by design. */
+body[data-staff-theme="light"]:has(.staff-shell) .empty-queue,
+body[data-staff-theme="light"]:has(.staff-shell) .security-alert,
+body[data-staff-theme="light"]:has(.staff-shell) .staff-footer-card,
+body[data-staff-theme="light"]:has(.staff-shell) #memberInviteForm{color-scheme:dark!important}
