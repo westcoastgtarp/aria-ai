@@ -14,34 +14,30 @@
   }
 
   function ensureMemberActions(){
-    let actions=document.querySelector('.topbar-actions');
-    if(actions)return actions;
-
     const topbar=document.querySelector('.topbar');
     if(!topbar)return null;
 
-    actions=document.createElement('div');
-    actions.className='topbar-actions';
+    let actions=topbar.querySelector('.topbar-actions');
+    if(!actions){
+      actions=document.createElement('div');
+      actions.className='topbar-actions';
+      topbar.appendChild(actions);
+    }
 
-    const theme=document.querySelector('.member-theme-control');
-    const avatar=[...topbar.children].find(node=>node!==actions&&node!==theme&&(/avatar|user|chip/i.test(String(node.className||''))||String(node.textContent||'').trim()==='DM'));
-    if(theme&&theme.parentElement===topbar)actions.appendChild(theme);
-    if(avatar&&avatar.parentElement===topbar)actions.appendChild(avatar);
+    const theme=topbar.querySelector('.member-theme-control')||document.querySelector('.member-theme-control');
+    const avatar=topbar.querySelector('.avatar');
+    if(theme&&theme.parentElement!==actions)actions.appendChild(theme);
+    if(avatar&&avatar.parentElement!==actions)actions.appendChild(avatar);
 
-    topbar.appendChild(actions);
     return actions;
   }
 
-  function addLogoutButton(){
-    const staffTarget=document.querySelector('.staff-topbar');
-    const target=staffTarget?ensureStaffActions(staffTarget):ensureMemberActions();
-    if(!target||document.getElementById('portalLogoutButton'))return;
-
+  function createLogoutButton(staffTarget){
     const button=document.createElement('button');
     button.id='portalLogoutButton';
     button.type='button';
     button.textContent='Sign out';
-    button.className=staffTarget?'portal-logout-btn':'ghost-btn';
+    button.className=staffTarget?'portal-logout-btn':'ghost-btn portal-member-logout-btn';
     button.setAttribute('aria-label','Sign out of Aria');
 
     button.addEventListener('click',async()=>{
@@ -70,9 +66,45 @@
       window.location.replace('login.html');
     });
 
-    target.appendChild(button);
+    return button;
   }
 
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addLogoutButton);
-  else addLogoutButton();
+  function addLogoutButton(){
+    const staffTarget=document.querySelector('.staff-topbar');
+    const target=staffTarget?ensureStaffActions(staffTarget):ensureMemberActions();
+    if(!target)return;
+
+    let button=document.getElementById('portalLogoutButton');
+    if(!button)button=createLogoutButton(staffTarget);
+
+    if(button.parentElement!==target){
+      const avatar=!staffTarget?target.querySelector('.avatar'):null;
+      if(avatar)target.insertBefore(button,avatar);
+      else target.appendChild(button);
+    }
+  }
+
+  let scheduled=false;
+  function scheduleEnsure(){
+    if(scheduled)return;
+    scheduled=true;
+    requestAnimationFrame(()=>{
+      scheduled=false;
+      addLogoutButton();
+    });
+  }
+
+  function start(){
+    addLogoutButton();
+    const topbar=document.querySelector('.topbar')||document.querySelector('.staff-topbar');
+    if(topbar){
+      const observer=new MutationObserver(scheduleEnsure);
+      observer.observe(topbar,{childList:true,subtree:true});
+    }
+    setTimeout(addLogoutButton,250);
+    setTimeout(addLogoutButton,1000);
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
 })();
