@@ -126,6 +126,32 @@ body:has(.staff-shell) .staff-main [style*="background: #f6f8ff"]{
   border-color:var(--staff-fix-border)!important;
 }
 
+/* Archived Aria Chat review: let the portal atmosphere show through instead of a white canvas. */
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-inline,
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-inline-head,
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-transcript,
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-readonly,
+body:has(.staff-shell) #ariachat-page .live-chat-inline,
+body:has(.staff-shell) #ariachat-page .live-chat-inline-head,
+body:has(.staff-shell) #ariachat-page .live-chat-transcript,
+body:has(.staff-shell) #ariachat-page .live-chat-readonly{
+  background:transparent!important;
+  color:var(--staff-fix-text)!important;
+  box-shadow:none!important;
+}
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-inline,
+body:has(.staff-shell) #ariachat-page .live-chat-inline{border-color:#284b79!important}
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-inline-head,
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-readonly,
+body:has(.staff-shell) #ariachat-page .live-chat-inline-head,
+body:has(.staff-shell) #ariachat-page .live-chat-readonly{border-color:#1c3658!important}
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-label,
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-label span,
+body:has(.staff-shell) #ariachat-page .live-chat-label,
+body:has(.staff-shell) #ariachat-page .live-chat-label span{color:#8fa7c9!important}
+body:has(.staff-shell) .aria-chat-archive-card .live-chat-readonly,
+body:has(.staff-shell) #ariachat-page .live-chat-readonly{color:#7890b4!important}
+
 /* Light-mode still uses the Aria dark family by design. */
 body[data-staff-theme="light"]:has(.staff-shell) .empty-queue,
 body[data-staff-theme="light"]:has(.staff-shell) .security-alert,
