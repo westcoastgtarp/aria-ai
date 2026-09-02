@@ -73,6 +73,13 @@
       footerFix.dataset.staffFooterPremiumFix='true';
       document.head.appendChild(footerFix);
     }
+    if(!document.querySelector('link[data-staff-surface-repair]')){
+      const repair=document.createElement('link');
+      repair.rel='stylesheet';
+      repair.href='staff-surface-repair.css?v=20260901-1';
+      repair.dataset.staffSurfaceRepair='true';
+      document.head.appendChild(repair);
+    }
   }
 
   function firstName(value=''){
