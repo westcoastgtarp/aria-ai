@@ -152,6 +152,19 @@ body:has(.staff-shell) #ariachat-page .live-chat-label span{color:#8fa7c9!import
 body:has(.staff-shell) .aria-chat-archive-card .live-chat-readonly,
 body:has(.staff-shell) #ariachat-page .live-chat-readonly{color:#7890b4!important}
 
+/* Queue/status summary chips — darker graphite to fit the navy workspace. */
+body:has(.staff-shell) .summary-chip,
+body:has(.staff-shell) .queue-summary .summary-chip,
+body:has(.staff-shell) .queue-summary > span{
+  background:linear-gradient(180deg,#545b68,#444b58)!important;
+  border:1px solid #6a7382!important;
+  color:#d8dee9!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 5px 14px rgba(0,0,0,.14)!important;
+}
+body:has(.staff-shell) .summary-chip strong,
+body:has(.staff-shell) .queue-summary .summary-chip strong,
+body:has(.staff-shell) .queue-summary > span strong{color:#ffffff!important;font-weight:800!important}
+
 /* Light-mode still uses the Aria dark family by design. */
 body[data-staff-theme="light"]:has(.staff-shell) .empty-queue,
 body[data-staff-theme="light"]:has(.staff-shell) .security-alert,
