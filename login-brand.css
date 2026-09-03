@@ -1,0 +1,26 @@
+/* Current Aria brand treatment used on the shared sign-in page. */
+.brand-lockup-current {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+}
+
+.brand-current-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+}
+
+@media (max-width: 900px) {
+  .brand-lockup-current {
+    max-width: 285px;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand-lockup-current {
+    max-width: 245px;
+  }
+}
