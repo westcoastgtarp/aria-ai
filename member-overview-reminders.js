@@ -2,6 +2,14 @@
   if(window.__ariaMemberOverviewReminders)return;
   window.__ariaMemberOverviewReminders=true;
 
+  function redesignActive(){
+    return document.body?.classList.contains('member-redesign');
+  }
+
+  function removeLegacyPanel(){
+    document.querySelectorAll('#overviewRemindersPanel,.overview-reminders-panel').forEach(node=>node.remove());
+  }
+
   function localDate(){
     const d=new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -30,6 +38,10 @@
   }
 
   function ensurePanel(){
+    if(redesignActive()){
+      removeLegacyPanel();
+      return null;
+    }
     const dashboard=document.getElementById('dashboard-page');
     if(!dashboard)return null;
     let panel=document.getElementById('overviewRemindersPanel');
@@ -59,6 +71,10 @@
   }
 
   function render(reminders){
+    if(redesignActive()){
+      removeLegacyPanel();
+      return;
+    }
     ensurePanel();
     const container=document.getElementById('overviewReminderList');
     if(!container)return;
@@ -97,6 +113,10 @@
   }
 
   async function refresh(){
+    if(redesignActive()){
+      removeLegacyPanel();
+      return;
+    }
     ensurePanel();
     try{
       const response=await fetch(`/api/member/reminders?date=${encodeURIComponent(localDate())}`,{
@@ -113,14 +133,24 @@
     }
   }
 
-  ensurePanel();
-  refresh();
+  if(!redesignActive()){
+    ensurePanel();
+    refresh();
+  }else removeLegacyPanel();
 
   document.addEventListener('click',event=>{
+    if(redesignActive()){
+      removeLegacyPanel();
+      return;
+    }
     if(event.target.closest?.('[data-page="dashboard"]'))setTimeout(refresh,0);
   },true);
 
   setInterval(()=>{
+    if(redesignActive()){
+      removeLegacyPanel();
+      return;
+    }
     if(document.getElementById('dashboard-page')?.classList.contains('active'))refresh();
   },60000);
 })();
