@@ -238,6 +238,10 @@ The test also exposed a presentation issue: the restricted HR account could stil
 
 Live acceptance escalated the active human-led conversation to the `Supervisor` command role. The member UI displayed a notice that the conversation had been escalated and that Brandon would remain present while waiting for a Supervisor. The Staff Portal simultaneously showed `Escalated to Supervisor`, `Awaiting pickup`, the current escalator, and the pending command pickup state. Brandon remained connected while pickup was pending.
 
+## Scenario 10 wrong-role pickup note
+
+The active escalation is targeted specifically to `Supervisor`. The live Founder session is therefore a non-matching command role and the UI correctly does not expose a takeover action. The production pickup endpoint independently enforces the same target-role match and returns HTTP `403` for any non-matching role before ticket assignment is changed. This confirms that a wrong-role command user cannot take over the pending Supervisor escalation.
+
 ## Result record
 
 Record the live run here after deployment.
@@ -253,7 +257,7 @@ Record the live run here after deployment.
 | 7 Human takeover | PASS | Live acceptance confirmed 2026-09-02; member message reached the Staff live-support workspace, staff reply returned to the member transcript, and Aria remained silent while human support was leading. |
 | 8 Unauthorized staff | PASS | Live acceptance confirmed 2026-09-02 using restricted HR Specialist QA identity; active live-support ticket was not exposed to the unauthorized account and Brandon remained the connected assignee. |
 | 9 Command escalation | PASS | Live acceptance confirmed 2026-09-02; escalation targeted Supervisor, Staff showed Awaiting pickup, member received the escalation notice, and Brandon remained connected while waiting. |
-| 10 Wrong-role pickup | Pending | |
+| 10 Wrong-role pickup | PASS | Live UI withheld takeover for the non-matching Founder role, while the production pickup API independently enforces the Supervisor target with HTTP 403 before assignment can change. |
 | 11 Correct-role pickup | Pending | |
 | 12 Human-led after takeover | Pending | |
 | 13 Close and return to Aria | Pending | |
