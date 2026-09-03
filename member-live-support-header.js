@@ -37,9 +37,19 @@
     }
   }
 
+  function loadMemberPortalRedesign(){
+    if(document.querySelector('script[data-member-redesign]'))return;
+    const script=document.createElement('script');
+    script.src='member-portal-redesign.js?v=1';
+    script.dataset.memberRedesign='true';
+    script.defer=true;
+    document.body.appendChild(script);
+  }
+
   function boot(){
     showAriaHeader();
     refreshHeader();
+    loadMemberPortalRedesign();
     setInterval(refreshHeader,10000);
     document.getElementById('ariaChatLauncher')?.addEventListener('click',()=>setTimeout(refreshHeader,0));
   }
