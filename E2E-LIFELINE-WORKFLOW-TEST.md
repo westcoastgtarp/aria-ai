@@ -218,7 +218,7 @@ The repository currently contains the required route chain and client handoff lo
 - Member live-support client intercepts Aria input while human support is active.
 - Escalation pickup reassigns the ticket to the command-role user and clears typing state.
 
-A full **live acceptance run still requires authenticated member, Operations staff, and command-role browser sessions** because the behavior depends on production session cookies and D1 state.
+The full live acceptance run was completed on 2026-09-02 using authenticated member, Operations/Founder, restricted QA, and Supervisor QA browser sessions.
 
 ## Scenario 3 defect / fix note
 
@@ -250,9 +250,11 @@ Live acceptance used a separate Operations / Supervisor QA identity to pick up t
 
 Live acceptance confirmed that after command pickup, a member message reached the QA Supervisor live-support workspace and the QA Supervisor response returned to the member transcript. Aria did not resume responding, Brandon did not regain the active lead, and the transcript remained continuous across the escalation handoff. An apparent duplicate during review was confirmed to have been caused by the tester accidentally sending the same text from both sides, not by the application.
 
-## Result record
+## Scenario 13 close-and-return note
 
-Record the live run here after deployment.
+Live acceptance confirmed the active Member Communication conversation was closed and moved into **Aria Chat → Closed Member Conversations** with a `CLOSED • Review only` state and preserved transcript. On the member side, the live-support identity cleared, the header returned to `Aria AI`, and a new normal member message received a direct Aria response again. This verifies that member input returned to the Aria Assistant after live support ended. A separate UI cleanup was also added so archived/review-only conversations no longer expose the `Escalate conversation` control.
+
+## Result record
 
 | Scenario | Result | Notes |
 |---|---|---|
@@ -268,6 +270,8 @@ Record the live run here after deployment.
 | 10 Wrong-role pickup | PASS | Live UI withheld takeover for the non-matching Founder role, while the production pickup API independently enforces the Supervisor target with HTTP 403 before assignment can change. |
 | 11 Correct-role pickup | PASS | Live acceptance confirmed 2026-09-02; QA Supervisor picked up the Supervisor escalation, Staff and Member UIs both showed QA leading, and the prior conversation remained intact across the handoff. |
 | 12 Human-led after takeover | PASS | Live acceptance confirmed 2026-09-02; member-to-QA and QA-to-member messaging worked after handoff, Aria stayed silent, Brandon did not regain control, and conversation history remained continuous. |
-| 13 Close and return to Aria | Pending | |
+| 13 Close and return to Aria | PASS | Live acceptance confirmed 2026-09-02; ticket moved to Closed Member Conversations, member live-support identity cleared, and Aria resumed responding normally. |
 
-Phase 3 item #8 is complete only after all required scenarios are marked **PASS** and any discovered defects have been fixed and re-tested.
+## Final acceptance result
+
+**PASS — Phase 3 build-plan item #8 is complete.** All 13 required live workflow scenarios passed after discovered defects were fixed and re-tested.
