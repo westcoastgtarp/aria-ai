@@ -7,15 +7,15 @@
   function savedTheme(){
     try{
       const value=localStorage.getItem(KEY);
-      return THEMES.includes(value)?value:'light';
-    }catch{return 'light';}
+      return THEMES.includes(value)?value:'night';
+    }catch{return 'night';}
   }
 
   function mountBrand(){
     const brand=document.querySelector('.staff-sidebar .brand-block');
     if(!brand||brand.dataset.ariaBrandMounted==='true')return;
     brand.dataset.ariaBrandMounted='true';
-    brand.innerHTML='<img src="/aria-staff-brand.svg?v=20260902-1" alt="Aria AI Staff Operations" class="aria-sidebar-brand-image" style="display:block;width:100%;max-width:220px;height:auto;background:transparent;border:0;border-radius:0;box-shadow:none;mix-blend-mode:screen;filter:saturate(1.08) contrast(1.06);" />';
+    brand.innerHTML='<img src="/aria-staff-brand-transparent.png?v=20260902-2" alt="Aria AI Staff Operations" class="aria-sidebar-brand-image" style="display:block;width:100%;max-width:220px;height:auto;background:transparent;border:0;border-radius:0;box-shadow:none;" />';
     brand.style.display='block';
     brand.style.padding='0';
     brand.style.margin='0 0 18px';
@@ -25,7 +25,7 @@
   }
 
   function apply(theme){
-    const next=THEMES.includes(theme)?theme:'light';
+    const next=THEMES.includes(theme)?theme:'night';
     document.body.dataset.staffTheme=next;
     try{localStorage.setItem(KEY,next);}catch{}
     mountBrand();
@@ -56,9 +56,26 @@
     return true;
   }
 
+  function loadStaffCleanup(){
+    if(!document.querySelector('link[data-staff-cleanup]')){
+      const link=document.createElement('link');
+      link.rel='stylesheet';
+      link.href='staff-portal-cleanup.css?v=20260902-1';
+      link.dataset.staffCleanup='true';
+      document.head.appendChild(link);
+    }
+    if(!document.querySelector('script[data-staff-cleanup]')){
+      const script=document.createElement('script');
+      script.src='staff-portal-cleanup.js?v=20260902-1';
+      script.dataset.staffCleanup='true';
+      document.body.appendChild(script);
+    }
+  }
+
   apply(savedTheme());
   if(!mount()){
     const timer=setInterval(()=>{if(mount())clearInterval(timer);},100);
     setTimeout(()=>clearInterval(timer),10000);
   }
+  loadStaffCleanup();
 })();
