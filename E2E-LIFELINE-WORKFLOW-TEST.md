@@ -228,6 +228,12 @@ The client was corrected so browser fallback evaluates the **current member mess
 
 Live retest passed on 2026-09-02: the first two concern messages remained with Aria, and the support-choice card appeared only after the third repeated concern message. No automatic human takeover occurred.
 
+## Scenario 8 access-control note
+
+Live acceptance used a temporary HR / HR Specialist QA identity while the active Member Communication conversation remained assigned to Brandon. The restricted account's Operations view showed no active ticket and could not see or take over the in-progress live-support conversation, so the existing assignment was preserved.
+
+The test also exposed a presentation issue: the restricted HR account could still see sidebar links for unrelated staff areas even though the backend did not expose the live-support work. `staff-access-guard.js` was tightened after the test so non-administrative staff navigation follows department/role least privilege as well. The server remains the authoritative security boundary.
+
 ## Result record
 
 Record the live run here after deployment.
@@ -241,7 +247,7 @@ Record the live run here after deployment.
 | 5 Request de-duplication | PASS | Live acceptance confirmed 2026-09-02; repeated request did not increase the Staff Portal open-work-ticket count, which remained at one open ticket for the active test flow. |
 | 6 Staff start | PASS | Live acceptance confirmed 2026-09-02; Operations showed Open 0 / In Progress 1, the live-support workspace opened as Brandon connected, the member UI switched to Brandon • Aria Support, and the staff message appeared in the member transcript. |
 | 7 Human takeover | PASS | Live acceptance confirmed 2026-09-02; member message reached the Staff live-support workspace, staff reply returned to the member transcript, and Aria remained silent while human support was leading. |
-| 8 Unauthorized staff | Pending | |
+| 8 Unauthorized staff | PASS | Live acceptance confirmed 2026-09-02 using restricted HR Specialist QA identity; active live-support ticket was not exposed to the unauthorized account and Brandon remained the connected assignee. |
 | 9 Command escalation | Pending | |
 | 10 Wrong-role pickup | Pending | |
 | 11 Correct-role pickup | Pending | |
