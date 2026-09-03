@@ -223,6 +223,26 @@
     return signals.some(signal=>t.includes(signal));
   }
 
+  function hasCurrentCriticalSignal(text){
+    const t=String(text||'').toLowerCase();
+    const signals=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];
+    return signals.some(signal=>t.includes(signal));
+  }
+
+  function hasCurrentHighSignal(text){
+    const t=String(text||'').toLowerCase();
+    const signals=['feel unsafe','i feel unsafe','need help now','need help right now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];
+    return signals.some(signal=>t.includes(signal));
+  }
+
+  function safeClientFallbackRisk(text){
+    if(hasCurrentCriticalSignal(text))return 'critical';
+    if(hasCurrentHighSignal(text))return 'high';
+    if(isPersonalConcernMessage(text))return 'concern';
+    const detected=clientFallbackRisk(text);
+    return ['normal','concern','high','critical'].includes(detected)?detected:'normal';
+  }
+
   function isExplicitSupportRequest(text){
     return String(text||'').toLowerCase().includes('i need to talk to someone');
   }
@@ -291,7 +311,7 @@
       risk=await assessRisk(text);
     }catch(error){
       console.error('Lifeline risk endpoint unavailable; using browser fallback',error);
-      risk.level=clientFallbackRisk(`${history.map(h=>h.content).join(' ')} ${text}`);
+      risk.level=safeClientFallbackRisk(text);
     }
 
     if(typeof window.applyRisk==='function')window.applyRisk(risk.level);
