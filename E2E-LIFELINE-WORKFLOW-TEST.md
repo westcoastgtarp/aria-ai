@@ -239,8 +239,8 @@ Record the live run here after deployment.
 | 3 Repeated concern | PASS | Live retest confirmed 2026-09-02 after client fix; first two messages stayed with Aria and support choice appeared after the third repeated concern. |
 | 4 Explicit support request | PASS | Live acceptance confirmed 2026-09-02; explicit request presented a choice, member selected live support, and UI confirmed the support request was successfully sent while Aria remained available during the wait. |
 | 5 Request de-duplication | PASS | Live acceptance confirmed 2026-09-02; repeated request did not increase the Staff Portal open-work-ticket count, which remained at one open ticket for the active test flow. |
-| 6 Staff start | Pending | |
-| 7 Human takeover | Pending | |
+| 6 Staff start | PASS | Live acceptance confirmed 2026-09-02; Operations showed Open 0 / In Progress 1, the live-support workspace opened as Brandon connected, the member UI switched to Brandon • Aria Support, and the staff message appeared in the member transcript. |
+| 7 Human takeover | Pending | Member-side connected state is visible; complete with a member-to-staff reply proving Aria remains silent while human support leads. |
 | 8 Unauthorized staff | Pending | |
 | 9 Command escalation | Pending | |
 | 10 Wrong-role pickup | Pending | |
