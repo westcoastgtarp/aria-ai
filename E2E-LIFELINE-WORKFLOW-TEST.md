@@ -219,6 +219,10 @@ The repository currently contains the required route chain and client handoff lo
 
 A full **live acceptance run still requires authenticated member, Operations staff, and command-role browser sessions** because the behavior depends on production session cookies and D1 state.
 
+## Test isolation note
+
+Scenario 3 must be run from a clean member-support state. A recent critical member message is intentionally included in the risk monitor's durable recent-member context, and an open assigned Member Communication ticket can also reconnect the member directly to live support. Either condition can make the first concern-level message behave as part of an ongoing higher-risk conversation rather than as a fresh scenario. Close prior live-support tickets and use a clean conversation/test member before judging Scenario 3.
+
 ## Result record
 
 Record the live run here after deployment.
@@ -227,7 +231,7 @@ Record the live run here after deployment.
 |---|---|---|
 | 1 Normal conversation | PASS | Live acceptance confirmed 2026-09-02. |
 | 2 Educational context | PASS | Live acceptance confirmed 2026-09-02; educational overdose question answered without personal emergency or live-support takeover. |
-| 3 Repeated concern | Pending | |
+| 3 Repeated concern | RETEST | First attempt invalidated by earlier critical-risk/live-support state; rerun from a clean support/conversation state. |
 | 4 Explicit support request | Pending | |
 | 5 Request de-duplication | Pending | |
 | 6 Staff start | Pending | |
