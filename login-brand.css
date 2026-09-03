@@ -1,8 +1,8 @@
-/* Current Aria brand treatment used on the shared sign-in page. */
+/* Sign-in-only Aria Lifeline brand treatment. */
 .brand-lockup-current {
   display: block;
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
 }
 
 .brand-current-logo {
@@ -11,16 +11,17 @@
   height: auto;
   object-fit: contain;
   object-position: left center;
+  content: url("aria-lifeline-login.svg");
 }
 
 @media (max-width: 900px) {
   .brand-lockup-current {
-    max-width: 285px;
+    max-width: 320px;
   }
 }
 
 @media (max-width: 520px) {
   .brand-lockup-current {
-    max-width: 245px;
+    max-width: 270px;
   }
 }
