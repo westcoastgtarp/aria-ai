@@ -234,6 +234,10 @@ Live acceptance used a temporary HR / HR Specialist QA identity while the active
 
 The test also exposed a presentation issue: the restricted HR account could still see sidebar links for unrelated staff areas even though the backend did not expose the live-support work. `staff-access-guard.js` was tightened after the test so non-administrative staff navigation follows department/role least privilege as well. The server remains the authoritative security boundary.
 
+## Scenario 9 command-escalation note
+
+Live acceptance escalated the active human-led conversation to the `Supervisor` command role. The member UI displayed a notice that the conversation had been escalated and that Brandon would remain present while waiting for a Supervisor. The Staff Portal simultaneously showed `Escalated to Supervisor`, `Awaiting pickup`, the current escalator, and the pending command pickup state. Brandon remained connected while pickup was pending.
+
 ## Result record
 
 Record the live run here after deployment.
@@ -248,7 +252,7 @@ Record the live run here after deployment.
 | 6 Staff start | PASS | Live acceptance confirmed 2026-09-02; Operations showed Open 0 / In Progress 1, the live-support workspace opened as Brandon connected, the member UI switched to Brandon • Aria Support, and the staff message appeared in the member transcript. |
 | 7 Human takeover | PASS | Live acceptance confirmed 2026-09-02; member message reached the Staff live-support workspace, staff reply returned to the member transcript, and Aria remained silent while human support was leading. |
 | 8 Unauthorized staff | PASS | Live acceptance confirmed 2026-09-02 using restricted HR Specialist QA identity; active live-support ticket was not exposed to the unauthorized account and Brandon remained the connected assignee. |
-| 9 Command escalation | Pending | |
+| 9 Command escalation | PASS | Live acceptance confirmed 2026-09-02; escalation targeted Supervisor, Staff showed Awaiting pickup, member received the escalation notice, and Brandon remained connected while waiting. |
 | 10 Wrong-role pickup | Pending | |
 | 11 Correct-role pickup | Pending | |
 | 12 Human-led after takeover | Pending | |
