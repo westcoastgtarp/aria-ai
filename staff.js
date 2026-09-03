@@ -207,7 +207,7 @@
         document.body.appendChild(footer);
 
         const guard=document.createElement('script');
-        guard.src='staff-access-guard.js?v=20260902-1';
+        guard.src='staff-access-guard.js?v=20260902-2';
         guard.onload=()=>{
           const audit=document.createElement('script');
           audit.src='audit-blueprint.js?v=20260828-2';
@@ -220,6 +220,11 @@
               invites.onload=()=>{
                 const provisioning=document.createElement('script');
                 provisioning.src='staff-account-provisioning.js?v=20260821-d1-roster';
+                provisioning.onload=()=>{
+                  const qaHelper=document.createElement('script');
+                  qaHelper.src='staff-qa-test-helper.js?v=20260902-2';
+                  document.body.appendChild(qaHelper);
+                };
                 document.body.appendChild(provisioning);
               };
               document.body.appendChild(invites);
