@@ -246,6 +246,10 @@ The active escalation is targeted specifically to `Supervisor`. The live Founder
 
 Live acceptance used a separate Operations / Supervisor QA identity to pick up the active Supervisor escalation. After pickup, the member UI changed to `QA • Aria Support`, displayed `QA is connected`, and explicitly stated that QA was now leading the conversation. The Supervisor Staff Portal simultaneously showed `LIVE • QA connected` and `QA is now leading`, confirming the command-role pickup changed the active lead rather than only updating presentation state. The prior Brandon messages remained visible in the member transcript, preserving continuity across the handoff.
 
+## Scenario 12 post-handoff continuity note
+
+Live acceptance confirmed that after command pickup, a member message reached the QA Supervisor live-support workspace and the QA Supervisor response returned to the member transcript. Aria did not resume responding, Brandon did not regain the active lead, and the transcript remained continuous across the escalation handoff. An apparent duplicate during review was confirmed to have been caused by the tester accidentally sending the same text from both sides, not by the application.
+
 ## Result record
 
 Record the live run here after deployment.
@@ -263,7 +267,7 @@ Record the live run here after deployment.
 | 9 Command escalation | PASS | Live acceptance confirmed 2026-09-02; escalation targeted Supervisor, Staff showed Awaiting pickup, member received the escalation notice, and Brandon remained connected while waiting. |
 | 10 Wrong-role pickup | PASS | Live UI withheld takeover for the non-matching Founder role, while the production pickup API independently enforces the Supervisor target with HTTP 403 before assignment can change. |
 | 11 Correct-role pickup | PASS | Live acceptance confirmed 2026-09-02; QA Supervisor picked up the Supervisor escalation, Staff and Member UIs both showed QA leading, and the prior conversation remained intact across the handoff. |
-| 12 Human-led after takeover | Pending | |
+| 12 Human-led after takeover | PASS | Live acceptance confirmed 2026-09-02; member-to-QA and QA-to-member messaging worked after handoff, Aria stayed silent, Brandon did not regain control, and conversation history remained continuous. |
 | 13 Close and return to Aria | Pending | |
 
 Phase 3 item #8 is complete only after all required scenarios are marked **PASS** and any discovered defects have been fixed and re-tested.
