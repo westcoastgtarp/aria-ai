@@ -25,6 +25,33 @@
   filter: drop-shadow(0 8px 22px rgba(0, 140, 255, .16));
 }
 
+.service-disclaimer {
+  max-width: 560px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 199, 102, .22);
+  border-radius: 14px;
+  background: rgba(255, 179, 71, .07);
+}
+
+.service-disclaimer strong,
+.service-disclaimer span {
+  display: block;
+}
+
+.service-disclaimer strong {
+  margin-bottom: 5px;
+  color: #ffe3ad;
+  font-size: 11px;
+  letter-spacing: .02em;
+}
+
+.service-disclaimer span {
+  color: #c7d0df;
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+
 @media (max-width: 900px) {
   .brand-lockup-current {
     max-width: 220px;
@@ -36,5 +63,9 @@
   .brand-lockup-current {
     max-width: 190px;
     margin-bottom: 14px;
+  }
+
+  .service-disclaimer {
+    padding: 12px 13px;
   }
 }
