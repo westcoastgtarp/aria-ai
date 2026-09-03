@@ -40,7 +40,7 @@
   function loadMemberPortalRedesign(){
     if(document.querySelector('script[data-member-redesign]'))return;
     const script=document.createElement('script');
-    script.src='member-portal-redesign.js?v=1';
+    script.src='member-portal-redesign.js?v=2';
     script.dataset.memberRedesign='true';
     script.defer=true;
     document.body.appendChild(script);
