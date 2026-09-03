@@ -69,7 +69,7 @@
   background:
     linear-gradient(145deg,rgba(10,62,126,.47),rgba(22,28,76,.67) 60%,rgba(67,34,132,.50));
 }
-.member-redesign .member-care-plan-card.annual{
+.member-redesign .member-care-plan-card.monthly{
   border-color:rgba(159,91,255,.44);
   box-shadow:inset 0 0 0 1px rgba(77,201,255,.06);
 }
