@@ -237,7 +237,7 @@ Record the live run here after deployment.
 | 1 Normal conversation | PASS | Live acceptance confirmed 2026-09-02. |
 | 2 Educational context | PASS | Live acceptance confirmed 2026-09-02; educational overdose question answered without personal emergency or live-support takeover. |
 | 3 Repeated concern | PASS | Live retest confirmed 2026-09-02 after client fix; first two messages stayed with Aria and support choice appeared after the third repeated concern. |
-| 4 Explicit support request | Pending | |
+| 4 Explicit support request | PASS | Live acceptance confirmed 2026-09-02; explicit request presented a choice, member selected live support, and UI confirmed the support request was successfully sent while Aria remained available during the wait. |
 | 5 Request de-duplication | Pending | |
 | 6 Staff start | Pending | |
 | 7 Human takeover | Pending | |
