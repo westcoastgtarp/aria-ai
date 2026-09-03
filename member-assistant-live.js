@@ -95,18 +95,13 @@
   }
 
   async function saveAssistantNotice(text,riskLevel='normal'){
-    try{
-      await saveDeterministicMessage('assistant',text,riskLevel);
-    }catch(error){
-      console.error('Conversation notice persistence failed',error);
-    }
+    try{await saveDeterministicMessage('assistant',text,riskLevel);}
+    catch(error){console.error('Conversation notice persistence failed',error);}
   }
 
   async function assessRisk(text){
     const response=await fetch('/api/member/lifeline/risk',{
-      method:'POST',
-      credentials:'same-origin',
-      headers:{'content-type':'application/json'},
+      method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},
       body:JSON.stringify({message:text,history:history.slice(-12)})
     });
     const data=await response.json().catch(()=>({}));
@@ -116,17 +111,13 @@
 
   async function askAssistant(text,riskLevel='normal'){
     const response=await fetch('/api/member/assistant',{
-      method:'POST',
-      credentials:'same-origin',
-      headers:{'content-type':'application/json'},
+      method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},
       body:JSON.stringify({message:text,riskLevel})
     });
     const data=await response.json().catch(()=>({}));
     if(!response.ok||!data.ok){
       const error=new Error(data.error||'Aria Assistant is unavailable right now.');
-      error.code=String(data.code||'');
-      error.status=response.status;
-      throw error;
+      error.code=String(data.code||'');error.status=response.status;throw error;
     }
     return String(data.answer||'').trim();
   }
@@ -135,106 +126,54 @@
     if(supportEscalated)return true;
     try{
       const response=await fetch('/api/member/lifeline/support-escalate',{
-        method:'POST',
-        credentials:'same-origin',
-        headers:{'content-type':'application/json'},
-        body:JSON.stringify({risk,trigger})
+        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({risk,trigger})
       });
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||'Support request could not be created.');
-      supportEscalated=true;
-      return true;
-    }catch(error){
-      console.error('Lifeline support request failed',error);
-      return false;
-    }
+      supportEscalated=true;return true;
+    }catch(error){console.error('Lifeline support request failed',error);return false;}
   }
 
   function offerLiveSupport(riskLevel,trigger){
     if(supportEscalated||supportOfferVisible)return;
-    const log=document.getElementById('ariaBubbleLog');
-    if(!log)return;
-    ensureSupportStyles();
-    supportOfferVisible=true;
-
-    const card=document.createElement('div');
-    card.className='aria-support-choice';
+    const log=document.getElementById('ariaBubbleLog');if(!log)return;
+    ensureSupportStyles();supportOfferVisible=true;
+    const card=document.createElement('div');card.className='aria-support-choice';
     card.innerHTML=`
       <div class="aria-support-choice-title">Would you like to keep talking with Aria or speak with someone?</div>
       <div class="aria-support-choice-actions">
-        <button type="button" class="aria-support-choice-button aria-support-choice-continue" data-choice="aria">
-          <strong>Keep chatting with Aria</strong>
-          <span>Stay here and keep talking with Aria.</span>
-        </button>
-        <button type="button" class="aria-support-choice-button aria-support-choice-live" data-choice="support">
-          <strong>Speak with someone now</strong>
-          <span>You don’t have to handle this conversation alone.</span>
-        </button>
+        <button type="button" class="aria-support-choice-button aria-support-choice-continue" data-choice="aria"><strong>Keep chatting with Aria</strong><span>Stay here and keep talking with Aria.</span></button>
+        <button type="button" class="aria-support-choice-button aria-support-choice-live" data-choice="support"><strong>Speak with someone now</strong><span>You don’t have to handle this conversation alone.</span></button>
       </div>`;
-
-    const closeOffer=()=>{
-      supportOfferVisible=false;
-      card.remove();
-    };
-
-    card.querySelector('[data-choice="aria"]')?.addEventListener('click',()=>{
-      closeOffer();
-      add('aria','I’m here with you. We can keep talking here.');
-    });
-
+    const closeOffer=()=>{supportOfferVisible=false;card.remove();};
+    card.querySelector('[data-choice="aria"]')?.addEventListener('click',()=>{closeOffer();add('aria','I’m here with you. We can keep talking here.');});
     card.querySelector('[data-choice="support"]')?.addEventListener('click',async()=>{
-      const buttons=[...card.querySelectorAll('button')];
-      buttons.forEach(button=>button.disabled=true);
-      const requested=await escalateToSupport(riskLevel,trigger);
-      closeOffer();
-      const notice=requested
-        ?'Your live support request has been sent. You can keep chatting with Aria here while you wait.'
-        :'I couldn’t send the live support request right now. You can keep chatting with Aria and try again in a moment.';
-      add('aria',notice);
-      if(requested)await saveAssistantNotice(notice,riskLevel);
+      const buttons=[...card.querySelectorAll('button')];buttons.forEach(button=>button.disabled=true);
+      const requested=await escalateToSupport(riskLevel,trigger);closeOffer();
+      const notice=requested?'Your live support request has been sent. You can keep chatting with Aria here while you wait.':'I couldn’t send the live support request right now. You can keep chatting with Aria and try again in a moment.';
+      add('aria',notice);if(requested)await saveAssistantNotice(notice,riskLevel);
     });
-
-    log.appendChild(card);
-    log.scrollTop=log.scrollHeight;
+    log.appendChild(card);log.scrollTop=log.scrollHeight;
   }
 
-  function clientFallbackRisk(text){
-    if(typeof window.detectRisk==='function')return window.detectRisk(text);
-    return 'normal';
-  }
-
-  function updateConcernStreak(level){
-    if(level==='concern')concernStreak+=1;
-    else if(level==='normal')concernStreak=0;
-    else concernStreak=Math.max(concernStreak,1);
-    return concernStreak;
-  }
+  function clientFallbackRisk(text){if(typeof window.detectRisk==='function')return window.detectRisk(text);return 'normal';}
+  function updateConcernStreak(level){if(level==='concern')concernStreak+=1;else if(level==='normal')concernStreak=0;else concernStreak=Math.max(concernStreak,1);return concernStreak;}
 
   function isPersonalConcernMessage(text){
     const t=String(text||'').toLowerCase();
-    const signals=[
-      'i’m overwhelmed','i\'m overwhelmed','im overwhelmed','i am overwhelmed',
-      'really overwhelmed','still really overwhelmed','feeling really overwhelmed','feeling overwhelmed',
-      'i’m scared','i\'m scared','im scared','i am scared','getting more scared',
-      'can’t calm down','cant calm down','cannot calm down',
-      'i’m panicking','i\'m panicking','im panicking','i am panicking',
-      'i feel panicked','i feel anxious','really anxious','i don’t know what to do','i dont know what to do'
-    ];
+    const signals=['i’m overwhelmed','i\'m overwhelmed','im overwhelmed','i am overwhelmed','really overwhelmed','still really overwhelmed','feeling really overwhelmed','feeling overwhelmed','i’m scared','i\'m scared','im scared','i am scared','getting more scared','can’t calm down','cant calm down','cannot calm down','i’m panicking','i\'m panicking','im panicking','i am panicking','i feel panicked','i feel anxious','really anxious','i don’t know what to do','i dont know what to do'];
     return signals.some(signal=>t.includes(signal));
   }
-
   function hasCurrentCriticalSignal(text){
     const t=String(text||'').toLowerCase();
     const signals=['kill myself','suicide','want to die','end my life','can’t breathe','cant breathe','overdose','unconscious','immediate danger','not safe alone','i have a gun','i have a knife','someone is attacking me','trying to kill me','bleeding heavily','i am going to hurt myself','i’m going to hurt myself','im going to hurt myself'];
     return signals.some(signal=>t.includes(signal));
   }
-
   function hasCurrentHighSignal(text){
     const t=String(text||'').toLowerCase();
     const signals=['feel unsafe','i feel unsafe','need help now','need help right now','someone is hurting me','alone and scared','severe pain','very dizzy','getting worse'];
     return signals.some(signal=>t.includes(signal));
   }
-
   function safeClientFallbackRisk(text){
     if(hasCurrentCriticalSignal(text))return 'critical';
     if(hasCurrentHighSignal(text))return 'high';
@@ -242,81 +181,53 @@
     const detected=clientFallbackRisk(text);
     return ['normal','concern','high','critical'].includes(detected)?detected:'normal';
   }
-
-  function isExplicitSupportRequest(text){
-    return String(text||'').toLowerCase().includes('i need to talk to someone');
+  function normalizeCurrentRisk(risk,text){
+    const level=String(risk?.level||'normal').toLowerCase();
+    if(isPersonalConcernMessage(text)&&!hasCurrentHighSignal(text)&&!hasCurrentCriticalSignal(text)&&(level==='high'||level==='critical')){
+      return {...risk,level:'concern',source:`${risk?.source||'risk'}-concern-guard`};
+    }
+    return {...risk,level:['normal','concern','high','critical'].includes(level)?level:'normal'};
   }
 
+  function isExplicitSupportRequest(text){return String(text||'').toLowerCase().includes('i need to talk to someone');}
   function durableRecentConcernCount(currentText){
-    const memberMessages=history
-      .filter(item=>item.role==='user')
-      .map(item=>item.content);
-    return [...memberMessages,currentText]
-      .slice(-3)
-      .filter(isPersonalConcernMessage)
-      .length;
+    const memberMessages=history.filter(item=>item.role==='user').map(item=>item.content);
+    return [...memberMessages,currentText].slice(-3).filter(isPersonalConcernMessage).length;
   }
 
   async function handleExplicitSupportRequest(text){
     const acknowledgment='I hear you. Would you like to speak with someone now?';
-    add('aria',acknowledgment);
-    offerLiveSupport('concern','explicit_support_request');
-    history.push({role:'user',content:text},{role:'assistant',content:acknowledgment});
-    history=history.slice(-12);
-
+    add('aria',acknowledgment);offerLiveSupport('concern','explicit_support_request');
+    history.push({role:'user',content:text},{role:'assistant',content:acknowledgment});history=history.slice(-12);
     try{
       await Promise.all([
         saveDeterministicMessage('member',text,'concern'),
         saveDeterministicMessage('assistant',acknowledgment,'concern'),
         assessRisk(text).catch(error=>{console.error('Lifeline risk assessment failed after explicit support request',error);return null;})
       ]);
-    }catch(error){
-      console.error('Explicit support request persistence failed',error);
-    }
+    }catch(error){console.error('Explicit support request persistence failed',error);}
   }
 
   async function send(event){
-    event?.preventDefault();
-    event?.stopImmediatePropagation();
+    event?.preventDefault();event?.stopImmediatePropagation();
     if(sending||window.__ariaHumanSupportActive)return;
-
-    const input=document.getElementById('ariaBubbleInput');
-    const button=document.getElementById('ariaBubbleSend');
-    const text=input?.value.trim();
+    const input=document.getElementById('ariaBubbleInput');const button=document.getElementById('ariaBubbleSend');const text=input?.value.trim();
     if(!input||!button||!text)return;
-
-    add('user',text);
-    input.value='';
+    add('user',text);input.value='';
 
     if(isExplicitSupportRequest(text)){
-      sending=true;
-      button.disabled=true;
-      const oldText=button.textContent;
-      button.textContent='…';
-      try{await handleExplicitSupportRequest(text);}finally{
-        sending=false;
-        button.disabled=false;
-        button.textContent=oldText;
-      }
-      return;
+      sending=true;button.disabled=true;const oldText=button.textContent;button.textContent='…';
+      try{await handleExplicitSupportRequest(text);}finally{sending=false;button.disabled=false;button.textContent=oldText;}return;
     }
 
-    sending=true;
-    button.disabled=true;
-    const oldText=button.textContent;
-    button.textContent='…';
-
+    sending=true;button.disabled=true;const oldText=button.textContent;button.textContent='…';
     let risk={level:'normal',responseWindowSeconds:0,source:'client-fallback'};
-    try{
-      risk=await assessRisk(text);
-    }catch(error){
-      console.error('Lifeline risk endpoint unavailable; using browser fallback',error);
-      risk.level=safeClientFallbackRisk(text);
-    }
+    try{risk=await assessRisk(text);}
+    catch(error){console.error('Lifeline risk endpoint unavailable; using browser fallback',error);risk.level=safeClientFallbackRisk(text);}
+    risk=normalizeCurrentRisk(risk,text);
 
     if(typeof window.applyRisk==='function')window.applyRisk(risk.level);
-    const streak=updateConcernStreak(risk.level);
-    const durableConcernCount=durableRecentConcernCount(text);
+    const streak=updateConcernStreak(risk.level);const durableConcernCount=durableRecentConcernCount(text);
     const immediateOffer=risk.level==='high'||risk.level==='critical';
     const repeatedConcern=(risk.level==='concern'&&streak>=3)||durableConcernCount>=3;
     const shouldOfferSupport=immediateOffer||repeatedConcern;
@@ -325,44 +236,27 @@
     if(typeof window.findMedicationStatus==='function'&&risk.level==='normal'){
       const lookup=window.findMedicationStatus(text);
       if(lookup?.intent){
-        const reply=lookup.status&&typeof window.medicationStatusMessage==='function'
-          ?window.medicationStatusMessage(lookup.status)
-          :'Which medication?';
+        const reply=lookup.status&&typeof window.medicationStatusMessage==='function'?window.medicationStatusMessage(lookup.status):'Which medication?';
         add('aria',reply);
         try{await saveDeterministicMessage('member',text,risk.level);await saveDeterministicMessage('assistant',reply,risk.level);}catch(error){console.error('Conversation exchange persistence failed',error);}
-        history.push({role:'user',content:text},{role:'assistant',content:reply});
-        history=history.slice(-12);
-        sending=false;
-        button.disabled=false;
-        button.textContent=oldText;
-        return;
+        history.push({role:'user',content:text},{role:'assistant',content:reply});history=history.slice(-12);
+        sending=false;button.disabled=false;button.textContent=oldText;return;
       }
     }
 
     try{
-      const answer=await askAssistant(text,risk.level);
-      if(window.__ariaHumanSupportActive)return;
-      add('aria',answer);
-      history.push({role:'user',content:text},{role:'assistant',content:answer});
-      history=history.slice(-12);
+      const answer=await askAssistant(text,risk.level);if(window.__ariaHumanSupportActive)return;
+      add('aria',answer);history.push({role:'user',content:text},{role:'assistant',content:answer});history=history.slice(-12);
       if(shouldOfferSupport)offerLiveSupport(risk.level,supportTrigger);
     }catch(error){
       if(error?.code==='human_support_active'||error?.status===409)return;
       add('aria',error?.message||'Aria Assistant is unavailable right now. Please try again.');
       if(shouldOfferSupport)offerLiveSupport(risk.level,supportTrigger);
-    }finally{
-      sending=false;
-      button.disabled=false;
-      button.textContent=oldText;
-    }
+    }finally{sending=false;button.disabled=false;button.textContent=oldText;}
   }
 
-  const sendButton=document.getElementById('ariaBubbleSend');
-  const input=document.getElementById('ariaBubbleInput');
+  const sendButton=document.getElementById('ariaBubbleSend');const input=document.getElementById('ariaBubbleInput');
   sendButton?.addEventListener('click',send,true);
-  input?.addEventListener('keydown',event=>{
-    if(event.key==='Enter')send(event);
-  },true);
-
+  input?.addEventListener('keydown',event=>{if(event.key==='Enter')send(event);},true);
   loadDurableHistory();
 })();
