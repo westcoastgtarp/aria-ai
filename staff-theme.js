@@ -31,6 +31,7 @@
     loadScript('script[data-staff-cleanup]','staff-portal-cleanup.js?v=20260902-2','staffCleanup');
     loadScript('script[data-break-glass]','break-glass-ui.js?v=20260902-1','breakGlass');
     loadScript('script[data-qa-test-helper]','staff-qa-test-helper.js?v=20260902-1','qaTestHelper');
+    loadScript('script[data-header-signout-cleanup]','staff-header-signout-cleanup.js?v=20260902-1','headerSignoutCleanup');
   }
 
   loadStaffLayout();
