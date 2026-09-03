@@ -46,10 +46,28 @@
     document.body.appendChild(script);
   }
 
+  function loadCareCirclePlans(){
+    if(!document.querySelector('link[data-member-care-plans]')){
+      const style=document.createElement('link');
+      style.rel='stylesheet';
+      style.href='member-care-circle-plans.css?v=20260902-1';
+      style.dataset.memberCarePlans='true';
+      document.head.appendChild(style);
+    }
+    if(!document.querySelector('script[data-member-care-plans]')){
+      const script=document.createElement('script');
+      script.src='member-care-circle-plans.js?v=20260902-1';
+      script.dataset.memberCarePlans='true';
+      script.defer=true;
+      document.body.appendChild(script);
+    }
+  }
+
   function boot(){
     showAriaHeader();
     refreshHeader();
     loadMemberPortalRedesign();
+    loadCareCirclePlans();
     setInterval(refreshHeader,10000);
     document.getElementById('ariaChatLauncher')?.addEventListener('click',()=>setTimeout(refreshHeader,0));
   }
