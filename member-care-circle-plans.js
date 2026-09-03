@@ -16,7 +16,7 @@
           <div>
             <div class="member-care-plans-kicker">PLANS & MEMBERSHIP</div>
             <h3>Care Circle & Lifeline plans</h3>
-            <p>Care Circle is included with Aria Lifeline. Choose weekly or annual billing after your learning period, or keep Aria Free for medication tracking and reminders.</p>
+            <p>Care Circle is included with Aria Lifeline. Choose weekly or monthly billing after your learning period, or keep Aria Free for medication tracking and reminders.</p>
           </div>
           <div class="member-care-plans-trial">30-day Aria learning period</div>
         </div>
@@ -47,10 +47,10 @@
             </div>
           </article>
 
-          <article class="member-care-plan-card lifeline annual">
-            <div class="member-care-plan-label">Aria Lifeline — Annual</div>
-            <div class="member-care-plan-price"><strong>$259</strong><span>/year</span></div>
-            <p class="member-care-plan-copy">The same Lifeline and Care Circle features with annual billing.</p>
+          <article class="member-care-plan-card lifeline monthly">
+            <div class="member-care-plan-label">Aria Lifeline — Monthly</div>
+            <div class="member-care-plan-price"><strong>$19.99</strong><span>/month</span></div>
+            <p class="member-care-plan-copy">The same Lifeline and Care Circle features with monthly billing.</p>
             <div class="member-care-plan-features">
               <span>Aria AI companion</span>
               <span>Care Circle</span>
@@ -97,7 +97,7 @@
     preview.innerHTML=`
       <div class="member-care-plan-preview-copy">
         <strong>Care Circle is included with Lifeline</strong>
-        <span>$4.99/week or $259/year</span>
+        <span>$4.99/week or $19.99/month</span>
       </div>
       <button type="button">View plans</button>`;
     preview.querySelector('button')?.addEventListener('click',openCareCirclePlans);
