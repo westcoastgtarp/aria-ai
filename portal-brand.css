@@ -1,72 +1,40 @@
-/* Shared transparent header-logo treatment for the member and staff portals. */
+/* Shared transparent header-logo treatment for the Aria AI member and staff portals.
+   The dedicated SVG assets are transparent, scale cleanly, and prevent the old
+   rectangular image background/cropping from showing in either sidebar. */
+
 .portal-brand {
+  box-sizing: border-box;
+  width: 100%;
   padding: 0 4px 22px;
 }
 
+/* Render each portal's dedicated transparent brand as one complete mark. */
+.portal-brand--member,
 .portal-brand--staff {
   display: block;
-}
-
-.portal-brand-logo {
-  display: block;
-  width: min(100%, 214px);
-  height: auto;
-  object-fit: contain;
-  object-position: left center;
+  min-height: 96px;
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: contain;
 }
 
 .portal-brand--member {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  background-image: url("aria-member-brand.svg");
 }
 
-.portal-brand-symbol {
-  position: relative;
-  display: block;
-  flex: 0 0 102px;
-  width: 102px;
-  height: 82px;
-  overflow: hidden;
+.portal-brand--staff {
+  background-image: url("aria-staff-brand.svg");
 }
 
-.portal-brand-symbol img {
-  position: absolute;
-  inset: 0 auto auto 0;
-  display: block;
-  width: auto;
-  height: 82px;
-  max-width: none;
-}
-
-.portal-brand-copy,
-.portal-brand-name,
-.portal-brand-subtitle {
-  display: block;
-}
-
-.portal-brand-copy {
-  min-width: 0;
-  line-height: 1.05;
-}
-
-.portal-brand-name {
-  color: #f8fbff;
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: -.03em;
-  white-space: nowrap;
-}
-
-.portal-brand-name span {
-  color: #2d8cff;
-}
-
-.portal-brand-subtitle {
-  margin-top: 7px;
-  color: #c0cee3;
-  font-size: 12px;
-  white-space: nowrap;
+/*
+ * Legacy branding children remain in the HTML for backwards compatibility,
+ * but the transparent vector brand above is now the single visual source.
+ * This also fixes the Member Portal previously showing/cropping the staff PNG.
+ */
+.portal-brand--member .portal-brand-symbol,
+.portal-brand--member .portal-brand-copy,
+.portal-brand--staff .portal-brand-logo {
+  display: none !important;
 }
 
 @media (max-width: 900px) {
@@ -74,26 +42,9 @@
     padding: 0 4px 10px;
   }
 
-  .portal-brand-logo {
-    width: 156px;
-  }
-
-  .portal-brand-symbol {
-    flex-basis: 66px;
-    width: 66px;
-    height: 54px;
-  }
-
-  .portal-brand-symbol img {
-    height: 54px;
-  }
-
-  .portal-brand-name {
-    font-size: 17px;
-  }
-
-  .portal-brand-subtitle {
-    margin-top: 4px;
-    font-size: 10px;
+  .portal-brand--member,
+  .portal-brand--staff {
+    min-height: 72px;
+    background-size: contain;
   }
 }
