@@ -22,6 +22,12 @@
     if(time)time.textContent=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(now);
   }
 
+  function removeLegacyThemeControl(){
+    document.querySelectorAll('.staff-theme-control').forEach(control=>control.remove());
+    document.body.dataset.staffTheme='night';
+    try{localStorage.setItem('aria-staff-theme','night');}catch{}
+  }
+
   function normalizeHeader(){
     const topbar=document.querySelector('.staff-topbar');
     if(!topbar)return;
@@ -42,6 +48,8 @@
       if(chip)actions.appendChild(chip);
       topbar.appendChild(actions);
     }
+
+    removeLegacyThemeControl();
 
     if(!actions.querySelector('.staff-header-clock')){
       const clock=document.createElement('div');
@@ -109,12 +117,14 @@
 
   function boot(){
     document.body.classList.add('staff-cleanup');
+    removeLegacyThemeControl();
     normalizeHeader();
     normalizeNavigation();
     removeDuplicateDynamicViews();
     removeWhiteInlineSurfaces();
 
     const observer=new MutationObserver(()=>{
+      removeLegacyThemeControl();
       removeDuplicateDynamicViews();
       normalizeHeader();
       normalizeNavigation();
