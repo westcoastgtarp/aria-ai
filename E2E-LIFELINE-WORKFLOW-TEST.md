@@ -224,7 +224,9 @@ A full **live acceptance run still requires authenticated member, Operations sta
 
 During live acceptance, the first concern-only message (`I'm feeling really overwhelmed today.`) displayed the live-support choice immediately. The browser fallback path was found to classify the concatenated recent chat history plus the current message when the Lifeline risk endpoint was unavailable. That allowed earlier educational risk vocabulary (for example, `overdose`) to contaminate a later concern-only fallback result.
 
-The client was corrected so browser fallback evaluates the **current member message only**. Concern-only wording is explicitly treated as `concern` unless that current message contains a genuine high/critical signal. A second client guard also clamps a server `high`/`critical` result back to `concern` for known concern-only wording when the current message contains no high/critical evidence. Scenario 3 must be re-tested after deploying these fixes.
+The client was corrected so browser fallback evaluates the **current member message only**. Concern-only wording is explicitly treated as `concern` unless that current message contains a genuine high/critical signal. A second client guard also clamps a server `high`/`critical` result back to `concern` for known concern-only wording when the current message contains no high/critical evidence.
+
+Live retest passed on 2026-09-02: the first two concern messages remained with Aria, and the support-choice card appeared only after the third repeated concern message. No automatic human takeover occurred.
 
 ## Result record
 
@@ -234,7 +236,7 @@ Record the live run here after deployment.
 |---|---|---|
 | 1 Normal conversation | PASS | Live acceptance confirmed 2026-09-02. |
 | 2 Educational context | PASS | Live acceptance confirmed 2026-09-02; educational overdose question answered without personal emergency or live-support takeover. |
-| 3 Repeated concern | RETEST | Early support choice reproduced after first concern-only message. Client history-contamination and concern-clamp fixes committed; deploy and rerun. |
+| 3 Repeated concern | PASS | Live retest confirmed 2026-09-02 after client fix; first two messages stayed with Aria and support choice appeared after the third repeated concern. |
 | 4 Explicit support request | Pending | |
 | 5 Request de-duplication | Pending | |
 | 6 Staff start | Pending | |
