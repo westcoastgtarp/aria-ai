@@ -183,7 +183,7 @@
       applyStaffIdentity();
 
       const theme=document.createElement('script');
-      theme.src='staff-theme.js?v=20260830-1';
+      theme.src='staff-theme.js?v=20260902-3';
       document.body.appendChild(theme);
 
       const workflow=document.createElement('script');
@@ -207,7 +207,7 @@
         document.body.appendChild(footer);
 
         const guard=document.createElement('script');
-        guard.src='staff-access-guard.js?v=20260830-1';
+        guard.src='staff-access-guard.js?v=20260902-1';
         guard.onload=()=>{
           const audit=document.createElement('script');
           audit.src='audit-blueprint.js?v=20260828-2';
