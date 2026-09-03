@@ -1,8 +1,13 @@
-/* Sign-in-only Aria Lifeline brand treatment. */
+/* Sign-in-only Aria Lifeline brand treatment.
+   The artwork itself is transparent: no card, box, border, or background. */
 .brand-lockup-current {
   display: block;
   width: 100%;
   max-width: 360px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .brand-current-logo {
@@ -11,7 +16,11 @@
   height: auto;
   object-fit: contain;
   object-position: left center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
   content: url("aria-lifeline-login.svg");
+  filter: drop-shadow(0 8px 24px rgba(0, 140, 255, .18));
 }
 
 @media (max-width: 900px) {
