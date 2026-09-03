@@ -225,7 +225,7 @@ Record the live run here after deployment.
 
 | Scenario | Result | Notes |
 |---|---|---|
-| 1 Normal conversation | Pending | |
+| 1 Normal conversation | PASS | Live acceptance confirmed 2026-09-02. |
 | 2 Educational context | Pending | |
 | 3 Repeated concern | Pending | |
 | 4 Explicit support request | Pending | |
