@@ -2,7 +2,30 @@
   if(window.__ariaQaTestHelperLoaded)return;
   window.__ariaQaTestHelperLoaded=true;
 
-  let latestQaUserId=null;
+  const profiles={
+    restricted:{
+      buttonId:'ariaQaTestCreateButton',
+      buttonText:'Create QA Restricted Staff',
+      creatingText:'Creating restricted QA…',
+      displayName:'QA Restricted Staff',
+      emailPrefix:'qa-restricted',
+      department:'HR',
+      role:'HR Specialist',
+      title:'Restricted QA staff account is ready',
+      expected:'No Live Support takeover'
+    },
+    supervisor:{
+      buttonId:'ariaQaSupervisorCreateButton',
+      buttonText:'Create QA Supervisor',
+      creatingText:'Creating QA Supervisor…',
+      displayName:'QA Supervisor',
+      emailPrefix:'qa-supervisor',
+      department:'Operations',
+      role:'Supervisor',
+      title:'QA Supervisor account is ready',
+      expected:'Can pick up Supervisor escalation'
+    }
+  };
 
   function escapeHtml(value=''){
     return String(value).replace(/[&<>"']/g,ch=>({
@@ -15,9 +38,10 @@
     const style=document.createElement('style');
     style.id='ariaQaTestHelperStyles';
     style.textContent=`
-      #ariaQaTestCreateButton{margin-left:10px;border:1px solid rgba(102,164,255,.38);background:linear-gradient(135deg,rgba(21,128,255,.18),rgba(125,77,255,.22));color:#eaf3ff;border-radius:12px;padding:10px 14px;font:inherit;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(16,86,180,.14)}
-      #ariaQaTestCreateButton:hover{border-color:rgba(107,185,255,.7);transform:translateY(-1px)}
-      #ariaQaTestCreateButton:disabled{opacity:.55;cursor:wait;transform:none}
+      .aria-qa-create-button{margin-left:10px;border:1px solid rgba(102,164,255,.38);background:linear-gradient(135deg,rgba(21,128,255,.18),rgba(125,77,255,.22));color:#eaf3ff;border-radius:12px;padding:10px 14px;font:inherit;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(16,86,180,.14)}
+      .aria-qa-create-button:hover{border-color:rgba(107,185,255,.7);transform:translateY(-1px)}
+      .aria-qa-create-button:disabled{opacity:.55;cursor:wait;transform:none}
+      #ariaQaSupervisorCreateButton{background:linear-gradient(135deg,rgba(17,185,129,.18),rgba(59,130,246,.22));border-color:rgba(69,214,177,.4)}
       .aria-qa-overlay{position:fixed;inset:0;z-index:100000;background:rgba(1,8,22,.76);backdrop-filter:blur(8px);display:grid;place-items:center;padding:24px}
       .aria-qa-card{width:min(620px,100%);background:linear-gradient(180deg,#0b1830,#071225);border:1px solid rgba(95,164,255,.34);border-radius:22px;box-shadow:0 26px 80px rgba(0,0,0,.48);padding:24px;color:#eef6ff}
       .aria-qa-card h2{margin:4px 0 8px;font-size:24px;color:#fff}
@@ -46,10 +70,10 @@
     return out;
   }
 
-  function qaEmail(){
+  function qaEmail(profile){
     const stamp=new Date().toISOString().replace(/\D/g,'').slice(0,14);
     const suffix=crypto.getRandomValues(new Uint16Array(1))[0].toString(36);
-    return `qa-restricted-${stamp}-${suffix}@ariaishere.test`;
+    return `${profile.emailPrefix}-${stamp}-${suffix}@ariaishere.test`;
   }
 
   async function api(path,options={}){
@@ -71,7 +95,7 @@
     }
   }
 
-  function showCredentials({email,password,userId}){
+  function showCredentials({email,password,userId,profile}){
     document.getElementById('ariaQaTestOverlay')?.remove();
     const overlay=document.createElement('div');
     overlay.id='ariaQaTestOverlay';
@@ -79,9 +103,9 @@
     overlay.innerHTML=`
       <div class="aria-qa-card" role="dialog" aria-modal="true" aria-labelledby="ariaQaTitle">
         <div class="aria-qa-kicker">PHASE 3 • QA IDENTITY</div>
-        <h2 id="ariaQaTitle">Restricted QA staff account is ready</h2>
-        <p>This temporary account was created through Aria's normal staff provisioning flow and activated with a random password. Use it only for the permission tests, then suspend it.</p>
-        <div class="aria-qa-meta"><span class="aria-qa-chip">Department: HR</span><span class="aria-qa-chip">Role: HR Specialist</span><span class="aria-qa-chip">Expected: No Live Support takeover</span></div>
+        <h2 id="ariaQaTitle">${escapeHtml(profile.title)}</h2>
+        <p>This temporary account was created through Aria's normal staff provisioning flow and activated with a random password. Use it only for the E2E permission tests, then suspend it.</p>
+        <div class="aria-qa-meta"><span class="aria-qa-chip">Department: ${escapeHtml(profile.department)}</span><span class="aria-qa-chip">Role: ${escapeHtml(profile.role)}</span><span class="aria-qa-chip">Expected: ${escapeHtml(profile.expected)}</span></div>
         <div class="aria-qa-field"><label>Email</label><input id="ariaQaEmail" readonly value="${escapeHtml(email)}" /></div>
         <div class="aria-qa-field"><label>Temporary password</label><input id="ariaQaPassword" readonly value="${escapeHtml(password)}" /></div>
         <p class="aria-qa-note">Open an InPrivate/Incognito browser window and sign in with these credentials so your Founder session stays active separately.</p>
@@ -98,14 +122,13 @@
     overlay.addEventListener('click',event=>{if(event.target===overlay)overlay.remove();});
     overlay.querySelector('#ariaQaSuspendAccount')?.addEventListener('click',async event=>{
       const button=event.currentTarget;
-      if(!confirm('Suspend the temporary QA staff account? This will revoke its active sessions.'))return;
+      if(!confirm(`Suspend ${profile.displayName}? This will revoke its active sessions.`))return;
       button.disabled=true;button.textContent='Suspending…';
       try{
         await api(`/api/staff/accounts/${encodeURIComponent(userId)}/status`,{
           method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status:'suspended'})
         });
         button.textContent='QA account suspended';
-        latestQaUserId=null;
       }catch(error){
         alert(error.message||'Unable to suspend the QA account.');
         button.disabled=false;button.textContent='Suspend QA account';
@@ -113,17 +136,17 @@
     });
   }
 
-  async function createQaAccount(button){
+  async function createQaAccount(button,profile){
     if(button.disabled)return;
     button.disabled=true;
     const old=button.textContent;
-    button.textContent='Creating QA account…';
+    button.textContent=profile.creatingText;
     try{
-      const email=qaEmail();
+      const email=qaEmail(profile);
       const password=randomPassword();
       const invitation=await api('/api/staff/invitations',{
         method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({displayName:'QA Restricted Staff',email,department:'HR',role:'HR Specialist'})
+        body:JSON.stringify({displayName:profile.displayName,email,department:profile.department,role:profile.role})
       });
       const setupUrl=String(invitation.invitation?.setupUrl||'');
       const userId=String(invitation.employee?.id||'');
@@ -133,9 +156,8 @@
       await api('/api/staff/setup/complete',{
         method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token,password})
       });
-      latestQaUserId=userId;
-      showCredentials({email,password,userId});
-      window.dispatchEvent(new CustomEvent('aria:qa-staff-created',{detail:{userId,email}}));
+      showCredentials({email,password,userId,profile});
+      window.dispatchEvent(new CustomEvent('aria:qa-staff-created',{detail:{userId,email,department:profile.department,role:profile.role}}));
     }catch(error){
       alert(error.message||'Unable to create the QA staff account.');
     }finally{
@@ -144,22 +166,30 @@
     }
   }
 
-  function mountButton(){
-    if(document.getElementById('ariaQaTestCreateButton'))return;
+  function createButton(profile){
+    const button=document.createElement('button');
+    button.type='button';
+    button.id=profile.buttonId;
+    button.className='aria-qa-create-button';
+    button.textContent=profile.buttonText;
+    button.title=`Create temporary ${profile.department} / ${profile.role} identity for Phase 3 E2E testing`;
+    button.addEventListener('click',()=>createQaAccount(button,profile));
+    return button;
+  }
+
+  function mountButtons(){
     const adminPage=document.getElementById('admin-page');
     const actionHead=adminPage?.querySelector('.section-head.action-head');
     const addEmployee=document.getElementById('addEmployee');
     const host=actionHead||document.querySelector('.staff-topbar-actions');
     if(!host)return;
 
-    const button=document.createElement('button');
-    button.type='button';
-    button.id='ariaQaTestCreateButton';
-    button.textContent='Create QA Test Staff';
-    button.title='Create a temporary restricted HR staff identity for E2E permission testing';
-    button.addEventListener('click',()=>createQaAccount(button));
-    if(addEmployee?.parentElement===host)host.insertBefore(button,addEmployee);
-    else host.appendChild(button);
+    for(const profile of [profiles.restricted,profiles.supervisor]){
+      if(document.getElementById(profile.buttonId))continue;
+      const button=createButton(profile);
+      if(addEmployee?.parentElement===host)host.insertBefore(button,addEmployee);
+      else host.appendChild(button);
+    }
   }
 
   async function start(){
@@ -168,9 +198,9 @@
       const session=await api('/api/auth/session');
       const role=String(session.user?.role||'').trim().toLowerCase();
       if(role!=='founder')return;
-      mountButton();
-      document.querySelectorAll('[data-page="admin"]').forEach(node=>node.addEventListener('click',()=>setTimeout(mountButton,0)));
-      const observer=new MutationObserver(()=>mountButton());
+      mountButtons();
+      document.querySelectorAll('[data-page="admin"]').forEach(node=>node.addEventListener('click',()=>setTimeout(mountButtons,0)));
+      const observer=new MutationObserver(()=>mountButtons());
       observer.observe(document.body,{childList:true,subtree:true});
     }catch{}
   }
