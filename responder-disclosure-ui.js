@@ -134,6 +134,29 @@
     });
   }
 
-  function boot(){ensureStyles();build();document.querySelector('[data-page="operations"]')?.addEventListener('click',()=>setTimeout(build,0));}
+  let remountTimer=null;
+  function scheduleBuild(){
+    clearTimeout(remountTimer);
+    remountTimer=setTimeout(()=>{ensureStyles();build();},40);
+  }
+
+  function boot(){
+    ensureStyles();
+    scheduleBuild();
+    document.querySelector('[data-page="operations"]')?.addEventListener('click',scheduleBuild);
+
+    const observer=new MutationObserver(()=>{
+      if(document.getElementById('operations-page')&&!document.getElementById('responderDisclosurePanel'))scheduleBuild();
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+
+    let attempts=0;
+    const retry=setInterval(()=>{
+      attempts+=1;
+      scheduleBuild();
+      if(document.getElementById('responderDisclosurePanel')||attempts>=20)clearInterval(retry);
+    },250);
+  }
+
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
