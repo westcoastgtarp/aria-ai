@@ -177,6 +177,10 @@
     queueWatch.src='live-support-queue-watch.js?v=20260829-1';
     document.body.appendChild(queueWatch);
 
+    const responderDisclosure=document.createElement('script');
+    responderDisclosure.src='responder-disclosure-ui.js?v=20260903-1';
+    document.body.appendChild(responderDisclosure);
+
     const core=document.createElement('script');
     core.src='staff-core.js';
     core.onload=()=>{
