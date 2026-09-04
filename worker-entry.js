@@ -9,6 +9,7 @@ import { handleCandidateManagementRoute } from './candidate-management-api.js';
 import { handleHrRoute } from './hr-api.js';
 import { handleAuditRoute } from './audit-api.js';
 import { handleBreakGlassRoute } from './break-glass-api.js';
+import { handleResponderDisclosureRoute } from './responder-disclosure-api.js';
 import { handleMemberEntitlementsRoute } from './member-entitlements-api.js';
 import { handleCareCircleRoute } from './care-circle-api.js';
 import { handleCareCircleOutreachRoute } from './care-circle-outreach-api.js';
@@ -113,6 +114,9 @@ export default {
 
     const memberEntitlementsResponse = await handleMemberEntitlementsRoute(request, env);
     if (memberEntitlementsResponse) return memberEntitlementsResponse;
+
+    const responderDisclosureResponse = await handleResponderDisclosureRoute(request, env);
+    if (responderDisclosureResponse) return responderDisclosureResponse;
 
     const breakGlassResponse = await handleBreakGlassRoute(request, env);
     if (breakGlassResponse) return breakGlassResponse;
